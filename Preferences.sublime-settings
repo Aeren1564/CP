@@ -4,7 +4,7 @@
 	"auto_complete_use_history": true,
 	"color_scheme": "Packages/Color Scheme - Default/Celeste.sublime-color-scheme",
 	"default_line_ending": "unix",
-	"font_size": 10,
+	"font_size": 9,
 	"ignored_packages":
 	[
 		"Package Control",
