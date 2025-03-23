@@ -220,7 +220,26 @@ using modular = montgomery_modular_fixed_base<
 		>
 	>
 >;
-constexpr modular operator""_m(const char *x){ return stoll(x); }
+
+constexpr modular operator""_m(const char *x){
+	modular res = 0;
+	long long buffer = 0;
+	long long buffer_width = 1;
+	constexpr long long buffer_th = 1'000'000'000'000'000'000LL;
+	while(*x){
+		#ifdef LOCAL
+		assert(isdigit(*x));
+		#endif
+		buffer = buffer * 10 + (*(x ++) - '0');
+		if((buffer_width *= 10) == buffer_th){
+			res = buffer_width * res + buffer;
+			buffer = 0;
+			buffer_width = 1;
+		}
+	}
+	res = buffer_width * res + buffer;
+	return res;
+}
 ]]></content>
 	<!-- Optional: Set a tabTrigger to define how to trigger the snippet -->
 	<tabTrigger>montgomery_modular_fixed</tabTrigger> -->
