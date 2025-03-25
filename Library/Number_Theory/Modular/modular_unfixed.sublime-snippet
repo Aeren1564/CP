@@ -170,7 +170,9 @@ struct modular_unfixed_base{
 		return modular_unfixed_base{u};
 	}
 	modular_unfixed_base &operator/=(const modular_unfixed_base &otr){
-		return *this = *this * *otr.inverse();
+		auto inv_ptr = otr.inverse();
+		assert(inv_ptr);
+		return *this = *this * *inv_ptr;
 	}
 #define ARITHMETIC_OP(op, apply_op)\
 modular_unfixed_base operator op(const modular_unfixed_base &x) const{ return modular_unfixed_base(*this) apply_op x; }\
@@ -228,7 +230,7 @@ template<int id, class data_t, class wider_data_t> modular_unfixed_base<id, data
 using modular = modular_unfixed_base<0, unsigned int, unsigned long long>;
 // using modular = modular_unfixed_base<0, unsigned long long, __uint128_t>;
 
-constexpr modular operator""_m(const char *x){
+modular operator""_m(const char *x){
 	modular res = 0;
 	long long buffer = 0;
 	long long buffer_width = 1;

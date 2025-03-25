@@ -24,25 +24,25 @@ struct montgomery_modular_fixed_base{
 		return (x + wider_data_t(data_t(x) * data_t(-_r)) * _mod) >> 8 * sizeof(data_t);
 	}
 	template<class T>
-	static vector<montgomery_modular_fixed_base> precalc_power(T base, int SZ){
+	static constexpr vector<montgomery_modular_fixed_base> precalc_power(T base, int SZ){
 		vector<montgomery_modular_fixed_base> res(SZ + 1, 1);
 		for(auto i = 1; i <= SZ; ++ i) res[i] = res[i - 1] * base;
 		return res;
 	}
 	template<class T>
-	static vector<montgomery_modular_fixed_base> precalc_geometric_sum(T base, int SZ){
+	static constexpr vector<montgomery_modular_fixed_base> precalc_geometric_sum(T base, int SZ){
 		vector<montgomery_modular_fixed_base> res(SZ + 1);
 		for(auto i = 1; i <= SZ; ++ i) res[i] = res[i - 1] * base + base;
 		return res;
 	}
 	static vector<montgomery_modular_fixed_base> _INV;
-	static void precalc_inverse(int SZ){
+	static constexpr void precalc_inverse(int SZ){
 		if(_INV.empty()) _INV.assign(2, 1);
 		for(auto x = _INV.size(); x <= SZ; ++ x) _INV.push_back(_mod / x * -_INV[_mod % x]);
 	}
 	// _mod must be a prime
 	static montgomery_modular_fixed_base _primitive_root;
-	static montgomery_modular_fixed_base primitive_root(){
+	static constexpr montgomery_modular_fixed_base primitive_root(){
 		if(_primitive_root) return _primitive_root;
 		if(_mod == 998244353) return _primitive_root = 3;
 		data_t divs[20] = {};
@@ -147,8 +147,10 @@ struct montgomery_modular_fixed_base{
 		if(m != 1) return {};
 		return montgomery_modular_fixed_base{u};
 	}
-	constexpr montgomery_modular_fixed_base &operator/=(const montgomery_modular_fixed_base &otr){
-		return *this = *this * *otr.inverse();
+	montgomery_modular_fixed_base &operator/=(const montgomery_modular_fixed_base &otr){
+		auto inv_ptr = otr.inverse();
+		assert(inv_ptr);
+		return *this = *this * *inv_ptr;
 	}
 #define ARITHMETIC_OP(op, apply_op)\
 constexpr montgomery_modular_fixed_base operator op(const montgomery_modular_fixed_base &x) const{ return montgomery_modular_fixed_base(*this) apply_op x; }\
