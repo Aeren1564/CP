@@ -9,14 +9,14 @@ struct suffix_automaton{
 	// Begin States
 	vector<int> max_len{0}; // Length of the longest string in the class.
 	vector<int> link{-1};
-	vector<int> firstpos{-1}; // Index of the first occurences of the strings in the class.
+	vector<int> first_pos{-1}; // Index of the first occurences of the strings in the class.
 	vector<int> is_clone{false};
 	vector<Adjacency_Type> next{{}};
 	// End States
 	int new_state(int l, int sl, int fp, bool c, const Adjacency_Type &adj){
 		max_len.push_back(l);
 		link.push_back(sl);
-		firstpos.push_back(fp);
+		first_pos.push_back(fp);
 		is_clone.push_back(c);
 		next.push_back(adj);
 		return (int)max_len.size() - 1;
@@ -30,7 +30,7 @@ struct suffix_automaton{
 			int q = next[p][c];
 			if(max_len[p] + 1 == max_len[q]) link[cur] = q;
 			else{
-				int clone = new_state(max_len[p] + 1, link[q], firstpos[q], true, next[q]);
+				int clone = new_state(max_len[p] + 1, link[q], first_pos[q], true, next[q]);
 				while(~p && next[p][c] == q) next[p][c] = clone, p = link[p];
 				link[q] = link[cur] = clone;
 			}
@@ -96,7 +96,7 @@ struct suffix_automaton{
 		assert(!count.empty() && u < size());
 		vector<int> res;
 		auto dfs = [&](auto self, int u)->void{
-			if(!is_clone[u]) res.push_back(firstpos[u]);
+			if(!is_clone[u]) res.push_back(first_pos[u]);
 			for(auto v: inv_link[u]) self(self, v);
 		};
 		dfs(dfs, u);
