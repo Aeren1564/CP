@@ -35,7 +35,7 @@ struct binary_lifting{
 		for(auto d = 1; d < h; ++ d) for(auto u = 0; u < n; ++ u) lift[u][d] = lift[lift[u][d - 1]][d - 1];
 	}
 	// Index becomes the current number of nodes
-	// O(log n)
+	// O(log(n))
 	int add_root(){
 		int u = n ++;
 		depth.push_back(0);
@@ -44,7 +44,7 @@ struct binary_lifting{
 		return u;
 	}
 	// Index becomes the current number of nodes
-	// O(log n)
+	// O(log(n))
 	int add_child(int p){
 		assert(0 <= p && p < n);
 		int u = n ++;
@@ -54,13 +54,13 @@ struct binary_lifting{
 		for(auto d = 1; d < h; ++ d) lift[u][d] = lift[lift[u][d - 1]][d - 1];
 	}
 	// Get the k-th ancestor of u
-	// O(log n)
+	// O(log(n))
 	int ancestor(int u, int k) const{
 		for(auto d = 0; d < h; ++ d) if(k & 1 << d) u = lift[u][d];
 		return u;
 	}
 	// Assumes u and v lies on the same arboresence
-	// O(log n)
+	// O(log(n))
 	int lca(int u, int v) const{
 		if(depth[u] < depth[v]) swap(u, v);
 		u = ancestor(u, depth[u] - depth[v]);
@@ -70,12 +70,12 @@ struct binary_lifting{
 	}
 	// Get # of edges between u and v
 	// Assumes u and v lies on the same arboresence
-	// O(log n)
+	// O(log(n))
 	int steps(int u, int v, int w = -1) const{
 		return depth[u] + depth[v] - 2 * depth[~w ? w : lca(u, v)];
 	}
 	// For an ancestor p of u, pred(p) is T, ..., T, F, ..., F in decreasing order of depth. Returns the highest p with T
-	// O(log n)
+	// O(log(n))
 	pair<int, int> find_highest(int u, auto pred) const{
 		assert(pred(u));
 		int dist = 0;
