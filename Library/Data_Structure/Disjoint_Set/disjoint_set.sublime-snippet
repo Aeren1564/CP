@@ -1,6 +1,6 @@
 <snippet>
 	<content><![CDATA[
-template<bool Enable_small_to_large = true>
+template<bool Enable_small_to_large = true, bool Track_group = true>
 struct disjoint_set{
 #ifdef LOCAL
 	#define ASSERT(x) assert(x)
@@ -11,13 +11,16 @@ struct disjoint_set{
 	vector<int> p;
 	vector<list<int>> group;
 	disjoint_set(){ }
-	disjoint_set(int n): n(n), _group_count(n), p(n, -1), group(n){
+	disjoint_set(int n): n(n), _group_count(n), p(n, -1){
 		ASSERT(n >= 0);
-		for(auto i = 0; i < n; ++ i) group[i] = {i};
+		if constexpr(Track_group){
+			group.resize(n);
+			for(auto i = 0; i < n; ++ i) group[i] = {i};
+		}
 	}
 	int make_set(){
 		p.push_back(-1);
-		group.push_back(list<int>{n});
+		if constexpr(Track_group) group.push_back(list<int>{n});
 		++ _group_count;
 		return n ++;
 	}
@@ -40,7 +43,7 @@ struct disjoint_set{
 		-- _group_count;
 		if constexpr(Enable_small_to_large) if(p[u] > p[v]) swap(u, v);
 		p[u] += p[v], p[v] = u;
-		group[u].splice(group[u].end(), group[v]);
+		if constexpr(Track_group) group[u].splice(group[u].end(), group[v]);
 		return true;
 	}
 	bool merge(int u, int v, auto act){
@@ -52,13 +55,14 @@ struct disjoint_set{
 		if constexpr(Enable_small_to_large) if(p[u] > p[v]) swap(u, v), swapped = true;
 		act(u, v, swapped);
 		p[u] += p[v], p[v] = u;
-		group[u].splice(group[u].end(), group[v]);
+		if constexpr(Track_group) group[u].splice(group[u].end(), group[v]);
 		return true;
 	}
 	int group_count() const{
 		return _group_count;
 	}
 	const list<int> &group_of(int u){
+		static_assert(Track_group);
 		ASSERT(0 <= u && u < n);
 		return group[root(u)];
 	}
@@ -71,7 +75,7 @@ struct disjoint_set{
 	void clear(){
 		_group_count = n;
 		fill(p.begin(), p.end(), -1);
-		for(auto i = 0; i < n; ++ i) group[i] = {i};
+		if constexpr(Track_group) for(auto i = 0; i < n; ++ i) group[i] = {i};
 	}
 	friend ostream &operator<<(ostream &out, disjoint_set dsu){
 		auto gs = dsu.group_up();
