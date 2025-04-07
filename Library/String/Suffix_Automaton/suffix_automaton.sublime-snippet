@@ -7,11 +7,14 @@
 template<class Adjacency_Type>
 struct suffix_automaton{
 	// Begin States
-	vector<int> max_len{0}; // Length of the longest string in the class.
+	vector<int> max_len{0}; // Length of the longest string in the class
 	vector<int> link{-1};
-	vector<int> first_pos{-1}; // Index of the first occurences of the strings in the class.
+	vector<int> first_pos{-1}; // Index (of the last character) of the first occurence of the strings in the class
 	vector<int> is_clone{false};
 	vector<Adjacency_Type> next{{}};
+	suffix_automaton(){}
+	suffix_automaton(const vector<T> &s){ extend(s); }
+	suffix_automaton(const string &s){ extend(s); }
 	// End States
 	int new_state(int l, int sl, int fp, bool c, const Adjacency_Type &adj){
 		max_len.push_back(l);
