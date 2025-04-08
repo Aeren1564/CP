@@ -9,7 +9,7 @@ template<class Char_Type, int Lim>
 vector<int> longest_common_subsequence_lengths(const vector<Char_Type> &s, const vector<Char_Type> &t){
 	if(s.empty()) return {0};
 	int n = (int)s.size(), m = (int)t.size(), sz = (m >> 6) + 1;
-	using mask_type = unsigned long long;
+	using mask_type = uint64_t;
 	array<vector<mask_type>, Lim> masks;
 	masks.fill(vector<mask_type>(sz));
 	for(auto j = 0; j < m; ++ j) masks[t[j]][j >> 6] |= 1ull << (j & 63);

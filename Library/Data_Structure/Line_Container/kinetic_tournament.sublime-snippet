@@ -2,9 +2,9 @@
 	<content><![CDATA[
 template<bool GET_MAX = true>
 struct kinetic_tournament{
-	const long long inf = numeric_limits<long long>::max();
-	using line = pair<long long, long long>;
-	long long eval(const line& ln, long long t){
+	const int64_t inf = numeric_limits<int64_t>::max();
+	using line = pair<int64_t, int64_t>;
+	int64_t eval(const line& ln, int64_t t){
 		return ln.first * t + ln.second;
 	}
 	bool cmp(const line& line1, const line& line2){
@@ -12,11 +12,11 @@ struct kinetic_tournament{
 		if(x != y) return x < y;
 		return line1.first < line2.first;
 	}
-	long long next_isect(const line& line1, const line& line2){
+	int64_t next_isect(const line& line1, const line& line2){
 		if(line1.first > line2.first){
-			long long delta = eval(line2, temp) - eval(line1, temp), delta_slope = line1.first - line2.first;
+			int64_t delta = eval(line2, temp) - eval(line1, temp), delta_slope = line1.first - line2.first;
 			assert(delta > 0);
-			long long mint = temp + (delta - 1) / delta_slope + 1;
+			int64_t mint = temp + (delta - 1) / delta_slope + 1;
 			return mint > temp ? mint : inf;  // prevent overflow
 		}
 		return inf;
@@ -29,7 +29,7 @@ struct kinetic_tournament{
 		if(!cmp(line1, line2)) swap(line1, line2);
 		tree[u] = line1, melt[u] = min(melt[v], melt[w]);
 		if(line1 != line2){
-			long long t = next_isect(line1, line2);
+			int64_t t = next_isect(line1, line2);
 			assert(t > temp);
 			melt[u] = min(melt[u], t);
 		}
@@ -52,8 +52,8 @@ struct kinetic_tournament{
 	}
 	// Find min{ql<=i<qr}( line[i].eval(temp) )
 	// O(log n)
-	long long query(int ql, int qr){
-		auto recurse = [&](auto self, int u, int l, int r)->long long{
+	int64_t query(int ql, int qr){
+		auto recurse = [&](auto self, int u, int l, int r)->int64_t{
 			if(qr <= l || r <= ql) return inf;
 			if(ql <= l && r <= qr) return eval(tree[u], temp);
 			int m = l + (r - l >> 1);
@@ -63,7 +63,7 @@ struct kinetic_tournament{
 	}
 	// Increase temperature to new_temp
 	// O(m alpha(m) log^2 n) for m sequence of operations
-	void heaten(long long new_temp){
+	void heaten(int64_t new_temp){
 		assert(new_temp >= temp);
 		temp = new_temp;
 		rebuild(0, 0, n);
@@ -82,7 +82,7 @@ struct kinetic_tournament{
 			if(!cmp(line1, line2)) swap(line1, line2);
 			tree[u] = line1, melt[u] = min(melt[v], melt[w]);
 			if(line1 != line2){
-				long long t = next_isect(line1, line2);
+				int64_t t = next_isect(line1, line2);
 				assert(t > temp);
 				melt[u] = min(melt[u], t);
 			}
@@ -90,9 +90,9 @@ struct kinetic_tournament{
 		build(build, 0, 0, n);
 	}
 	int n; // size
-	long long temp = 0; // current temperature
+	int64_t temp = 0; // current temperature
 	vector<line> tree; // tournament tree
-	vector<long long> melt; // melting temperature of each subtree
+	vector<int64_t> melt; // melting temperature of each subtree
 };
 ]]></content>
 	<!-- Optional: Set a tabTrigger to define how to trigger the snippet -->

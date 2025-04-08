@@ -2,10 +2,10 @@
 	<content><![CDATA[
 // Find floor(n^1/k) for non-negative integers n, k
 struct floored_root{
-	vector<unsigned long long> pow[65];
+	vector<uint64_t> pow[65];
 	floored_root(){
 		for(auto t = 2u; t < 1 << 16; ++ t){
-			unsigned long long s = t * t;
+			uint64_t s = t * t;
 			s = s * s;
 			for(auto k = 4; ; ++ k){
 				pow[k].push_back(s);
@@ -13,12 +13,12 @@ struct floored_root{
 			}
 		}
 	}
-	unsigned long long sqrt(unsigned long long n) const{
-		unsigned long long x = std::sqrt(n);
+	uint64_t sqrt(uint64_t n) const{
+		uint64_t x = std::sqrt(n);
 		return x * x > n ? x - 1 : x;
 	}
-	unsigned long long cbrt(unsigned long long n) const{
-		unsigned long long x = 0, y = 0;
+	uint64_t cbrt(uint64_t n) const{
+		uint64_t x = 0, y = 0;
 		for(auto s = 63; s >= 0; s -= 3){
 			x <<= 1;
 			y = 3 * x * (x + 1) + 1;
@@ -26,7 +26,7 @@ struct floored_root{
 		}
 		return x;
 	}
-	unsigned long long operator()(unsigned long long n, int k) const{
+	uint64_t operator()(uint64_t n, int k) const{
 		assert(1 <= k && k <= 64);
 		if(k == 1 || n == 0) return n;
 		if(k == 2) return sqrt(n);

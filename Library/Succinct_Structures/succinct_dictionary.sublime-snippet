@@ -2,12 +2,12 @@
 	<content><![CDATA[
 struct succinct_dictionary{
 	static constexpr unsigned int wsize = 64;
-	static unsigned int rank64(unsigned long long x, unsigned int i){
+	static unsigned int rank64(uint64_t x, unsigned int i){
 		return __builtin_popcountll(x & ((1ULL << i) - 1));
 	}
 #pragma pack(4)
 	struct block_t{
-		unsigned long long bit;
+		uint64_t bit;
 		unsigned int sum;
 	};
 #pragma pack()

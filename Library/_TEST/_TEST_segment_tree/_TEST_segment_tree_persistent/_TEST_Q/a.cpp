@@ -455,8 +455,8 @@ int main(){
 	int n, qn;
 	cin >> n >> qn;
 	auto seg = make_Q_segment_tree_persistent([&](auto x, auto y){ return max(x, y); }, 0LL);
-	vector<long long> init(n);
-	copy_n(istream_iterator<long long>(cin), n, init.begin());
+	vector<int64_t> init(n);
+	copy_n(istream_iterator<int64_t>(cin), n, init.begin());
 	vector<int> root(qn + 1);
 	root[0] = seg.build(init);
 	for(auto qi = 0; qi < qn; ++ qi){
@@ -470,24 +470,24 @@ int main(){
 		else if(type == 1){ // point query
 			int p;
 			cin >> p;
-			long long x;
+			int64_t x;
 			tie(v, x) = seg.query(u, p);
 			cout << x << "\n";
 		}
 		else if(type == 2){ // range query
 			int ql, qr;
 			cin >> ql >> qr;
-			long long x;
+			int64_t x;
 			tie(v, x) = seg.query(u, ql, qr);
 			cout << x << "\n";
 		}
 		else if(type == 3){ // all query
-			long long x;
+			int64_t x;
 			tie(v, x) = seg.query_all(u);
 			cout << x << "\n";
 		}
 		else if(type == 4){ // to_array
-			vector<long long> arr;
+			vector<int64_t> arr;
 			tie(v, arr) = seg.to_array(u);
 			for(auto i = 0; i < n; ++ i){
 				cout << arr[i] << " ";
@@ -513,7 +513,7 @@ int main(){
 		}
 		else if(type == 8){ // max pref
 			int ql;
-			long long th;
+			int64_t th;
 			cin >> ql >> th;
 			int r;
 			tie(v, r) = seg.max_pref(u, ql, [&](auto sum){ return sum <= th; });
@@ -521,7 +521,7 @@ int main(){
 		}
 		else if(type == 9){ // min suff
 			int qr;
-			long long th;
+			int64_t th;
 			cin >> qr >> th;
 			int l;
 			tie(v, l) = seg.min_suff(u, qr, [&](auto sum){ return sum <= th; });

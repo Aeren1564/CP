@@ -37,7 +37,7 @@ struct number_theory{
 		assert(0 <= x && x <= SZ);
 		return lpf[x] == x;
 	}
-	int mu_large(long long x) const{ // O(sqrt(x))
+	int mu_large(int64_t x) const{ // O(sqrt(x))
 		int res = 1;
 		for(auto i = 2LL; i * i <= x; ++ i) if(x % i == 0){
 			if(x / i % i) return 0;
@@ -46,8 +46,8 @@ struct number_theory{
 		if(x > 1) res = -res;
 		return res;
 	}
-	long long phi_large(long long x) const{ // O(sqrt(x))
-		long long res = x;
+	int64_t phi_large(int64_t x) const{ // O(sqrt(x))
+		int64_t res = x;
 		for(auto i = 2LL; i * i <= x; ++ i) if(x % i == 0){
 			while(x % i == 0) x /= i;
 			res -= res / i;
@@ -56,7 +56,7 @@ struct number_theory{
 		return res;
 	}
 	// returns an array is_prime of length high-low where is_prime[i] = [low+i is a prime]
-	vector<int> sieve(long long low, long long high) const{
+	vector<int> sieve(int64_t low, int64_t high) const{
 		assert(high - 1 <= 1LL * SZ * SZ);
 		vector<int> is_prime(high - low, true);
 		for(auto p: prime) for(auto x = max(1LL * p, (low + p - 1) / p) * p; x < high; x += p) is_prime[x - low] = false;

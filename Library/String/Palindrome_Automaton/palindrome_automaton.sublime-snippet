@@ -15,7 +15,7 @@ struct palindrome_automaton{
 	// End States
 	vector<Char_Type> s{-1};
 	vector<int> last{0};
-	long long palindromic_substring_count = 0;
+	int64_t palindromic_substring_count = 0;
 	int new_state(int l, int u){
 		len.push_back(l);
 		link.push_back(u);

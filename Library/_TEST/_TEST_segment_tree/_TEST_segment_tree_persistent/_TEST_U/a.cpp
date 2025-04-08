@@ -455,8 +455,8 @@ int main(){
 	int n, qn;
 	cin >> n >> qn;
 	auto seg = make_U_segment_tree_persistent(plus<>(), 0LL);
-	vector<long long> init(n);
-	copy_n(istream_iterator<long long>(cin), n, init.begin());
+	vector<int64_t> init(n);
+	copy_n(istream_iterator<int64_t>(cin), n, init.begin());
 	vector<int> root(qn + 1);
 	root[0] = seg.build_action(init);
 	for(auto qi = 0; qi < qn; ++ qi){
@@ -470,12 +470,12 @@ int main(){
 		else if(type == 1){ // point query_action
 			int p;
 			cin >> p;
-			long long x;
+			int64_t x;
 			tie(v, x) = seg.query_action(u, p);
 			cout << x << "\n";
 		}
 		else if(type == 2){ // to_array_of_updates
-			vector<long long> arr;
+			vector<int64_t> arr;
 			tie(v, arr) = seg.to_array_of_updates(u);
 			for(auto i = 0; i < n; ++ i){
 				cout << arr[i] << " ";

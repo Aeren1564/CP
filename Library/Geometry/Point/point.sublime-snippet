@@ -225,7 +225,7 @@ bool outside_of_circle(point<T> a, point<T> b, point<T> c, const point<T> &d){
 }
 
 using pointint = point<int>;
-using pointll = point<long long>;
+using pointll = point<int64_t>;
 using pointlll = point<__int128_t>;
 using pointd = point<double>;
 using pointld = point<long double>;

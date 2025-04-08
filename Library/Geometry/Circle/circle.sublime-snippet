@@ -75,7 +75,7 @@ struct circle{
 };
 
 using circleint = circle<int>;
-using circlell = circle<long long>;
+using circlell = circle<int64_t>;
 using circlelll = circle<__int128_t>;
 using circled = circle<double>;
 using circleld = circle<long double>;

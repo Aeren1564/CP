@@ -17,16 +17,16 @@ struct distinct_substring_count_query_solver_offline{
 	// O(n * log^2(n))
 	void solve(auto answer){
 		int n = aut.max_len[aut.last], m = (int)aut.size();
-		long long fw_tot = 0;
-		vector<long long> fw0(n + 1), fw1(n + 1);
+		int64_t fw_tot = 0;
+		vector<int64_t> fw0(n + 1), fw1(n + 1);
 		auto range_add = [&](int ql, int qr, int x)->void{
-			long long y = 1LL * ql * x, z = 1LL * qr * x;
+			int64_t y = 1LL * ql * x, z = 1LL * qr * x;
 			fw_tot += z - y;
 			for(auto l = ql + 1; l <= n; l += l & -l) fw0[l] += x, fw1[l] += y;
 			for(auto r = qr + 1; r <= n; r += r & -r) fw0[r] -= x, fw1[r] -= z;
 		};
-		auto query_sum = [&](int ql)->long long{
-			long long sum0 = 0, sum1 = 0;
+		auto query_sum = [&](int ql)->int64_t{
+			int64_t sum0 = 0, sum1 = 0;
 			for(auto l = ql; l; l -= l & -l) sum0 += fw0[l], sum1 += fw1[l];
 			return fw_tot - (sum0 * ql - sum1);
 		};

@@ -63,7 +63,7 @@ struct q_combinatorics{
 		return c;
 	}
 	// O(min(k, n - k))
-	T naive_C(long long n, long long k) const{
+	T naive_C(int64_t n, int64_t k) const{
 		assert(0 <= min(n, k));
 		if(n < k) return 0;
 		k = min(k, n - k);
@@ -73,16 +73,16 @@ struct q_combinatorics{
 		return res * q_invfact[k];
 	}
 	// O(k)
-	T naive_P(long long n, int k) const{
-		assert(0 <= min<long long>(n, k) && k <= SZ);
+	T naive_P(int64_t n, int k) const{
+		assert(0 <= min<int64_t>(n, k) && k <= SZ);
 		if(n < k) return 0;
 		T res = 1, pow = q.power(n - k);
 		for(auto i = n - k + 1; i <= n; ++ i) res *= (pow *= q) - 1;
 		return res * q_quadratic_power[k];
 	}
 	// O(k)
-	T naive_H(long long n, int k) const{
-		assert(0 <= min<long long>(n, k));
+	T naive_H(int64_t n, int k) const{
+		assert(0 <= min<int64_t>(n, k));
 		return naive_C(n + k - 1, k);
 	}
 	// Number of length len sequences of vectors in F_{q}-vector space of dimension n, where the sequence has rank r
@@ -94,8 +94,8 @@ struct q_combinatorics{
 	}
 	// Compute fixed_rank_sequence_count(n, len, r) for all 0 <= r <= th
 	// O(log(n) + log(len) + log(mod) + th)
-	vector<T> precalc_fixed_rank_sequence_count(long long n, long long len, int th) const{
-		int actual_th = min<long long>({n, len, th});
+	vector<T> precalc_fixed_rank_sequence_count(int64_t n, int64_t len, int th) const{
+		int actual_th = min<int64_t>({n, len, th});
 		assert(0 <= actual_th && th <= SZ);
 		vector<T> res(th + 1);
 		res[0] = 1;

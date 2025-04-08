@@ -7,7 +7,7 @@ using namespace numbers;
 mt19937 rng(chrono::high_resolution_clock::now().time_since_epoch().count());
 mt19937_64 rngll(chrono::high_resolution_clock::now().time_since_epoch().count());
 using randint_t = uniform_int_distribution<int>;
-using randll_t = uniform_int_distribution<long long>;
+using randll_t = uniform_int_distribution<int64_t>;
 using randd_t = uniform_real_distribution<double>;
 // return x with probability p, y with probability 1-p
 template<class T>

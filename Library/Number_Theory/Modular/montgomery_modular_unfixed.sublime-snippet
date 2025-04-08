@@ -178,7 +178,7 @@ friend bool operator op(const T &x, const montgomery_modular_unfixed_base &y){ r
 	COMPARE_OP(==) COMPARE_OP(!=) COMPARE_OP(<) COMPARE_OP(<=) COMPARE_OP(>) COMPARE_OP(>=)
 #undef COMPARE_OP
 	friend istream &operator>>(istream &in, montgomery_modular_unfixed_base &number){
-		long long x;
+		int64_t x;
 		in >> x;
 		number = montgomery_modular_unfixed_base{x};
 		return in;
@@ -218,14 +218,14 @@ template<int id, class data_t, class wider_data_t> data_t montgomery_modular_unf
 template<int id, class data_t, class wider_data_t> vector<montgomery_modular_unfixed_base<id, data_t, wider_data_t>> montgomery_modular_unfixed_base<id, data_t, wider_data_t>::_INV;
 template<int id, class data_t, class wider_data_t> montgomery_modular_unfixed_base<id, data_t, wider_data_t> montgomery_modular_unfixed_base<id, data_t, wider_data_t>::_primitive_root;
 
-using modular = montgomery_modular_unfixed_base<0, unsigned int, unsigned long long>;
-// using modular = montgomery_modular_unfixed_base<0, unsigned long long, __uint128_t>;
+using modular = montgomery_modular_unfixed_base<0, unsigned int, uint64_t>;
+// using modular = montgomery_modular_unfixed_base<0, uint64_t, __uint128_t>;
 
 modular operator""_m(const char *x){
 	modular res = 0;
-	long long buffer = 0;
-	long long buffer_width = 1;
-	constexpr long long buffer_th = 1'000'000'000'000'000'000LL;
+	int64_t buffer = 0;
+	int64_t buffer_width = 1;
+	constexpr int64_t buffer_th = 1'000'000'000'000'000'000LL;
 	while(*x){
 		#ifdef LOCAL
 		assert(isdigit(*x));
