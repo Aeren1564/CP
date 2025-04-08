@@ -3,7 +3,7 @@
 // Returns the sum of the product of vertex weights over all cliques.
 // O(2^(n/2) * n + m)
 template<class T>
-T count_cliques_weighted(const vector<unsigned long long> &adjm, vector<T> w){
+T count_cliques_weighted(const vector<uint64_t> &adjm, vector<T> w){
 	int n = (int)adjm.size();
 	assert(n <= 64);
 	if(n == 0) return 0;
@@ -13,7 +13,7 @@ T count_cliques_weighted(const vector<unsigned long long> &adjm, vector<T> w){
 	static vector<T> sum;
 	sum.assign(1u << nr, 0);
 	sum[0] = 1;
-	static vector<unsigned long long> adjmask;
+	static vector<uint64_t> adjmask;
 	adjmask.resize(1u << nr);
 	adjmask[0] = (1u << nr) - 1;
 	static vector<T> prod;

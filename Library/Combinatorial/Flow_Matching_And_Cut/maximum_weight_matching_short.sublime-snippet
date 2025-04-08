@@ -2,7 +2,7 @@
 	<content><![CDATA[
 namespace maximum_weight_matching_short{
 	#define d(x) (lab[x.u]+lab[x.v]-e[x.u][x.v].w*2)
-	const int N=403*2; using ll = long long; using T = int; // sum of weight, single weight
+	const int N=403*2; using ll = int64_t; using T = int; // sum of weight, single weight
 	const T inf=numeric_limits<T>::max()>>1;
 	struct Q{ int u, v; T w; } e[N][N]; vector<int> p[N];
 	int n, m=0, id, h, t, lk[N], sl[N], st[N], f[N], b[N][N], s[N], ed[N], q[N]; T lab[N];

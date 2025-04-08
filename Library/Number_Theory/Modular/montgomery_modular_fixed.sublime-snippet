@@ -169,7 +169,7 @@ constexpr friend bool operator op(const T &x, const montgomery_modular_fixed_bas
 	COMPARE_OP(==) COMPARE_OP(!=) COMPARE_OP(<) COMPARE_OP(<=) COMPARE_OP(>) COMPARE_OP(>=)
 #undef COMPARE_OP
 	friend istream &operator>>(istream &in, montgomery_modular_fixed_base &number){
-		long long x;
+		int64_t x;
 		in >> x;
 		number = montgomery_modular_fixed_base{x};
 		return in;
@@ -208,15 +208,15 @@ template<class data_t, data_t _mod, class wider_data_t> montgomery_modular_fixed
 constexpr unsigned int mod = (119 << 23) + 1; // 998244353
 // constexpr unsigned int mod = 1e9 + 7; // 1000000007
 // constexpr unsigned int mod = 1e9 + 9; // 1000000009
-// constexpr unsigned long long mod = (unsigned long long)1e18 + 9;
+// constexpr uint64_t mod = (uint64_t)1e18 + 9;
 using modular = montgomery_modular_fixed_base<
 	decay_t<decltype(mod)>,
 	mod,
 	conditional_t<
 		is_same_v<decay_t<decltype(mod)>, unsigned int>,
-		unsigned long long,
+		uint64_t,
 		conditional_t<
-			std::is_same_v<decay_t<decltype(mod)>, unsigned long long>,
+			std::is_same_v<decay_t<decltype(mod)>, uint64_t>,
 			__uint128_t,
 			void
 		>
@@ -225,9 +225,9 @@ using modular = montgomery_modular_fixed_base<
 
 constexpr modular operator""_m(const char *x){
 	modular res = 0;
-	long long buffer = 0;
-	long long buffer_width = 1;
-	constexpr long long buffer_th = 1'000'000'000'000'000'000LL;
+	int64_t buffer = 0;
+	int64_t buffer_width = 1;
+	constexpr int64_t buffer_th = 1'000'000'000'000'000'000LL;
 	while(*x){
 		#ifdef LOCAL
 		assert(isdigit(*x));

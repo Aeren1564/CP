@@ -73,7 +73,7 @@ point3<double> closest_point_on_segment(const point3<T> &p, const line3<T> &L){
 }
 
 using line3int = line3<int>;
-using line3ll = line3<long long>;
+using line3ll = line3<int64_t>;
 using line3lll = line3<__int128_t>;
 using line3d = line3<double>;
 using line3ld = line3<long double>;

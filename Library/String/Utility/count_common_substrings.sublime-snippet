@@ -4,7 +4,7 @@
 // O(m)
 // Requires suffix_automaton
 template<class Char_Type, class Adjacency_Type>
-long long count_common_substrings(const suffix_automaton<Char_Type, Adjacency_Type> &aut_s, const vector<Char_Type> &t, const suffix_automaton<Char_Type, Adjacency_Type> &aut_t){
+int64_t count_common_substrings(const suffix_automaton<Char_Type, Adjacency_Type> &aut_s, const vector<Char_Type> &t, const suffix_automaton<Char_Type, Adjacency_Type> &aut_t){
 	int m = (int)aut_t.size();
 	static vector<int> req;
 	req.assign(m, 0);
@@ -22,7 +22,7 @@ long long count_common_substrings(const suffix_automaton<Char_Type, Adjacency_Ty
 		}
 		req[v] = max(req[v], len);
 	}
-	long long res = 0;
+	int64_t res = 0;
 	for(auto t = m - 1; t > 0; -- t){
 		int u = aut_t.order[t];
 		if(req[u]){

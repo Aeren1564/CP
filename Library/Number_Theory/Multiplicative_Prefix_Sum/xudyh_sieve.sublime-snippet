@@ -6,15 +6,15 @@ struct xudyh_sieve{
 	F1 pf; // prefix sum of f / precalculate it up to th
 	F2 pg; // prefix sum of g / should be easy to calculate
 	F3 pfg; // prefix sum of dirichlet convolution of f and g / should be easy to calculate
-	unordered_map<long long, T> mp;
+	unordered_map<int64_t, T> mp;
 	xudyh_sieve(int th, F1 pf, F2 pg, F3 pfg): th(th), pf(pf), pg(pg), pfg(pfg){ }
 	// Calculate the preix sum of a multiplicative f up to n
 	// O(n^2/3) applications of pf(), pg(), and pfg()
-	T query(long long n){
+	T query(int64_t n){
 		if(n <= th) return pf(n);
 		if(mp.count(n)) return mp[n];
 		T res = pfg(n);
-		for(long long low = 2LL, high = 2LL; low <= n; low = high + 1){
+		for(int64_t low = 2LL, high = 2LL; low <= n; low = high + 1){
 			high = n / (n / low);
 			res -= (pg(high) - pg(low - 1)) * query(n / low);
 		}

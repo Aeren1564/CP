@@ -62,7 +62,7 @@ struct combinatorics{
 		return (fact[n] * ... * invfact[pack]);
 	}
 	// O(min(k, n - k))
-	T naive_C(long long n, long long k) const{
+	T naive_C(int64_t n, int64_t k) const{
 		ASSERT(0 <= min(n, k));
 		if(n < k) return 0;
 		T res = T{1};
@@ -72,20 +72,20 @@ struct combinatorics{
 		return res * invfact[k];
 	}
 	// O(k)
-	T naive_P(long long n, int k) const{
-		ASSERT(0 <= min<long long>(n, k));
+	T naive_P(int64_t n, int k) const{
+		ASSERT(0 <= min<int64_t>(n, k));
 		if(n < k) return 0;
 		T res = T{1};
 		for(auto i = n; i > n - k; -- i) res *= i;
 		return res;
 	}
 	// O(k)
-	T naive_H(long long n, int k) const{
-		ASSERT(0 <= min<long long>(n, k));
+	T naive_H(int64_t n, int k) const{
+		ASSERT(0 <= min<int64_t>(n, k));
 		return naive_C(n + k - 1, k);
 	}
 	// O(1)
-	bool parity_C(long long n, long long k) const{
+	bool parity_C(int64_t n, int64_t k) const{
 		ASSERT(0 <= min(n, k));
 		return n >= k ? (n & k) == k : false;
 	}

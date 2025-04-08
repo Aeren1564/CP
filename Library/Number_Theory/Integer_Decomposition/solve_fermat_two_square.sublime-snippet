@@ -8,10 +8,10 @@ template<class T>
 array<T, 2> solve_fermat_two_square(T p){
 	assert(p == 2 || p >= 5 && p % 4 == 1);
 	if(p == 2) return {1, 1};
-	using ull = unsigned long long;
+	using ull = uint64_t;
 	auto mod_mul = [&](ull a, ull b, ull M)->ull{
-		long long res = a * b - M * ull(1.L / M * a * b);
-		return res + M * (res < 0) - M * (res >= (long long)M);
+		int64_t res = a * b - M * ull(1.L / M * a * b);
+		return res + M * (res < 0) - M * (res >= (int64_t)M);
 	};
 	auto mod_pow = [&](ull b, ull e, ull mod)->ull{
 		ull res = 1;

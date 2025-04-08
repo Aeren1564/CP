@@ -2,7 +2,7 @@
 	<content><![CDATA[
 // Returns the number of cliques.
 // O(2^(n/2) * n + m)
-long long count_cliques(const vector<unsigned long long> &adjm){
+int64_t count_cliques(const vector<uint64_t> &adjm){
 	int n = (int)adjm.size();
 	assert(n <= 64);
 	if(n <= 1) return n;
@@ -10,7 +10,7 @@ long long count_cliques(const vector<unsigned long long> &adjm){
 	static vector<int> sum;
 	sum.assign(1u << nr, 0);
 	sum[0] = 1;
-	static vector<unsigned long long> adjmask;
+	static vector<uint64_t> adjmask;
 	adjmask.resize(1u << nr);
 	adjmask[0] = (1u << nr) - 1;
 	for(auto mask = 1u; mask < 1u << nr; ++ mask){
@@ -21,7 +21,7 @@ long long count_cliques(const vector<unsigned long long> &adjm){
 	for(auto u = 0; u < nr; ++ u) for(auto mask = 0; mask < 1u << nr; ++ mask) if(mask & 1u << u) sum[mask] += sum[mask ^ 1u << u];
 	adjmask.resize(1u << nl);
 	adjmask[0] = (1ull << n) - 1;
-	long long res = sum.back() - 1;
+	int64_t res = sum.back() - 1;
 	for(auto mask = 1u; mask < 1u << nl; ++ mask){
 		int u = __builtin_ctz(mask);
 		adjmask[mask] = adjmask[mask ^ 1u << u] & (adjm[u] | 1u << u);

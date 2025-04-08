@@ -7,10 +7,10 @@ struct meissel_lehmer{ // NT is the number_theory class
 	vector<T> sum;
 	vector<vector<T>> f;
 	NT &nt;
-	T F(long long x){ // A multiplicative function
+	T F(int64_t x){ // A multiplicative function
 		return 1;
 	}
-	T sum_F(long long x){ // Prefix sum of F up to x
+	T sum_F(int64_t x){ // Prefix sum of F up to x
 		return x;
 	}
 	meissel_lehmer(NT &nt): nt(nt), sum(maxn), f(maxx, vector<T>(maxy)), cn(maxn){
@@ -23,13 +23,13 @@ struct meissel_lehmer{ // NT is the number_theory class
 			f[i][j] = i ? f[i - 1][j] - f[i - 1][j / nt.prime[i - 1]] * F(nt.prime[i - 1]) : sum_F(j);
 		}
 	} // O(n^(2/3 + eps)) time and O(n^(1/3 + eps)) space for all eps>0
-	T legendre_sum(long long m, int n){
+	T legendre_sum(int64_t m, int n){
 		if(!n) return sum_F(m);
 		if(m <= nt.prime[n - 1]) return F(1);
 		if(m < maxy && n < maxx) return f[n][m];
 		return legendre_sum(m, n - 1) - legendre_sum(m / nt.prime[n - 1], n - 1) * F(nt.prime[n - 1]);
 	}
-	T pi(long long m){ // Calculate sum of F(p) for primes up to m
+	T pi(int64_t m){ // Calculate sum of F(p) for primes up to m
 		if(m <= maxn) return sum[m];
 		int x = sqrt(m + 0.9), y = cbrt(m + 0.9), a = cn[y];
 		T res = legendre_sum(m, a) - F(1) + sum[y];
