@@ -701,12 +701,10 @@ struct treap_base{
 			ifP{
 				data[root] = UT(f, data[root], size(left[root]) - ql);
 				lazy[root] = UU(f, lazy[root], -ql);
-				subtr_data[root] = UT(f, subtr_data[root], -ql);
 			}
 			else{
 				data[root] = UT(f, data[root]);
 				lazy[root] = UU(f, lazy[root]);
-				subtr_data[root] = UT(f, subtr_data[root]);
 			}
 			refresh<false>(root);
 			return;
