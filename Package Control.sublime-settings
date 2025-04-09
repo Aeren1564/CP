@@ -5,8 +5,6 @@
 	],
 	"installed_packages":
 	[
-		"OctaveSupport",
-		"Package Control",
-		"SublimeLinter-javac"
+		"Package Control"
 	]
 }
