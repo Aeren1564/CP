@@ -1,6 +1,6 @@
 <snippet>
 	<content><![CDATA[
-template<bool IS_IMPLICIT, bool HAS_QUERY, bool HAS_UPDATE, bool HAS_FLIP, bool IS_COMMUTATIVE, class T, class U, class F1, class F2, class F3, class F4>
+template<bool IS_IMPLICIT, bool PASS_OFFSET, bool HAS_QUERY, bool HAS_UPDATE, bool HAS_FLIP, bool IS_COMMUTATIVE, class T, class U, class F1, class F2, class F3, class F4>
 struct treap_base{
 #ifdef LOCAL
 	#define ASSERT(x) assert(x)
@@ -8,6 +8,7 @@ struct treap_base{
 	#define ASSERT(x) 42
 #endif
 #define ifI if constexpr(IS_IMPLICIT)
+#define ifP if constexpr(PASS_OFFSET)
 #define ifQ if constexpr(HAS_QUERY)
 #define ifU if constexpr(HAS_UPDATE)
 #define ifF if constexpr(HAS_FLIP)
@@ -18,9 +19,9 @@ struct treap_base{
 	vector<U> lazy;
 	F1 TT; // monoid operation (always adjacent)
 	T T_id; // monoid identity
-	F2 UU; // monoid operation (superset, subset)
+	F2 UU; // monoid operation (superset, subset), or (superset, subset, offset) if PASS_OFFSET
 	U U_id; // monoid identity
-	F3 UT; // action of U on T (superset, subset)
+	F3 UT; // action of U on T (superset, subset), or (superset, subset, offset) if PASS_OFFSET
 	F4 FlipT;
 	treap_base(F1 TT, T T_id, F2 UU, U U_id, F3 UT, F4 FlipT): TT(TT), T_id(T_id), UU(UU), U_id(U_id), UT(UT), FlipT(FlipT){ }
 	void reserve(int n){
@@ -38,14 +39,29 @@ struct treap_base{
 	void push(int u){
 		ifU if(lazy[u] != U_id){
 			if(auto v = left[u]; ~v){
-				data[v] = UT(lazy[u], data[v]);
-				lazy[v]  = UU(lazy[u], lazy[v]);
-				ifQ subtr_data[v] = UT(lazy[u], subtr_data[v]);
+				ifP{
+					data[v] = UT(lazy[u], data[v], size(left[v]));
+					lazy[v]  = UU(lazy[u], lazy[v], 0);
+					ifQ subtr_data[v] = UT(lazy[u], subtr_data[v], 0);
+				}
+				else{
+					data[v] = UT(lazy[u], data[v]);
+					lazy[v]  = UU(lazy[u], lazy[v]);
+					ifQ subtr_data[v] = UT(lazy[u], subtr_data[v]);
+				}
 			}
 			if(auto w = right[u]; ~w){
-				data[w] = UT(lazy[u], data[w]);
-				lazy[w]  = UU(lazy[u], lazy[w]);
-				ifQ subtr_data[w] = UT(lazy[u], subtr_data[w]);
+				ifP{
+					int offset = size(left[u]) + 1;
+					data[w] = UT(lazy[u], data[w], offset + size(left[w]));
+					lazy[w]  = UU(lazy[u], lazy[w], offset);
+					ifQ subtr_data[w] = UT(lazy[u], subtr_data[w], offset);
+				}
+				else{
+					data[w] = UT(lazy[u], data[w]);
+					lazy[w]  = UU(lazy[u], lazy[w]);
+					ifQ subtr_data[w] = UT(lazy[u], subtr_data[w]);
+				}
 			}
 			lazy[u] = U_id;
 		}
@@ -74,7 +90,10 @@ struct treap_base{
 			}
 			ifQ{
 				auto x = subtr_data[v];
-				ifU if(lazy[u] != U_id) x = UT(lazy[u], x);
+				ifU if(lazy[u] != U_id){
+					ifP x = UT(lazy[u], x, 0);
+					else x = UT(lazy[u], x);
+				}
 				ifF ifNC if(lazy_flip[u]) x = FlipT(x);
 				subtr_data[u] = x;
 			}
@@ -87,7 +106,10 @@ struct treap_base{
 			}
 			ifQ{
 				auto x = subtr_data[w];
-				ifU if(lazy[u] != U_id) x = UT(lazy[u], x);
+				ifU if(lazy[u] != U_id){
+					ifP x = UT(lazy[u], x, size(left[u]) + 1);
+					else x = UT(lazy[u], x);
+				}
 				ifF ifNC if(lazy_flip[u]) x = FlipT(x);
 				subtr_data[u] = TT(subtr_data[u], x);
 			}
@@ -654,7 +676,8 @@ struct treap_base{
 		while(true){
 			push(u);
 			if(size(left[u]) == p){
-				data[u] = UT(f, data[u]);
+				ifP data[u] = UT(f, data[u], 0);
+				else data[u] = UT(f, data[u]);
 				refresh<false>(u);
 				break;
 			}
@@ -675,14 +698,25 @@ struct treap_base{
 		static_assert(HAS_UPDATE);
 		if(!~root || qr <= 0 || size(root) <= ql) return;
 		if(ql <= 0 && size(root) <= qr){
-			data[root] = UT(f, data[root]);
-			lazy[root] = UU(f, lazy[root]);
+			ifP{
+				data[root] = UT(f, data[root], size(left[root]) - ql);
+				lazy[root] = UU(f, lazy[root], -ql);
+				subtr_data[root] = UT(f, subtr_data[root], -ql);
+			}
+			else{
+				data[root] = UT(f, data[root]);
+				lazy[root] = UU(f, lazy[root]);
+				subtr_data[root] = UT(f, subtr_data[root]);
+			}
 			refresh<false>(root);
 			return;
 		}
 		push(root);
 		if(ql < size(left[root])) _update(left[root], ql, qr, f);
-		if(ql <= size(left[root]) && size(left[root]) + 1 <= qr) data[root] = UT(f, data[root]);
+		if(ql <= size(left[root]) && size(left[root]) + 1 <= qr){
+			ifP data[root] = UT(f, data[root], size(left[root]) - ql);
+			else data[root] = UT(f, data[root]);
+		}
 		if(size(left[root]) + 1 < qr) _update(right[root], ql - size(left[root]) - 1, qr - size(left[root]) - 1, f);
 		refresh<false>(root);
 	}
@@ -798,7 +832,7 @@ auto make_treap(){
 	auto _UU = [&](U, U)->U{ return U{}; };
 	auto _UT = [&](U, T)->T{ return T{}; };
 	auto _FlipT = [&](T)->T{ return T{}; };
-	return treap_base<IS_IMPLICIT, false, false, false, false, T, U, decltype(_TT), decltype(_UU), decltype(_UT), decltype(_FlipT)>(_TT, T{}, _UU, U{}, _UT, _FlipT);
+	return treap_base<IS_IMPLICIT, false, false, false, false, false, T, U, decltype(_TT), decltype(_UU), decltype(_UT), decltype(_FlipT)>(_TT, T{}, _UU, U{}, _UT, _FlipT);
 }
 // Supports flip
 template<bool IS_IMPLICIT, class T, class F1>
@@ -807,7 +841,7 @@ auto make_F_treap(F1 FlipT){
 	auto _TT = [&](T, T)->T{ return T{}; };
 	auto _UU = [&](U, U)->U{ return U{}; };
 	auto _UT = [&](U, T)->T{ return T{}; };
-	return treap_base<IS_IMPLICIT, false, false, true, false, T, U, decltype(_TT), decltype(_UU), decltype(_UT), F1>(_TT, T{}, _UU, U{}, _UT, FlipT);
+	return treap_base<IS_IMPLICIT, false, false, false, true, false, T, U, decltype(_TT), decltype(_UU), decltype(_UT), F1>(_TT, T{}, _UU, U{}, _UT, FlipT);
 }
 // Supports query
 template<bool IS_IMPLICIT, class T, class F1>
@@ -816,24 +850,41 @@ auto make_Q_treap(F1 TT, T T_id){
 	auto _UU = [&](U, U)->U{ return U{}; };
 	auto _UT = [&](U, T)->T{ return T{}; };
 	auto _FlipT = [&](T)->T{ return T{}; };
-	return treap_base<IS_IMPLICIT, true, false, false, false, T, U, F1, decltype(_UU), decltype(_UT), decltype(_FlipT)>(TT, T_id, _UU, U{}, _UT, _FlipT);
+	return treap_base<IS_IMPLICIT, false, true, false, false, false, T, U, F1, decltype(_UU), decltype(_UT), decltype(_FlipT)>(TT, T_id, _UU, U{}, _UT, _FlipT);
 }
 // Supports query and update
 template<bool IS_IMPLICIT, class T, class F1, class F2, class U, class F3>
 auto make_QU_treap(F1 TT, T T_id, F2 UU, U U_id, F3 UT){
 	auto _FlipT = [&](T)->T{ return T{}; };
-	return treap_base<IS_IMPLICIT, true, true, false, false, T, U, F1, F2, F3, decltype(_FlipT)>(TT, T_id, UU, U_id, UT, _FlipT);
+	return treap_base<IS_IMPLICIT, false, true, true, false, false, T, U, F1, F2, F3, decltype(_FlipT)>(TT, T_id, UU, U_id, UT, _FlipT);
+}
+// Supports query and update
+template<bool IS_IMPLICIT, class T, class F1, class F2, class U, class F3>
+auto make_QU_treap_with_offset(F1 TT, T T_id, F2 UU, U U_id, F3 UT){
+	auto _FlipT = [&](T)->T{ return T{}; };
+	return treap_base<IS_IMPLICIT, true, true, true, false, false, T, U, F1, F2, F3, decltype(_FlipT)>(TT, T_id, UU, U_id, UT, _FlipT);
 }
 // Supports commutative query, update, and flip
 template<bool IS_IMPLICIT, class T, class U, class F1, class F2, class F3>
 auto make_cQUF_treap(F1 TT, T T_id, F2 UU, U U_id, F3 UT){
 	auto _FlipT = [&](T)->T{ return T{}; };
-	return treap_base<IS_IMPLICIT, true, true, true, true, T, U, F1, F2, F3, decltype(_FlipT)>(TT, T_id, UU, U_id, UT, _FlipT);
+	return treap_base<IS_IMPLICIT, false, true, true, true, true, T, U, F1, F2, F3, decltype(_FlipT)>(TT, T_id, UU, U_id, UT, _FlipT);
+}
+// Supports commutative query, update, and flip
+template<bool IS_IMPLICIT, class T, class U, class F1, class F2, class F3>
+auto make_cQUF_treap_with_offset(F1 TT, T T_id, F2 UU, U U_id, F3 UT){
+	auto _FlipT = [&](T)->T{ return T{}; };
+	return treap_base<IS_IMPLICIT, true, true, true, true, true, T, U, F1, F2, F3, decltype(_FlipT)>(TT, T_id, UU, U_id, UT, _FlipT);
 }
 // Supports query, update, and flip
 template<bool IS_IMPLICIT, class T, class U, class F1, class F2, class F3, class F4>
 auto make_QUF_treap(F1 TT, T T_id, F2 UU, U U_id, F3 UT, F4 FlipT){
-	return treap_base<IS_IMPLICIT, true, true, true, false, T, U, F1, F2, F3, F4>(TT, T_id, UU, U_id, UT, FlipT);
+	return treap_base<IS_IMPLICIT, false, true, true, true, false, T, U, F1, F2, F3, F4>(TT, T_id, UU, U_id, UT, FlipT);
+}
+// Supports query, update, and flip
+template<bool IS_IMPLICIT, class T, class U, class F1, class F2, class F3, class F4>
+auto make_QUF_treap_with_offset(F1 TT, T T_id, F2 UU, U U_id, F3 UT, F4 FlipT){
+	return treap_base<IS_IMPLICIT, true, true, true, true, false, T, U, F1, F2, F3, F4>(TT, T_id, UU, U_id, UT, FlipT);
 }
 ]]></content>
 	<!-- Optional: Set a tabTrigger to define how to trigger the snippet -->
