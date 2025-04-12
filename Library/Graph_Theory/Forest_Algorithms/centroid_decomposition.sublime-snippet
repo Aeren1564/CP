@@ -3,15 +3,12 @@
 // Requires graph
 struct centroid_decomposition{
 	vector<int> was;
-	int attempt;
+	int attempt = -1;
 	// g must be a tree
 	// O(n * log(n))
 	template<class T>
-	void build(const graph<T> &g, const vector<int> &src){
+	void _build(const graph<T> &g, const vector<int> &src){
 		assert(g.n <= n);
-		++ attempt;
-		root.clear();
-		order.clear();
 		abr.edge.clear();
 		auto centroid = [&](int s){
 			int u = s, pe = -1;
@@ -75,32 +72,40 @@ struct centroid_decomposition{
 		}
 	}
 	template<class T>
+	void build(const graph<T> &g, const vector<int> &src){
+		init(g.n);
+		++ attempt;
+		_build(g, src);
+	}
+	template<class T>
 	void build_all(const graph<T> &g){
-		vector<int> src(g.n);
+		init(g.n);
+		++ attempt;
+		vector<int> src(n);
 		iota(src.begin(), src.end(), 0);
-		build(g, src);
+		_build(g, src);
 	}
 	void init(int n){
 		assert(n >= 1);
 		this->n = n;
 		root.clear();
-		abr = graph<int>{n};
-		pv.assign(n, -1);
-		pe.assign(n, -1);
+		abr.n = n;
+		abr.adj.resize(n);
+		pv.resize(n, -1);
+		pe.resize(n, -1);
 		order.clear();
-		pos.assign(n, -1);
-		end.assign(n, -1);
-		size.assign(n, -1);
-		depth.assign(n, -1);
-		was.assign(n, -2);
-		attempt = -1;
-		spv.assign(n, -1);
-		spe.assign(n, -1);
+		pos.resize(n, -1);
+		end.resize(n, -1);
+		size.resize(n, -1);
+		depth.resize(n, -1);
+		was.resize(n, -2);
+		spv.resize(n, -1);
+		spe.resize(n, -1);
 		sorder.clear();
-		spos.assign(n, -1);
-		send.assign(n, -1);
-		ssize.assign(n, -1);
-		sdepth.assign(n, -1);
+		spos.resize(n, -1);
+		send.resize(n, -1);
+		ssize.resize(n, -1);
+		sdepth.resize(n, -1);
 	}
 	template<class T>
 	void init_step(const graph<T> &g){
@@ -133,12 +138,10 @@ struct centroid_decomposition{
 	centroid_decomposition(){ }
 	template<class T>
 	centroid_decomposition(const graph<T> &g){
-		init(g.n);
 		build_all(g);
 	}
 	template<class T>
 	centroid_decomposition(const graph<T> &g, const vector<int> &src){
-		init(g.n);
 		build(g, src);
 	}
 	int n;
