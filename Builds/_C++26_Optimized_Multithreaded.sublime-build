@@ -1,0 +1,12 @@
+{
+    "windows":{
+        "cmd": ["wsl.exe", "g++", "-std=c++26", "-pthread", "-Wno-unused-result", "-fconcepts", "-O2",  "./${file_name}", "-o", "${file_base_name}"],
+        "working_dir":"$file_path",
+        "selector":"source.cpp"
+    },
+    "linux":{
+        "cmd": ["g++", "-std=c++26", "-pthread", "-Wno-unused-result", "-fconcepts", "-O2",  "./${file_name}", "-o", "${file_base_name}"],
+        "working_dir":"$file_path",
+        "selector":"source.cpp"
+    }
+}
