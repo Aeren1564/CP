@@ -20,6 +20,7 @@ struct montgomery_modular_unfixed_base{
 	}
 	static void setup(data_t mod = 0){
 		_primitive_root._data = 0;
+		_INV.clear();
 		if(!mod) cin >> mod;
 		_mod = mod;
 		ASSERT(1 <= _mod && _mod < data_t(1) << 8 * sizeof(data_t) - 1);

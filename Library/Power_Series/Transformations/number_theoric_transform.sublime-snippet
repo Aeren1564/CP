@@ -57,7 +57,7 @@ struct number_theoric_transform_wrapper{
 			for(auto len = 0; len < h; ){ // p[i, i+(n>>len), i+2*(n>>len), ..] is transformed
 				if(h - len == 1){
 					int power = 1 << h - len - 1;
-					modular rot = 1;
+					T rot = 1;
 					for(auto s = 0; s < 1 << len; ++ s){
 						int offset = s << h - len;
 						for(auto i = 0; i < power; ++ i){
@@ -73,18 +73,18 @@ struct number_theoric_transform_wrapper{
 				else{
 					// 4-base
 					int power = 1 << h - len - 2;
-					modular rot = 1, imag = root[2];
+					T rot = 1, imag = root[2];
 					for(auto s = 0; s < 1 << len; ++ s){
-						modular rot2 = rot * rot;
-						modular rot3 = rot2 * rot;
+						T rot2 = rot * rot;
+						T rot3 = rot2 * rot;
 						int offset = s << (h - len);
 						for(auto i = 0; i < power; ++ i){
-							auto mod2 = 1ull * modular::mod() * modular::mod();
+							auto mod2 = 1ull * T::mod() * T::mod();
 							auto a0 = 1ull * p[i + offset].data();
 							auto a1 = 1ull * p[i + offset + power].data() * rot.data();
 							auto a2 = 1ull * p[i + offset + 2 * power].data() * rot2.data();
 							auto a3 = 1ull * p[i + offset + 3 * power].data() * rot3.data();
-							auto a1na3imag = 1ull * modular(a1 + mod2 - a3).data() * imag.data();
+							auto a1na3imag = 1ull * T(a1 + mod2 - a3).data() * imag.data();
 							auto na2 = mod2 - a2;
 							p[i + offset] = a0 + a2 + a1 + a3;
 							p[i + offset + 1 * power] = a0 + a2 + (2 * mod2 - (a1 + a3));
@@ -101,14 +101,14 @@ struct number_theoric_transform_wrapper{
 			for(auto len = h; len; ){ // p[i, i+(n>>len), i+2*(n>>len), ..] is transformed
 				if(len == 1){
 					int power = 1 << h - len;
-					modular invrot = 1;
+					T invrot = 1;
 					for(auto s = 0; s < 1 << len - 1; ++ s){
 						int offset = s << h - len + 1;
 						for(auto i = 0; i < power; ++ i){
 							auto l = p[i + offset];
 							auto r = p[i + offset + power];
 							p[i + offset] = l + r;
-							p[i + offset + power] = (uint64_t)(modular::mod() + l.data() - r.data()) * invrot.data();
+							p[i + offset + power] = (uint64_t)(T::mod() + l.data() - r.data()) * invrot.data();
 						}
 						if(s + 1 != 1 << len - 1) invrot *= invrate2[__builtin_ctz(s + 1)];
 					}
@@ -116,21 +116,21 @@ struct number_theoric_transform_wrapper{
 				}else{
 					// 4-base
 					int power = 1 << h - len;
-					modular invrot = 1, iimag = invroot[2];
+					T invrot = 1, iimag = invroot[2];
 					for(auto s = 0; s < 1 << len - 2; ++ s){
-						modular invrot2 = invrot * invrot;
-						modular invrot3 = invrot2 * invrot;
+						T invrot2 = invrot * invrot;
+						T invrot3 = invrot2 * invrot;
 						int offset = s << h - len + 2;
 						for(auto i = 0; i < power; ++ i){
 							auto a0 = 1ull * p[i + offset + 0 * power].data();
 							auto a1 = 1ull * p[i + offset + 1 * power].data();
 							auto a2 = 1ull * p[i + offset + 2 * power].data();
 							auto a3 = 1ull * p[i + offset + 3 * power].data();
-							auto a2na3iimag = 1ull * modular((modular::mod() + a2 - a3) * iimag.data()).data();
+							auto a2na3iimag = 1ull * T((T::mod() + a2 - a3) * iimag.data()).data();
 							p[i + offset] = a0 + a1 + a2 + a3;
-							p[i + offset + 1 * power] = (a0 + (modular::mod() - a1) + a2na3iimag) * invrot.data();
-							p[i + offset + 2 * power] = (a0 + a1 + (modular::mod() - a2) + (modular::mod() - a3)) * invrot2.data();
-							p[i + offset + 3 * power] = (a0 + (modular::mod() - a1) + (modular::mod() - a2na3iimag)) * invrot3.data();
+							p[i + offset + 1 * power] = (a0 + (T::mod() - a1) + a2na3iimag) * invrot.data();
+							p[i + offset + 2 * power] = (a0 + a1 + (T::mod() - a2) + (T::mod() - a3)) * invrot2.data();
+							p[i + offset + 3 * power] = (a0 + (T::mod() - a1) + (T::mod() - a2na3iimag)) * invrot3.data();
 						}
 						if(s + 1 != 1 << len - 2) invrot *= invrate3[__builtin_ctz(s + 1)];
 					}
