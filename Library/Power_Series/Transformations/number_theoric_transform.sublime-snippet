@@ -330,12 +330,12 @@ struct number_theoric_transform_wrapper{
 		for(auto i = 0; i < (int)p.size(); ++ i) p2[i] = p[i].data();
 		for(auto i = 0; i < (int)q.size(); ++ i) q2[i] = q[i].data();
 		auto xy2 = ntt2::convolve(p2, q2);
-		static const modular1 r01 = 1 / modular1(modular0::mod());
-		static const modular2 r02 = 1 / modular2(modular0::mod());
-		static const modular2 r12 = 1 / modular2(modular1::mod());
-		static const modular2 r02r12 = r02 * r12;
-		static const T w1 = modular0::mod();
-		static const T w2 = w1 * modular1::mod();
+		const modular1 r01 = 1 / modular1(modular0::mod());
+		const modular2 r02 = 1 / modular2(modular0::mod());
+		const modular2 r12 = 1 / modular2(modular1::mod());
+		const modular2 r02r12 = r02 * r12;
+		const T w1 = modular0::mod();
+		const T w2 = w1 * modular1::mod();
 		int n = (int)p.size() + (int)q.size() - 1;
 		vector<T> res(n);
 		for(auto i = 0; i < n; ++ i){
