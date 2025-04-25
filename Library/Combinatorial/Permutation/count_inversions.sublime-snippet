@@ -2,12 +2,12 @@
 	<content><![CDATA[
 // O(n * log(n))
 template<class T, class Compare = less<>>
-int64_t count_inversions(const vector<T> &a, bool count_equal = false, Compare cmp = less<>()){
+long long count_inversions(const vector<T> &a, bool count_equal = false, Compare cmp = less<>()){
 	int n = (int)a.size();
 	vector<T> cmpr = a;
 	sort(cmpr.begin(), cmpr.end(), cmp);
 	vector<int> sum(n);
-	int64_t res = 0;
+	long long res = 0;
 	for(auto i = 0; i < n; ++ i){
 		int p = lower_bound(cmpr.begin(), cmpr.end(), a[i], cmp) - cmpr.begin();
 		res += i;

@@ -10,7 +10,7 @@ using namespace numbers;
 // No leading ~0 allowed for negative numbers, and no leading 0 allowed for non-negative numbers. This ensures that each integer has a unique representation.
 #include <x86intrin.h>
 struct bigint{
-	using T = uint64_t;
+	using T = unsigned long long;
 	using T_large = __uint128_t;
 	static constexpr signed int width = 8 * sizeof(T);
 	static constexpr T pad[2] = {T(0), ~T(0)};

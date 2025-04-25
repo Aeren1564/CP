@@ -31,9 +31,9 @@ struct graphic_matroid{
 	}
 };
 struct Z2_linear_matroid{
-	vector<int64_t> elements, basis;
-	Z2_linear_matroid(const vector<int64_t> &elements): elements(elements){ }
-	int64_t reduce(int64_t x){
+	vector<long long> elements, basis;
+	Z2_linear_matroid(const vector<long long> &elements): elements(elements){ }
+	long long reduce(long long x){
 		for(auto y: basis) x = min(x, x ^ y);
 		return x;
 	}
@@ -41,7 +41,7 @@ struct Z2_linear_matroid{
 		return reduce(elements[i]);
 	}
 	void insert(int i){
-		int64_t x = reduce(elements[i]);
+		long long x = reduce(elements[i]);
 		assert(x);
 		basis.insert(lower_bound(basis.begin(), basis.end(), x, greater<>()), x);
 	}

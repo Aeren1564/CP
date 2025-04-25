@@ -7,13 +7,13 @@
 // CostSum type should be large enough to hold inner product of capacities and costs
 // Expected runtime: O(VE) for positive costs, O(E²) for negative costs too
 // Usage:
-//   network_simplex<int, int64_t> netw(V);
+//   network_simplex<int, long long> netw(V);
 //   for(edges...){ netw.insert(u, v, lower, upper, unit_cost); }
 //   for(nodes...){ netw.set_supply(u, supply); }
 //   auto max_flow = netw.mincost_flow();           or mincost_circulation()
 //   auto min_cost = netw.get_circulation_cost();
 // Source: https://github.com/brunodccarvalho/competitive/blob/master/code/flow/network_simplex.hpp
-template<class Flow = int64_t, class Cost = int64_t>
+template<class Flow = long long, class Cost = long long>
 struct network_simplex{
 	network_simplex(int V) : V(V), node(V + 1){ }
 	int insert(int u, int v, Flow lower, Flow upper, Cost cost){
@@ -43,7 +43,7 @@ struct network_simplex{
 		}
 		return excess;
 	}
-	template<class CostSum = int64_t>
+	template<class CostSum = long long>
 	auto get_circulation_cost() const{
 		CostSum sum = 0;
 		for(auto e = 0; e < E; ++ e){

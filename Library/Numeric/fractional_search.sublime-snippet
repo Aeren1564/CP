@@ -6,7 +6,7 @@
 // Set qr=1/0(=inf) to search for all such fractions.
 // The range must be partitioned as if std::partition has been applied.
 // O(th_n + th_d) applications of f
-template<class T = int, class T_large = int64_t, bool obj = false>
+template<class T = int, class T_large = long long, bool obj = false>
 array<T, 2> fraction_search(const array<T, 2> &ql, const array<T, 2> &qr, T th_n, T th_d, auto f){
 	assert(ql[0] >= 0 && ql[1] > 0 || ql[0] > 0 && ql[1] >= 0);
 	assert(qr[0] >= 0 && qr[1] > 0 || qr[0] > 0 && qr[1] >= 0);

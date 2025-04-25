@@ -7,8 +7,8 @@
 // O(2^level * sqrt(N)) inc_x, dec_x calls, inc_y, and dec_y calls
 // Requires hilbert_curve_2d
 struct mo_2d_hilbert_curve_ordering{
-	hilbert_curve_2d<int, int64_t> curve;
-	vector<tuple<int64_t, int, int, int>> points;
+	hilbert_curve_2d<int, long long> curve;
+	vector<tuple<long long, int, int, int>> points;
 	mo_2d_hilbert_curve_ordering(int level): curve(level){ }
 	void query(int qi, int x, int y){
 		points.push_back({curve.order(x, y), x, y, qi});

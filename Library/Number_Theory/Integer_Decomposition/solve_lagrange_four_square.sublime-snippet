@@ -14,10 +14,10 @@ array<T, 4> solve_lagrange_four_square(T n){
 		fill(res.end() - (n - 4), res.end(), 1);
 	}
 	else if(n % 4 == 2){
-		using ull = uint64_t;
+		using ull = unsigned long long;
 		auto mod_mul = [&](ull a, ull b, ull M)->ull{
-			int64_t res = a * b - M * ull(1.L / M * a * b);
-			return res + M * (res < 0) - M * (res >= (int64_t)M);
+			long long res = a * b - M * ull(1.L / M * a * b);
+			return res + M * (res < 0) - M * (res >= (long long)M);
 		};
 		auto mod_pow = [&](ull b, ull e, ull mod)->ull{
 			ull res = 1;

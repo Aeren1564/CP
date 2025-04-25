@@ -237,7 +237,7 @@ auto make_wavelet_matrix(){
 	return wavelet_matrix_base<false, B, int, plus<>, negate<>>(plus<>(), 0, negate<>());
 }
 // Supports query
-template<class B, class T = int64_t, class F = plus<>, class I = negate<>>
+template<class B, class T = long long, class F = plus<>, class I = negate<>>
 auto make_Q_wavelet_matrix(F TT = plus<>(), T T_id = 0, I Tinv = negate<>()){
 	return wavelet_matrix_base<true, B, T, F, I>(TT, T_id, Tinv);
 }

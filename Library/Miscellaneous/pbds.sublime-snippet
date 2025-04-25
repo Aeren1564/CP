@@ -1,0 +1,31 @@
+<snippet>
+	<content><![CDATA[
+#include <ext/pb_ds/assoc_container.hpp>
+#include <ext/pb_ds/tree_policy.hpp>
+using namespace __gnu_pbds;
+struct splitmix64_hash{
+	static unsigned long long _splitmix64(unsigned long long x){
+		x += 0x9e3779b97f4a7c15;
+		x = (x ^ x >> 30) * 0xbf58476d1ce4e5b9;
+		x = (x ^ x >> 27) * 0x94d049bb133111eb;
+		return x ^ x >> 31;
+	}
+	size_t operator()(unsigned long long x) const{
+		static const unsigned long long FIXED_RANDOM = chrono::steady_clock::now().time_since_epoch().count();
+		return _splitmix64(x + FIXED_RANDOM);
+	}
+};
+template<class K, class U, class Compare = less<>>
+using indexable_map = tree<K, U, Compare, rb_tree_tag, tree_order_statistics_node_update>;
+template<class K, class Compare = less<>>
+using indexable_set = indexable_map<K, null_type, Compare>;
+template<class K, class V, class Hash = splitmix64_hash>
+using hash_map = __gnu_pbds::gp_hash_table<K, V, Hash>;
+template <class K, class Hash = splitmix64_hash>
+using hash_set = hash_map<K, __gnu_pbds::null_type, Hash>;
+]]></content>
+	<!-- Optional: Set a tabTrigger to define how to trigger the snippet -->
+	<tabTrigger>pbds</tabTrigger> -->
+	<!-- Optional: Set a scope to limit where the snippet will trigger -->
+	<scope>source.c++</scope> -->
+</snippet>

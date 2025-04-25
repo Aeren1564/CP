@@ -74,7 +74,7 @@ struct modular_fixed_base{
 	modular_fixed_base operator--(int){ modular_fixed_base result(*this); *this += _mod - 1; return result; }
 	modular_fixed_base operator-() const{ return modular_fixed_base(_mod - data); }
 	modular_fixed_base &operator*=(const modular_fixed_base &rhs){
-		data = (uint64_t)data * rhs.data % _mod;
+		data = (unsigned long long)data * rhs.data % _mod;
 		return *this;
 	}
 	template<class T, typename enable_if<is_integral<T>::value>::type* = nullptr>
@@ -126,7 +126,7 @@ template<uint _mod> modular_fixed_base<_mod> operator/(const modular_fixed_base<
 template<uint _mod, class T, typename enable_if<is_integral<T>::value>::type* = nullptr> modular_fixed_base<_mod> operator/(const modular_fixed_base<_mod> &lhs, T rhs) { return modular_fixed_base<_mod>(lhs) /= rhs; }
 template<uint _mod, class T, typename enable_if<is_integral<T>::value>::type* = nullptr> modular_fixed_base<_mod> operator/(T lhs, const modular_fixed_base<_mod> &rhs) { return modular_fixed_base<_mod>(lhs) /= rhs; }
 template<uint _mod> istream &operator>>(istream &in, modular_fixed_base<_mod> &number){
-	int64_t x;
+	long long x;
 	in >> x;
 	number.data = modular_fixed_base<_mod>::normalize(x);
 	return in;
@@ -350,7 +350,7 @@ int main(){
 	cin.exceptions(ios::badbit | ios::failbit);
 	int qn;
 	cin >> qn;
-	vector<int64_t> a;
+	vector<long long> a;
 	for(auto qi = 0; qi < qn; ++ qi){
 		int type;
 		cin >> type;
@@ -391,7 +391,7 @@ int main(){
 			int l, r;
 			cin >> l >> r;
 			assert(0 <= l && l <= r && r <= (int)a.size());
-			int64_t res = 0;
+			long long res = 0;
 			for(auto i = l; i < r; ++ i){
 				res = max(res, a[i]);
 			}

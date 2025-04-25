@@ -1,7 +1,7 @@
 <snippet>
 	<content><![CDATA[
 // 0*a[l]+1*a[l+1]+...+(r-l-1)*a[r-1], sum, len, min_index
-using T = array<int64_t, 4>;
+using T = array<long long, 4>;
 auto TT = [&](const T &x, const T &y)->T{
 	return {
 		x[0] + y[0] + y[1] * x[2],
@@ -12,7 +12,7 @@ auto TT = [&](const T &x, const T &y)->T{
 };
 T T_id{0, 0, 0, -1};
 // a[i] += [0] + [1] * i
-using U = array<int64_t, 2>;
+using U = array<long long, 2>;
 auto UU = [&](const U &f, const U &g)->U{
 	return {
 		f[0] + g[0],

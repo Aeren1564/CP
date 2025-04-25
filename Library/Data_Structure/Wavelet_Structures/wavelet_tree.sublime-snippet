@@ -225,7 +225,7 @@ auto make_wavelet_tree(){
 	return wavelet_tree_base<false, B, int, plus<>, negate<>>(plus<>(), 0, negate<>());
 }
 // Supports query
-template<class B, class T = int64_t, class F = plus<>, class I = negate<>>
+template<class B, class T = long long, class F = plus<>, class I = negate<>>
 auto make_Q_wavelet_tree(F TT = plus<>(), T T_id = 0, I Tinv = negate<>()){
 	return wavelet_tree_base<true, B, T, F, I>(TT, T_id, Tinv);
 }

@@ -64,10 +64,10 @@ struct composite_string_comparator{
 	}
 	// sequence of {id, len}
 	// O(max(size(p), size(q)))
-	int64_t longest_common_prefix(const vector<array<int, 2>> &p, const vector<array<int, 2>> &q) const{
+	long long longest_common_prefix(const vector<array<int, 2>> &p, const vector<array<int, 2>> &q) const{
 		for(auto [id, len]: p) ASSERT(0 <= id && id < n && 0 <= len && len <= size_prefix[id + 1] - size_prefix[id]);
 		for(auto [id, len]: q) ASSERT(0 <= id && id < n && 0 <= len && len <= size_prefix[id + 1] - size_prefix[id]);
-		int64_t res = 0;
+		long long res = 0;
 		int pi = 0, ppref = 0, qi = 0, qpref = 0;
 		while(pi < (int)p.size() && p[pi][1] == 0) ++ pi;
 		while(qi < (int)q.size() && q[qi][1] == 0) ++ qi;

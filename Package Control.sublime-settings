@@ -5,6 +5,8 @@
 	],
 	"installed_packages":
 	[
-		"Package Control"
+		"Package Control",
+		"Tact",
+		"TypeScript Syntax"
 	]
 }

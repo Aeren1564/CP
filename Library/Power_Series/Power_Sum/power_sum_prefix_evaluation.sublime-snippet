@@ -5,7 +5,7 @@
 // O(polymul(n))
 // Requires modular, number_theoric_transform, and power_series
 template<class T, class FFT>
-vector<T> power_sum_prefix_evaluation(int64_t len, int n){
+vector<T> power_sum_prefix_evaluation(long long len, int n){
 	assert(n >= 0);
 	if(!n) return {};
 	if(!len) return vector<T>(n, T());

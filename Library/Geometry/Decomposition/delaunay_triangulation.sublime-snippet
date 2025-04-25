@@ -1,6 +1,6 @@
 <snippet>
 	<content><![CDATA[
-// T_large must be able to hold O(T^4) (can be int64_t if coord <= 2e4)
+// T_large must be able to hold O(T^4) (can be long long if coord <= 2e4)
 // O(n * log(n))
 // Requires point and quad_edge
 template<class T, class T_large, class F1, class F2>

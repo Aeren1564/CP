@@ -801,7 +801,7 @@ int main(){
 	cin.exceptions(ios::badbit | ios::failbit);
 	int qn;
 	cin >> qn;
-	auto treap = make_UcQF_treap([&](int64_t x, int64_t y){ return max(x, y); }, 0LL, plus<>(), 0LL, plus<>());
+	auto treap = make_UcQF_treap([&](long long x, long long y){ return max(x, y); }, 0LL, plus<>(), 0LL, plus<>());
 	int root = -1;
 	for(auto qi = 0; qi < qn; ++ qi){
 		int type;

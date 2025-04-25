@@ -5,10 +5,14 @@
 // O(log(min(m, a)))
 template<class T, class U>
 U floor_sum(T n, T m, T a, T b){
-	assert(n >= 0 && m > 0 && a >= 0 && b >= 0);
+	assert(n >= 0 && m > 0 && a >= 0;
 	U res = 0;
 	auto [qa, ra] = div(a, m);
 	auto [qb, rb] = div(b, m);
+	if(rb < 0){
+		rb += m;
+		-- qb;
+	}
 	if(T n2 = (ra * n + rb) / m){
 		auto prev = floor_sum<T, U>(n2, ra, m, m - rb - 1);
 		res += U(n - 1) * n2 - prev;

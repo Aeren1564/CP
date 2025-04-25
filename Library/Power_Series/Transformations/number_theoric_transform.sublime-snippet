@@ -108,7 +108,7 @@ struct number_theoric_transform_wrapper{
 							auto l = p[i + offset];
 							auto r = p[i + offset + power];
 							p[i + offset] = l + r;
-							p[i + offset + power] = (uint64_t)(T::mod() + l.data() - r.data()) * invrot.data();
+							p[i + offset + power] = (unsigned long long)(T::mod() + l.data() - r.data()) * invrot.data();
 						}
 						if(s + 1 != 1 << len - 1) invrot *= invrate2[__builtin_ctz(s + 1)];
 					}
@@ -339,7 +339,7 @@ struct number_theoric_transform_wrapper{
 		int n = (int)p.size() + (int)q.size() - 1;
 		vector<T> res(n);
 		for(auto i = 0; i < n; ++ i){
-			using ull = uint64_t;
+			using ull = unsigned long long;
 			ull a = xy0[i].data();
 			ull b = (xy1[i].data() + modular1::mod() - a) * r01.data() % modular1::mod();
 			ull c = ((xy2[i].data() + modular2::mod() - a) * r02r12.data() + (modular2::mod() - b) * r12.data()) % modular2::mod();

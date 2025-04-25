@@ -9,7 +9,7 @@ using namespace std;
 
 // Addition
 template<size_t _Nw> void _M_do_add(_Base_bitset<_Nw> &x, const _Base_bitset<_Nw> &y){
-	for(int i = 0, c = 0; i < _Nw; ++ i) c = _addcarry_u64(c, x._M_w[i], y._M_w[i], (uint64_t *)&x._M_w[i]);
+	for(int i = 0, c = 0; i < _Nw; ++ i) c = _addcarry_u64(c, x._M_w[i], y._M_w[i], (unsigned long long *)&x._M_w[i]);
 }
 void _M_do_add(_Base_bitset<1> &x, const _Base_bitset<1> &y){ x._M_w += y._M_w; }
 void _M_do_add(_Base_bitset<0> &x, const _Base_bitset<0> &y){ }
@@ -23,7 +23,7 @@ template<size_t _Nb> bitset<_Nb> operator+(bitset<_Nb> x, const bitset<_Nb> &y){
 // Subtraction
 template<size_t _Nw>
 void _M_do_sub(_Base_bitset<_Nw> &x, const _Base_bitset<_Nw> &y){
-	for(int i = 0, c = 0; i < _Nw; ++ i) c = _subborrow_u64(c, x._M_w[i], y._M_w[i], (uint64_t *)&x._M_w[i]);
+	for(int i = 0, c = 0; i < _Nw; ++ i) c = _subborrow_u64(c, x._M_w[i], y._M_w[i], (unsigned long long *)&x._M_w[i]);
 }
 void _M_do_sub(_Base_bitset<1> &x, const _Base_bitset<1> &y){ x._M_w -= y._M_w; }
 void _M_do_sub(_Base_bitset<0> &x, const _Base_bitset<0> &y){ }

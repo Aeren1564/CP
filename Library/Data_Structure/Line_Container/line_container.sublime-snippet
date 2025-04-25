@@ -23,7 +23,7 @@ struct line_container{
 		else return a / b;
 	}
 	template<class It>
-	bool isect(It x, It y){
+	bool _isect(It x, It y){
 		if(y == data.end()){
 			x->p = inf;
 			return false;
@@ -49,13 +49,13 @@ struct line_container{
 		}
 		L.p = 0;
 		auto z = data.insert(L), y = z ++, x = y;
-		while(isect(y, z)) z = data.erase(z);
-		if(x != data.begin() && isect(-- x, y)) isect(x, y = data.erase(y));
-		while((y = x) != data.begin() && (-- x)->p >= y->p) isect(x, data.erase(y));
+		while(_isect(y, z)) z = data.erase(z);
+		if(x != data.begin() && _isect(-- x, y)) _isect(x, y = data.erase(y));
+		while((y = x) != data.begin() && (-- x)->p >= y->p) _isect(x, data.erase(y));
 	}
 	// O(log(n))
 	T query(T x){
-		assert(!data.empty());
+		if(data.empty()) return inf * (GET_MAX ? -1 : 1);
 		auto l = *data.lower_bound(x);
 		return (l.k + l.d * x) * (GET_MAX ? 1 : -1);
 	}

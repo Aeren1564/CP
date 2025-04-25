@@ -45,7 +45,7 @@ struct min25_sieve{
 	}
 	// Returns 0^d + ... + (base-1)^d
 	// O(d * log(d) + inverse_in_T())
-	T _power_sum(int64_t base, int d){
+	T _power_sum(long long base, int d){
 		assert(d >= 0);
 		vector<T> value(d + 2), fact(d + 2, 1), pref(d + 3, 1), suff(d + 3, 1);
 		for(auto x = 0; x <= d; ++ x){
@@ -77,25 +77,25 @@ struct min25_sieve{
 		for(auto x = 1; x < (int)_fenwick.size(); ++ x) arr[x] = _fenwick_prefix_sum(x + 1) - _fenwick_prefix_sum(x);
 		return arr;
 	}
-	int get_threshold(int64_t n) const{
+	int get_threshold(long long n) const{
 		assert(1 <= n);
-		int64_t th = max(2 * sqrtl(n), 1.01L * powl(n, 2.0L / 3));
+		long long th = max(2 * sqrtl(n), 1.01L * powl(n, 2.0L / 3));
 		assert(th <= 1e9);
 		return th;
 	}
 	// List of floor(n/k) at all distinct value of floor(n/k) in increasing order of k
-	vector<int64_t> block;
+	vector<long long> block;
 	// Source: https://gbroxey.github.io/blog/2023/04/09/lucy-fenwick.html
 	// Find the sum of f(p) over all prime 2 <= p <= x for all block x
 	// O(d * n^2/3 * log(n)^{1/3})
-	vector<T> query_prime_prefix(const vector<T> &coef, int64_t n){
+	vector<T> query_prime_prefix(const vector<T> &coef, long long n){
 		assert((int)coef.size() == deg);
 		_sieve(max(5.0L, 2 * sqrtl(n)));
 		assert(1LL * prime.back() * prime.back() >= n);
 		const int th = get_threshold(n); // split to [1, th] and [th + 1, n]
 		block.clear();
 		for(auto low = 1LL, high = 0LL; low <= n; low = high + 1){
-			int64_t q = n / low;
+			long long q = n / low;
 			high = n / q;
 			block.push_back(q);
 		}
@@ -113,7 +113,7 @@ struct min25_sieve{
 				for(auto ns = nb, j = 0; 1LL * prime[j] * prime[j] <= n; ++ j){
 					while(ns > 0 && 1LL * prime[j] * prime[j] > block[ns - 1]) -- ns;
 					for(auto i = 0; i < min(ns, cut); ++ i){
-						int64_t x = block[i] / prime[j];
+						long long x = block[i] / prime[j];
 						s[i] -= prime_power[d][j] * ((x <= th ? _fenwick_prefix_sum(x + 1) : s[n / x - 1]) - prime_power_prefix[d][j]);
 					}
 					for(auto x = 2 * prime[j]; x <= th; x += prime[j]) if(is_prime[x]) is_prime[x] = false, _fenwick_update(x, -power[x]);
@@ -128,7 +128,7 @@ struct min25_sieve{
 	// Source: https://min-25.hatenablog.com/entry/2018/11/11/172216
 	// Find the sum of f(i) over all integer 1 <= i <= x for all block x
 	// O(d * n^2/3 * log(n)^{1/3})
-	vector<T> query_prefix(const vector<T> &coef, auto eval, int64_t n){
+	vector<T> query_prefix(const vector<T> &coef, auto eval, long long n){
 		assert((int)coef.size() == deg);
 		auto res_prime = query_prime_prefix(coef, n);
 		const int th = get_threshold(n); // split to [1, th] and [th + 1, n]
@@ -141,7 +141,7 @@ struct min25_sieve{
 		for(auto i = 0; i < nb && block[i] >= prime[qj]; ++ i){
 			res[i] += res_prime[i] - res_prime[nb - (prime[qj] - 1)];
 			for(auto j = qj; 1LL * prime[j] * prime[j] <= block[i]; ++ j){
-				int64_t x = block[i] / prime[j], y = n / x;
+				long long x = block[i] / prime[j], y = n / x;
 				res[i] += eval(prime[j], 2) + eval(prime[j], 1) * (res_prime[x < y ? nb - x : y - 1] - res_prime[nb - prime[j]]);
 			}
 		}
@@ -162,10 +162,10 @@ struct min25_sieve{
 		for(auto ns = nb, j = qj - 1; j >= 0; -- j){
 			while(ns > 0 && 1LL * prime[j] * prime[j] > block[ns - 1]) -- ns;
 			for(auto i = 0; i < min(ns, cut); ++ i){
-				int64_t prime_power = 1;
+				long long prime_power = 1;
 				for(auto e = 1; prime_power <= block[i] / prime[j]; ++ e){
 					prime_power *= prime[j];
-					int64_t x = block[i] / prime_power;
+					long long x = block[i] / prime_power;
 					res[i] += eval(prime[j], e) * (x <= th ? _fenwick_prefix_sum(x + 1) : res[n / x - 1]);
 				}
 			}

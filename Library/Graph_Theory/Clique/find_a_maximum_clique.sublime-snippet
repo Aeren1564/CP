@@ -4,7 +4,7 @@
 // Reads adjacency matrix represented with bitmask
 // n must be equal or less than 64 (works under 100ms).
 // O(3^(n/3))
-vector<int> find_a_maximum_clique(const vector<uint64_t> &input_adjm){
+vector<int> find_a_maximum_clique(const vector<unsigned long long> &input_adjm){
 	int n = (int)input_adjm.size();
 	assert(1 <= n && n <= 64);
 	vector<int> deg(n), order(n), pos(n);
@@ -12,7 +12,7 @@ vector<int> find_a_maximum_clique(const vector<uint64_t> &input_adjm){
 	iota(order.begin(), order.end(), 0);
 	sort(order.begin(), order.end(), [&](int u, int v){ return deg[u] < deg[v]; });
 	for(auto t = 0; t < n; ++ t) pos[order[t]] = t;
-	using ull = uint64_t;
+	using ull = unsigned long long;
 	vector<ull> adjm(n);
 	for(auto u = 0; u < n; ++ u) for(auto v = u + 1; v < n; ++ v) if(input_adjm[u] & 1ull << v) adjm[pos[u]] ^= 1ull << pos[v], adjm[pos[v]] ^= 1ull << pos[u];
 	ull res = 0;

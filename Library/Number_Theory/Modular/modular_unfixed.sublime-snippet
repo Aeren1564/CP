@@ -106,9 +106,9 @@ struct modular_unfixed_base{
 	modular_unfixed_base operator--(int){ modular_unfixed_base result(*this); *this += _mod - 1; return result; }
 	modular_unfixed_base operator-() const{ return modular_unfixed_base(_mod - _data); }
 	modular_unfixed_base &operator*=(const modular_unfixed_base &rhs){
-		if constexpr(is_same_v<data_t, uint64_t>){
-			int64_t res = _data * rhs._data - _mod * (uint64_t)(1.L / _mod * _data * rhs._data);
-			_data = res + _mod * (res < 0) - _mod * (res >= (int64_t)_mod);
+		if constexpr(is_same_v<data_t, unsigned long long>){
+			long long res = _data * rhs._data - _mod * (unsigned long long)(1.L / _mod * _data * rhs._data);
+			_data = res + _mod * (res < 0) - _mod * (res >= (long long)_mod);
 		}
 		else _data = _normalize((wider_data_t)_data * rhs._data);
 		return *this;
@@ -192,7 +192,7 @@ friend bool operator op(const T &x, const modular_unfixed_base &y){ return modul
 	COMPARE_OP(==) COMPARE_OP(!=) COMPARE_OP(<) COMPARE_OP(<=) COMPARE_OP(>) COMPARE_OP(>=)
 #undef COMPARE_OP
 	friend istream &operator>>(istream &in, modular_unfixed_base &number){
-		int64_t x;
+		long long x;
 		in >> x;
 		number._data = modular_unfixed_base::_normalize(x);
 		return in;
@@ -228,14 +228,14 @@ template<int id, class data_t, class wider_data_t> wider_data_t modular_unfixed_
 template<int id, class data_t, class wider_data_t> vector<modular_unfixed_base<id, data_t, wider_data_t>> modular_unfixed_base<id, data_t, wider_data_t>::_INV;
 template<int id, class data_t, class wider_data_t> modular_unfixed_base<id, data_t, wider_data_t> modular_unfixed_base<id, data_t, wider_data_t>::_primitive_root;
 
-using modular = modular_unfixed_base<0, unsigned int, uint64_t>;
-// using modular = modular_unfixed_base<0, uint64_t, __uint128_t>;
+using modular = modular_unfixed_base<0, unsigned int, unsigned long long>;
+// using modular = modular_unfixed_base<0, unsigned long long, __uint128_t>;
 
 modular operator""_m(const char *x){
 	modular res = 0;
-	int64_t buffer = 0;
-	int64_t buffer_width = 1;
-	constexpr int64_t buffer_th = 1'000'000'000'000'000'000LL;
+	long long buffer = 0;
+	long long buffer_width = 1;
+	constexpr long long buffer_th = 1'000'000'000'000'000'000LL;
 	while(*x){
 		#ifdef LOCAL
 		assert(isdigit(*x));

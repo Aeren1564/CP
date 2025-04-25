@@ -108,9 +108,9 @@ friend bool operator op(const U &x, const finite_field_char2_small_base &y){ ret
 };
 
 template<size_t D>
-using FF2 = finite_field_char2_small_base<D, unsigned int, uint64_t>;
+using FF2 = finite_field_char2_small_base<D, unsigned int, unsigned long long>;
 template<size_t D>
-using FF2L = finite_field_char2_small_base<D, uint64_t, __uint128_t>;
+using FF2L = finite_field_char2_small_base<D, unsigned long long, __uint128_t>;
 ]]></content>
 	<!-- Optional: Set a tabTrigger to define how to trigger the snippet -->
 	<tabTrigger>finite_field_char2_small</tabTrigger> -->

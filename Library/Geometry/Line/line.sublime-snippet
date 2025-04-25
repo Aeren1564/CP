@@ -126,7 +126,7 @@ struct line{
 };
 
 using lineint = line<int>;
-using linell = line<int64_t>;
+using linell = line<long long>;
 using linelll = line<__int128_t>;
 using lined = line<double>;
 using lineld = line<long double>;

@@ -7,11 +7,11 @@
 // for prime p and integer e >= 1
 template<class T, class F1>
 struct min25_sieve{
-	int64_t n_th;
+	long long n_th;
 	vector<T> coef;
 	F1 eval;
 	vector<int> prime;
-	min25_sieve(int64_t n_th, const vector<T> &coef, F1 eval): n_th(n_th), coef(coef), eval(eval){
+	min25_sieve(long long n_th, const vector<T> &coef, F1 eval): n_th(n_th), coef(coef), eval(eval){
 		assert(0 <= n_th && n_th <= 1e15);
 		int sq = sqrtl(n_th);
 		prime = {2, 3};
@@ -22,10 +22,10 @@ struct min25_sieve{
 		}
 	}
 	template<class U, class V>
-	int64_t _div(U x, V y){ return double(x) / y; }
+	long long _div(U x, V y){ return double(x) / y; }
 	// Returns 0^d + ... + (base-1)^d
 	// O(d * log(d) + inverse_in_T())
-	T _power_sum(int64_t base, int d){
+	T _power_sum(long long base, int d){
 		assert(d >= 0);
 		static vector<T> value, pref, suff;
 		value.resize(d + 2), pref.resize(d + 3, 1), suff.resize(d + 3, 1);
@@ -42,15 +42,15 @@ struct min25_sieve{
 		return res;
 	}
 	// list of floor(n/k) at all distinct value of floor(n/k) in increasing order of k
-	vector<int64_t> block;
+	vector<long long> block;
 	int cut, prime_th, nb;
-	void _prepare(int64_t n){
+	void _prepare(long long n){
 		prime_th = partition_point(prime.begin(), prime.end(), [&](int p){ return 1LL * p * p <= n; }) - prime.begin();
 		cut = sqrtl(n);
 		block.clear();
 		block.reserve(2 * cut + 2);
 		for(auto low = 1LL, high = 0LL; low <= n; low = high + 1){
-			int64_t q = n / low;
+			long long q = n / low;
 			high = n / q;
 			block.push_back(q);
 		}
@@ -59,7 +59,7 @@ struct min25_sieve{
 	vector<T> s, res;
 	// Returns the sum of f(p) for prime p <= block[i] for each block index i
 	// O(n^3/4 / log(n))
-	const vector<T> &query_block_prime_prefix_sum(int64_t n){
+	const vector<T> &query_block_prime_prefix_sum(long long n){
 		assert(1 <= n && n <= n_th);
 		_prepare(n);
 		res.assign(nb, T{0});
@@ -70,9 +70,9 @@ struct min25_sieve{
 			T prime_power_prefix = 0;
 			for(auto j = 0; j < prime_th; ++ j){
 				int p = prime[j];
-				int64_t sqp = 1LL * p * p;
-				int imax = min<int64_t>(cut, _div(n, sqp));
-				int64_t ip = p;
+				long long sqp = 1LL * p * p;
+				int imax = min<long long>(cut, _div(n, sqp));
+				long long ip = p;
 				for(auto i = 0; i < imax; ++ i, ip += p) s[i] -= (ip <= cut ? s[ip - 1] : s[nb - _div(n, ip)]) - prime_power_prefix;
 				for(auto i = imax; i < nb && block[i] >= sqp; ++ i) s[i] -= s[nb - _div(block[i], p)] - prime_power_prefix;
 				++ prime_power_prefix;
@@ -93,9 +93,9 @@ struct min25_sieve{
 				T prime_power_prefix = 0;
 				for(auto j = 0; j < prime_th; ++ j){
 					int p = prime[j];
-					int64_t sqp = 1LL * p * p;
-					int imax = min<int64_t>(cut, _div(n, sqp));
-					int64_t ip = p;
+					long long sqp = 1LL * p * p;
+					int imax = min<long long>(cut, _div(n, sqp));
+					long long ip = p;
 					for(auto i = 0; i < imax; ++ i, ip += p) s[i] -= prime_power[j] * (s[ip <= cut ? ip - 1 : nb - _div(n, ip)] - prime_power_prefix);
 					for(auto i = imax; i < nb && block[i] >= sqp; ++ i) s[i] -= prime_power[j] * (s[nb - _div(block[i], p)] - prime_power_prefix);
 					prime_power_prefix += prime_power[j];
@@ -108,22 +108,22 @@ struct min25_sieve{
 	}
 	// Returns the sum of f(x) for 1 <= x <= block[i] for each block index i
 	// Unsure about complexity
-	const vector<T> &query_block_prefix_sum(int64_t n){
+	const vector<T> &query_block_prefix_sum(long long n){
 		assert(1 <= n && n <= n_th);
 		query_block_prime_prefix_sum(n);
 		s = res;
 		for(auto j = prime_th - 1; j >= 0; -- j){
 			int p = prime[j];
-			int64_t sqp = 1LL * p * p;
+			long long sqp = 1LL * p * p;
 			for(auto i = 0; i < nb && block[i] >= sqp; ++ i){
-				int64_t x = block[i];
+				long long x = block[i];
 				for(auto c = 2; p <= (x = _div(x, p)); ++ c) res[i] += eval(p, c - 1) * (res[x <= cut ? nb - x : _div(n, x) - 1] - s[nb - p]) + eval(p, c);
 			}
 		}
 		for(auto &x: res) ++ x;
 		return res;
 	}
-	int64_t _n;
+	long long _n;
 	// _dfs returns the sum of integer x > prod, such that
 	// 1. v_prime[j](x) = v_prime[j](prod) for all 0 <= j < i and
 	// 2. v_prime[i](x) >= c
@@ -131,21 +131,21 @@ struct min25_sieve{
 	// v_prime[i](prod) is always c
 	// cur is always f(prod / prime[i]^c)
 	// \omega(n^(1-eps)) for all eps>0, and o(n)
-	T _dfs(int i, int c, int64_t prod, T cur){
+	T _dfs(int i, int c, long long prod, T cur){
 		T ans = cur * eval(prime[i], c + 1);
-		int64_t th = _div(_n, prod);
+		long long th = _div(_n, prod);
 		if(th >= 1LL * prime[i] * prime[i]) ans += _dfs(i, c + 1, prod * prime[i], cur);
 		ans += (cur *= eval(prime[i], c)) * (res[th <= cut ? nb - th : prod - 1] - res[nb - prime[i]]);
 		for(++ i; i < prime_th && prime[i] < 1 << 21 && 1LL * prime[i] * prime[i] * prime[i] <= th; ++ i) ans += _dfs(i, 1, prod * prime[i], cur);
 		for(; i < prime_th && 1LL * prime[i] * prime[i] <= th; ++ i){
-			int64_t x = _div(th, prime[i]);
+			long long x = _div(th, prime[i]);
 			ans += cur * (eval(prime[i], 2) + eval(prime[i], 1) * (res[x <= cut ? nb - x : prod * prime[i] - 1] - res[nb - prime[i]]));
 		}
 		return ans;
 	}
 	// Returns the sum of f(x) for 1 <= x <= n
 	// \omega(n^(1-eps)) for all eps>0, and o(n)
-	T query_prefix_sum(int64_t n){
+	T query_prefix_sum(long long n){
 		assert(1 <= n && n <= n_th);
 		query_block_prime_prefix_sum(n);
 		T ans = res[0] + 1;

@@ -5,7 +5,7 @@ template<int BX>
 struct range_inversion_query_solver_offline{
 	int n;
 	vector<int> data;
-	mo_sweepline_base<BX, int64_t, plus<>, minus<>> mo;
+	mo_sweepline_base<BX, long long, plus<>, minus<>> mo;
 	template<class T, class Compare = less<>>
 	range_inversion_query_solver_offline(const vector<T> &a, Compare cmp = less<>()): n((int)a.size()), data((int)a.size()), mo(n, plus<>(), 0LL, minus<>()){
 		vector<T> temp = a;
@@ -16,7 +16,7 @@ struct range_inversion_query_solver_offline{
 		mo.query(qi, ql, qr);
 	}
 	// O(n*BX + qn*BX + n^2/BX)
-	vector<int64_t> solve() const{
+	vector<long long> solve() const{
 		sqrt_decomposition_heavy_point_update_light_range_query_commutative_group<BX, int, plus<>, minus<>> sqrtdecomp(n, plus<>(), 0, minus<>());
 		auto insert = [&](int i)->void{
 			sqrtdecomp.update(data[i], 1);

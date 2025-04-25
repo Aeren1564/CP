@@ -19,7 +19,7 @@ struct counting_iterator{
 	bool operator==(const counting_iterator &otr) const{ return value == otr.value; }
 };
 using iterint = counting_iterator<int>;
-using iterll = counting_iterator<int64_t>;
+using iterll = counting_iterator<long long>;
 using iterlll = counting_iterator<__int128_t>;
 ]]></content>
 	<!-- Optional: Set a tabTrigger to define how to trigger the snippet -->

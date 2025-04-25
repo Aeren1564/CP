@@ -13,8 +13,8 @@ int main(){
 	cin.exceptions(ios::badbit | ios::failbit);
 	int n, qn;
 	cin >> n >> qn;
-	vector<vector<int64_t>> a(qn + 1, vector<int64_t>(n));
-	copy_n(istream_iterator<int64_t>(cin), n, a[0].begin());
+	vector<vector<long long>> a(qn + 1, vector<long long>(n));
+	copy_n(istream_iterator<long long>(cin), n, a[0].begin());
 	for(auto qi = 0; qi < qn; ++ qi){
 		int type, u;
 		cin >> type >> u;

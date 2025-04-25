@@ -2,10 +2,10 @@
 	<content><![CDATA[
 // Correctness proved in https://github.com/kth-competitive-programming/kactl/blob/master/doc/modmul-proof.pdf
 // twice faster than (__int128_t)a * b % M
-using ull = uint64_t;
+using ull = unsigned long long;
 ull mod_mul(ull a, ull b, ull M){
-	int64_t res = a * b - M * ull(1.L / M * a * b);
-	return res + M * (res < 0) - M * (res >= (int64_t)M);
+	long long res = a * b - M * ull(1.L / M * a * b);
+	return res + M * (res < 0) - M * (res >= (long long)M);
 }
 ull mod_pow(ull b, ull e, ull mod){
 	ull res = 1;

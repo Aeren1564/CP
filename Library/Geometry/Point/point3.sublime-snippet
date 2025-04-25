@@ -167,7 +167,7 @@ bool coplanar(const vector<point3<T>> &a){
 }
 
 using point3int = point3<int>;
-using point3ll = point3<int64_t>;
+using point3ll = point3<long long>;
 using point3lll = point3<__int128_t>;
 using point3d = point3<double>;
 using point3ld = point3<long double>;
