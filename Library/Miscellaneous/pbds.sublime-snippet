@@ -14,6 +14,13 @@ struct splitmix64_hash{
 		static const unsigned long long FIXED_RANDOM = chrono::steady_clock::now().time_since_epoch().count();
 		return _splitmix64(x + FIXED_RANDOM);
 	}
+	template<class T>
+	size_t operator()(const vector<T> &a) const{
+		static const unsigned long long FIXED_RANDOM = chrono::steady_clock::now().time_since_epoch().count();
+		unsigned long long h = 0;
+		for(auto c: a) h = _splitmix64(FIXED_RANDOM * h + c);
+		return h;
+	}
 };
 template<class K, class U, class Compare = less<>>
 using indexable_map = tree<K, U, Compare, rb_tree_tag, tree_order_statistics_node_update>;
