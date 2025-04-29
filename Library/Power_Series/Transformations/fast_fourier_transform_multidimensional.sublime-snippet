@@ -143,13 +143,15 @@ template<class T>
 const T _transform_1D_tritwise_addition_modular<T>::root_sq = root * root;
 
 template<class T>
-using fwht = fast_fourier_transform_multidimensional_wrapper_base<T, _transform_1D_bitwise_xor<T>>;
+using bitwise_xor_transform = fast_fourier_transform_multidimensional_wrapper_base<T, _transform_1D_bitwise_xor<T>>;
 template<class T>
 using bitwise_and_transform = fast_fourier_transform_multidimensional_wrapper_base<T, _transform_1D_bitwise_and<T>>;
 template<class T>
 using bitwise_or_transform = fast_fourier_transform_multidimensional_wrapper_base<T, _transform_1D_bitwise_or<T>>;
 template<class T>
 using tritwise_addition_transform = fast_fourier_transform_multidimensional_wrapper_base<T, _transform_1D_tritwise_addition_modular<T>>;
+template<class T>
+using fwht = bitwise_xor_transform<T>;
 ]]></content>
 	<!-- Optional: Set a tabTrigger to define how to trigger the snippet -->
 	<tabTrigger>fast_fourier_transform_multidimensional</tabTrigger> -->
