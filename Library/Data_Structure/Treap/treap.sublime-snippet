@@ -540,18 +540,17 @@ struct treap_base{
 	const T &find_by_order(int root, int p){
 		static_assert(IS_IMPLICIT);
 		ASSERT(0 <= p && p < size(root));
-		while(p){
+		while(true){
 			push(root);
 			if(p < size(left[root])){
 				root = left[root];
 				continue;
 			}
 			p -= size(left[root]);
-			if(p == 0) break;
+			if(p == 0) return data[root];
 			-- p;
 			root = right[root];
 		}
-		return data[root];
 	}
 	// Data must be sorted by <
 	// O(log(n))
