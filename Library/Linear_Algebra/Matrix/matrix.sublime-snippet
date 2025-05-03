@@ -73,7 +73,7 @@ struct matrix{
 	matrix operator-(const matrix &a) const{
 		return matrix(*this) -= a;
 	}
-	matrix operator*=(const matrix &a){
+	matrix &operator*=(const matrix &a){
 		assert(m == a.n);
 		int l = a.m;
 		matrix res(n, l);
@@ -159,7 +159,7 @@ struct matrix{
 				for(auto i = rank + 1; i < n; ++ i) while(data[i][j]){
 					T q;
 					if constexpr(is_integral_v<T> || is_same_v<T, __int128_t> || is_same_v<T, __uint128_t>) q = data[rank][j] / data[i][j];
-					else q = data[rank][j].data / data[i][j].data;
+					else q = data[rank][j].data() / data[i][j].data();
 					if(q) for(auto k = j; k < m; ++ k) data[rank][k] -= q * data[i][k];
 					swap(data[rank], data[i]);
 					det *= -1;
@@ -300,7 +300,7 @@ struct matrix{
 		assert(n == m);
 		if(n == 0) return *this;
 		auto a = data;
-		auto res = multiplicative_identity();
+		auto res = multiplicative_identity(n, m);
 		for(auto j = 0; j < n; ++ j){
 			int rank = j, pivot = -1;
 			if constexpr(is_floating_point_v<T>){
@@ -334,6 +334,18 @@ struct matrix{
 			}
 		}
 		return res;
+	}
+	matrix &operator/=(const matrix &otr){
+		return *this *= *otr.inverse();
+	}
+	matrix operator/(const matrix &otr) const{
+		return matrix(*this) /= otr;
+	}
+	matrix &operator/=(const T &c){
+		return *this *= T{1} / c;
+	}
+	matrix operator/(const T &c) const{
+		return matrix(*this) /= c;
 	}
 	// O(n * 2^n)
 	T permanent() const{
