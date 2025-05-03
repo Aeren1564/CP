@@ -22,8 +22,8 @@ struct treap_base{
 	F2 UU; // monoid operation (superset, subset), or (superset, subset, offset) if PASS_OFFSET
 	U U_id; // monoid identity
 	F3 UT; // action of U on T (superset, subset), or (superset, subset, offset) if PASS_OFFSET
-	F4 FlipT;
-	treap_base(F1 TT, T T_id, F2 UU, U U_id, F3 UT, F4 FlipT): TT(TT), T_id(T_id), UU(UU), U_id(U_id), UT(UT), FlipT(FlipT){ }
+	F4 Tflip;
+	treap_base(F1 TT, T T_id, F2 UU, U U_id, F3 UT, F4 Tflip): TT(TT), T_id(T_id), UU(UU), U_id(U_id), UT(UT), Tflip(Tflip){ }
 	void reserve(int n){
 		ASSERT(n >= 0);
 		priority.reserve(n);
@@ -36,7 +36,7 @@ struct treap_base{
 		ifQ subtr_data.reserve(n);
 		ifU lazy.reserve(n);
 	}
-	void push(int u){
+	void _push(int u){
 		ifU if(lazy[u] != U_id){
 			if(auto v = left[u]; ~v){
 				ifP{
@@ -69,12 +69,12 @@ struct treap_base{
 			if(auto v = left[u]; ~v){
 				swap(left[v], right[v]);
 				lazy_flip[v] ^= 1;
-				ifQ ifNC subtr_data[v] = FlipT(subtr_data[v]);
+				ifQ ifNC subtr_data[v] = Tflip(subtr_data[v]);
 			}
 			if(auto w = right[u]; ~w){
 				swap(left[w], right[w]);
 				lazy_flip[w] ^= 1;
-				ifQ ifNC subtr_data[w] = FlipT(subtr_data[w]);
+				ifQ ifNC subtr_data[w] = Tflip(subtr_data[w]);
 			}
 			lazy_flip[u] = false;
 		}
@@ -94,7 +94,7 @@ struct treap_base{
 					ifP x = UT(lazy[u], x, 0);
 					else x = UT(lazy[u], x);
 				}
-				ifF ifNC if(lazy_flip[u]) x = FlipT(x);
+				ifF ifNC if(lazy_flip[u]) x = Tflip(x);
 				subtr_data[u] = x;
 			}
 		}
@@ -110,7 +110,7 @@ struct treap_base{
 					ifP x = UT(lazy[u], x, size(left[u]) + 1);
 					else x = UT(lazy[u], x);
 				}
-				ifF ifNC if(lazy_flip[u]) x = FlipT(x);
+				ifF ifNC if(lazy_flip[u]) x = Tflip(x);
 				subtr_data[u] = TT(subtr_data[u], x);
 			}
 		}
@@ -181,7 +181,7 @@ struct treap_base{
 	// O(log(n))
 	pair<int, int> split_by_key(int root, const T &x){
 		if(!~root) return {-1, -1};
-		push(root);
+		_push(root);
 		if(data[root] < x){
 			auto [a, b] = split_by_key(right[root], x);
 			right[root] = a, refresh(root);
@@ -199,7 +199,7 @@ struct treap_base{
 	template<class Compare>
 	pair<int, int> split_by_key(int root, const T &x, Compare cmp){
 		if(!~root) return {-1, -1};
-		push(root);
+		_push(root);
 		if(cmp(data[root], x)){
 			auto [a, b] = split_by_key(right[root], x, cmp);
 			right[root] = a, refresh(root);
@@ -219,7 +219,7 @@ struct treap_base{
 			ASSERT(pos == 0);
 			return {-1, -1};
 		}
-		push(root);
+		_push(root);
 		if(size(left[root]) < pos){
 			auto [a, b] = split_by_order(right[root], pos - size(left[root]) - 1);
 			right[root] = a, refresh(root);
@@ -236,7 +236,7 @@ struct treap_base{
 	// O(log(n))
 	pair<int, int> split_by_pred(int root, auto pred){
 		if(!~root) return {-1, -1};
-		push(root);
+		_push(root);
 		if(pred(root)){
 			auto [a, b] = split_by_pred(right[root], pred);
 			right[root] = a, refresh(root);
@@ -279,8 +279,8 @@ struct treap_base{
 	// O(log(n))
 	int append(int u, int v){
 		if(!~u || !~v) return ~u ? u : v;
-		push(u);
-		push(v);
+		_push(u);
+		_push(v);
 		if(priority[v] < priority[u]){
 			right[u] = append(right[u], v), refresh(u);
 			return u;
@@ -299,7 +299,7 @@ struct treap_base{
 	// O(log(n))
 	int insert_node_by_key(int root, int u){
 		if(!~root) return u;
-		push(root);
+		_push(root);
 		if(priority[root] > priority[u]){
 			if(data[root] < data[u]) right[root] = insert_node_by_key(right[root], u);
 			else left[root] = insert_node_by_key(left[root], u);
@@ -321,7 +321,7 @@ struct treap_base{
 	template<class Compare>
 	int insert_node_by_key(int root, int u, Compare cmp){
 		if(!~root) return u;
-		push(root);
+		_push(root);
 		if(priority[root] > priority[u]){
 			if(cmp(data[root], data[u])) right[root] = insert_node_by_key(right[root], u, cmp);
 			else left[root] = insert_node_by_key(left[root], u, cmp);
@@ -346,7 +346,7 @@ struct treap_base{
 			ASSERT(pos == 0);
 			return u;
 		}
-		push(root);
+		_push(root);
 		if(priority[root] > priority[u]){
 			if(size(left[root]) < pos) right[root] = insert_node_by_order(right[root], pos - size(left[root]) - 1, u);
 			else left[root] = insert_node_by_order(left[root], pos, u);
@@ -367,7 +367,7 @@ struct treap_base{
 	// O(log(n))
 	int insert_node_by_pred(int root, auto pred, int u){
 		if(!~root) return u;
-		push(root);
+		_push(root);
 		if(priority[root] > priority[u]){
 			if(pred(data[root])) right[root] = insert_node_by_pred(right[root], pred, u);
 			else left[root] = insert_node_by_pred(left[root], pred, u);
@@ -389,7 +389,7 @@ struct treap_base{
 	// O(log(n))
 	int erase_by_key(int root, const T &x){
 		if(!~root) return -2;
-		push(root);
+		_push(root);
 		if(data[root] < x){
 			int u = erase_by_key(right[root], x);
 			if(u == -2) return -2;
@@ -413,7 +413,7 @@ struct treap_base{
 	template<class Compare>
 	int erase_by_key(int root, const T &x, Compare cmp){
 		if(!~root) return -2;
-		push(root);
+		_push(root);
 		if(cmp(data[root], x)){
 			int u = erase_by_key(right[root], x, cmp);
 			if(u == -2) return -2;
@@ -433,7 +433,7 @@ struct treap_base{
 	// O(log(n))
 	int erase_by_order(int root, int pos){
 		ASSERT(~root);
-		push(root);
+		_push(root);
 		if(size(left[root]) == pos){
 			dead_node.push_back(root);
 			return append(left[root], right[root]);
@@ -449,7 +449,7 @@ struct treap_base{
 	// O(log(n))
 	int erase_by_pred(int root, auto pred){
 		if(!~root) return -2;
-		push(root);
+		_push(root);
 		if(pred(data[root])){
 			int u = erase_by_pred(right[root], pred);
 			if(u == -2) return -2;
@@ -482,7 +482,7 @@ struct treap_base{
 		if(!~u || !~v) return ~u ? u : v;
 		if(priority[u] < priority[v]) swap(u, v);
 		auto [a, b] = split_by_key(v, data[u]);
-		push(u);
+		_push(u);
 		left[u] = unite_by_key(left[u], a);
 		right[u] = unite_by_key(right[u], b);
 		refresh(u);
@@ -495,7 +495,7 @@ struct treap_base{
 		if(!~u || !~v) return ~u ? u : v;
 		if(priority[u] < priority[v]) swap(u, v);
 		auto [a, b] = split_by_key(v, data[u], cmp);
-		push(u);
+		_push(u);
 		left[u] = unite_by_key(left[u], a, cmp);
 		right[u] = unite_by_key(right[u], b, cmp);
 		refresh(u);
@@ -503,7 +503,7 @@ struct treap_base{
 	}
 	void traverse(int root, auto f){
 		if(~root){
-			push(root);
+			_push(root);
 			traverse(left[root], f);
 			f(root);
 			traverse(right[root], f);
@@ -527,21 +527,21 @@ struct treap_base{
 	}
 	const T &front(int root){
 		ASSERT(~root);
-		push(root);
-		while(~left[root]) root = left[root], push(root);
+		_push(root);
+		while(~left[root]) root = left[root], _push(root);
 		return data[root];
 	}
 	const T &back(int root){
 		ASSERT(~root);
-		push(root);
-		while(~right[root]) root = right[root], push(root);
+		_push(root);
+		while(~right[root]) root = right[root], _push(root);
 		return data[root];
 	}
 	const T &find_by_order(int root, int p){
 		static_assert(IS_IMPLICIT);
 		ASSERT(0 <= p && p < size(root));
 		while(true){
-			push(root);
+			_push(root);
 			if(p < size(left[root])){
 				root = left[root];
 				continue;
@@ -558,7 +558,7 @@ struct treap_base{
 		static_assert(IS_IMPLICIT);
 		int res = 0;
 		while(~root){
-			push(root);
+			_push(root);
 			if(data[root] < x){
 				res += size(left[root]) + 1;
 				root = right[root];
@@ -574,7 +574,7 @@ struct treap_base{
 		static_assert(IS_IMPLICIT);
 		int res = 0;
 		while(~root){
-			push(root);
+			_push(root);
 			if(cmp(data[root], x)){
 				res += size(left[root]) + 1;
 				root = right[root];
@@ -587,12 +587,17 @@ struct treap_base{
 	int node_order(int root, int u){
 		static_assert(IS_IMPLICIT);
 		ASSERT(~root && ~u);
-		int res = size(left[u]);
-		while(root != u){
-			push(pv[u]);
+		int res = 0;
+		auto recurse = [&](auto self, int u)->void{
+			ASSERT(~u);
+			if(root == u) return;
+			self(self, pv[u]);
+			_push(pv[u]);
 			if(right[pv[u]] == u) res += size(left[pv[u]]) + 1;
-			u = pv[u];
-		}
+		};
+		recurse(recurse, u);
+		_push(u);
+		res += size(left[u]);
 		return res;
 	}
 	// Data must be sorted by pred
@@ -601,7 +606,7 @@ struct treap_base{
 		static_assert(IS_IMPLICIT);
 		int res = 0;
 		while(~root){
-			push(root);
+			_push(root);
 			if(pred(data[root])){
 				res += size(left[root]) + 1;
 				root = right[root];
@@ -616,7 +621,7 @@ struct treap_base{
 		ASSERT(0 <= p && p < size(root));
 		int u = root;
 		while(true){
-			push(u);
+			_push(u);
 			if(size(left[u]) == p){
 				data[u] = x;
 				refresh<false>(u);
@@ -638,7 +643,7 @@ struct treap_base{
 		static_assert(IS_IMPLICIT);
 		ASSERT(0 <= p && p < size(root));
 		while(true){
-			push(root);
+			_push(root);
 			if(size(left[root]) == p) return data[root];
 			if(size(left[root]) > p) root = left[root];
 			else{
@@ -652,7 +657,7 @@ struct treap_base{
 		static_assert(HAS_QUERY);
 		if(!~root || qr <= 0 || size(root) <= ql) return T_id;
 		if(ql <= 0 && size(root) <= qr) return subtr_data[root];
-		push(root);
+		_push(root);
 		T res = T_id;
 		if(ql < size(left[root])) res = _query(left[root], ql, qr);
 		if(ql <= size(left[root]) && size(left[root]) + 1 <= qr) res = TT(res, data[root]);
@@ -673,7 +678,7 @@ struct treap_base{
 		ASSERT(0 <= p && p < size(root));
 		int u = root;
 		while(true){
-			push(u);
+			_push(u);
 			if(size(left[u]) == p){
 				ifP data[u] = UT(f, data[u], 0);
 				else data[u] = UT(f, data[u]);
@@ -708,7 +713,7 @@ struct treap_base{
 			refresh<false>(root);
 			return;
 		}
-		push(root);
+		_push(root);
 		if(ql < size(left[root])) _update(left[root], ql, qr, f);
 		if(ql <= size(left[root]) && size(left[root]) + 1 <= qr){
 			ifP data[root] = UT(f, data[root], size(left[root]) - ql);
@@ -729,7 +734,7 @@ struct treap_base{
 	void _flip(int root, int ql, int qr){
 		static_assert(IS_IMPLICIT);
 		static_assert(HAS_FLIP);
-		push(root);
+		_push(root);
 		if(qr <= size(left[root])){
 			_flip(left[root], ql, qr);
 			refresh<false>(root);
@@ -742,13 +747,13 @@ struct treap_base{
 			auto [ar, br] = split_by_order(right[root], qr - size(left[root]) - 1);
 			auto [al, bl] = split_by_order(left[root], ql);
 			if(~bl){
-				push(bl);
+				_push(bl);
 				swap(left[bl], right[bl]);
 				lazy_flip[bl] ^= 1;
 				refresh<false>(bl);
 			}
 			if(~ar){
-				push(ar);
+				_push(ar);
 				swap(left[ar], right[ar]);
 				lazy_flip[ar] ^= 1;
 				refresh<false>(ar);
@@ -783,7 +788,7 @@ struct treap_base{
 				sum = TT(sum, subtr_data[u]);
 				return n;
 			}
-			push(u);
+			_push(u);
 			if(auto p = self(self, left[u], l); p < n) return p;
 			l += size(left[u]);
 			return ql <= l && !pred(sum = TT(sum, data[u])) ? l : self(self, right[u], l + 1);
@@ -807,7 +812,7 @@ struct treap_base{
 				sum = TT(subtr_data[u], sum);
 				return 0;
 			}
-			push(u);
+			_push(u);
 			if(auto p = self(self, right[u], r); p > 0) return p;
 			r -= size(right[u]);
 			return r <= qr && !pred(sum = TT(data[u], sum)) ? r : self(self, left[u], r - 1);
@@ -825,63 +830,71 @@ struct treap_base{
 template<bool IS_IMPLICIT, class T>
 auto make_treap(){
 	using U = int;
-	auto _TT = [&](T, T)->T{ return T{}; };
-	auto _UU = [&](U, U)->U{ return U{}; };
-	auto _UT = [&](U, T)->T{ return T{}; };
-	auto _FlipT = [&](T)->T{ return T{}; };
-	return treap_base<IS_IMPLICIT, false, false, false, false, false, T, U, decltype(_TT), decltype(_UU), decltype(_UT), decltype(_FlipT)>(_TT, T{}, _UU, U{}, _UT, _FlipT);
+	auto _TT = [&](){ assert(false); };
+	auto _UU = [&](){ assert(false); };
+	auto _UT = [&](){ assert(false); };
+	auto _Tflip = [&](){ assert(false); };
+	return treap_base<IS_IMPLICIT, false, false, false, false, false, T, U, decltype(_TT), decltype(_UU), decltype(_UT), decltype(_Tflip)>(_TT, T{}, _UU, U{}, _UT, _Tflip);
 }
 // Supports flip
 template<bool IS_IMPLICIT, class T, class F1>
-auto make_F_treap(F1 FlipT){
+auto make_F_treap(F1 Tflip){
 	using U = int;
-	auto _TT = [&](T, T)->T{ return T{}; };
-	auto _UU = [&](U, U)->U{ return U{}; };
-	auto _UT = [&](U, T)->T{ return T{}; };
-	return treap_base<IS_IMPLICIT, false, false, false, true, false, T, U, decltype(_TT), decltype(_UU), decltype(_UT), F1>(_TT, T{}, _UU, U{}, _UT, FlipT);
+	auto _TT = [&](){ assert(false); };
+	auto _UU = [&](){ assert(false); };
+	auto _UT = [&](){ assert(false); };
+	return treap_base<IS_IMPLICIT, false, false, false, true, false, T, U, decltype(_TT), decltype(_UU), decltype(_UT), F1>(_TT, T{}, _UU, U{}, _UT, Tflip);
 }
 // Supports query
 template<bool IS_IMPLICIT, class T, class F1>
 auto make_Q_treap(F1 TT, T T_id){
 	using U = int;
-	auto _UU = [&](U, U)->U{ return U{}; };
-	auto _UT = [&](U, T)->T{ return T{}; };
-	auto _FlipT = [&](T)->T{ return T{}; };
-	return treap_base<IS_IMPLICIT, false, true, false, false, false, T, U, F1, decltype(_UU), decltype(_UT), decltype(_FlipT)>(TT, T_id, _UU, U{}, _UT, _FlipT);
+	auto _UU = [&](){ assert(false); };
+	auto _UT = [&](){ assert(false); };
+	auto _Tflip = [&](){ assert(false); };
+	return treap_base<IS_IMPLICIT, false, true, false, false, false, T, U, F1, decltype(_UU), decltype(_UT), decltype(_Tflip)>(TT, T_id, _UU, U{}, _UT, _Tflip);
+}
+// Supports query and flip
+template<bool IS_IMPLICIT, class T, class F1, class F2>
+auto make_QF_treap(F1 TT, T T_id, F2 Tflip){
+	using U = int;
+	auto _UU = [&](){ assert(false); };
+	auto _UT = [&](){ assert(false); };
+	return treap_base<IS_IMPLICIT, false, true, false, true, false, T, U, F1, decltype(_UU), decltype(_UT), F2>(TT, T_id, _UU, U{}, _UT, Tflip);
 }
 // Supports query and update
 template<bool IS_IMPLICIT, class T, class F1, class F2, class U, class F3>
 auto make_QU_treap(F1 TT, T T_id, F2 UU, U U_id, F3 UT){
-	auto _FlipT = [&](T)->T{ return T{}; };
-	return treap_base<IS_IMPLICIT, false, true, true, false, false, T, U, F1, F2, F3, decltype(_FlipT)>(TT, T_id, UU, U_id, UT, _FlipT);
+	auto _Tflip = [&](){ assert(false); };
+	return treap_base<IS_IMPLICIT, false, true, true, false, false, T, U, F1, F2, F3, decltype(_Tflip)>(TT, T_id, UU, U_id, UT, _Tflip);
 }
 // Supports query and update
 template<bool IS_IMPLICIT, class T, class F1, class F2, class U, class F3>
 auto make_QU_treap_with_offset(F1 TT, T T_id, F2 UU, U U_id, F3 UT){
-	auto _FlipT = [&](T)->T{ return T{}; };
-	return treap_base<IS_IMPLICIT, true, true, true, false, false, T, U, F1, F2, F3, decltype(_FlipT)>(TT, T_id, UU, U_id, UT, _FlipT);
+	auto _Tflip = [&](){ assert(false); };
+	return treap_base<IS_IMPLICIT, true, true, true, false, false, T, U, F1, F2, F3, decltype(_Tflip)>(TT, T_id, UU, U_id, UT, _Tflip);
 }
 // Supports commutative query, update, and flip
 template<bool IS_IMPLICIT, class T, class U, class F1, class F2, class F3>
 auto make_cQUF_treap(F1 TT, T T_id, F2 UU, U U_id, F3 UT){
-	auto _FlipT = [&](T)->T{ return T{}; };
-	return treap_base<IS_IMPLICIT, false, true, true, true, true, T, U, F1, F2, F3, decltype(_FlipT)>(TT, T_id, UU, U_id, UT, _FlipT);
+	auto _Tflip = [&](){ assert(false); };
+	return treap_base<IS_IMPLICIT, false, true, true, true, true, T, U, F1, F2, F3, decltype(_Tflip)>(TT, T_id, UU, U_id, UT, _Tflip);
 }
 // Supports commutative query, update, and flip
 template<bool IS_IMPLICIT, class T, class U, class F1, class F2, class F3>
 auto make_cQUF_treap_with_offset(F1 TT, T T_id, F2 UU, U U_id, F3 UT){
-	auto _FlipT = [&](T)->T{ return T{}; };
-	return treap_base<IS_IMPLICIT, true, true, true, true, true, T, U, F1, F2, F3, decltype(_FlipT)>(TT, T_id, UU, U_id, UT, _FlipT);
+	auto _Tflip = [&](){ assert(false); };
+	return treap_base<IS_IMPLICIT, true, true, true, true, true, T, U, F1, F2, F3, decltype(_Tflip)>(TT, T_id, UU, U_id, UT, _Tflip);
 }
 // Supports query, update, and flip
 template<bool IS_IMPLICIT, class T, class U, class F1, class F2, class F3, class F4>
-auto make_QUF_treap(F1 TT, T T_id, F2 UU, U U_id, F3 UT, F4 FlipT){
-	return treap_base<IS_IMPLICIT, false, true, true, true, false, T, U, F1, F2, F3, F4>(TT, T_id, UU, U_id, UT, FlipT);
+auto make_QUF_treap(F1 TT, T T_id, F2 UU, U U_id, F3 UT, F4 Tflip){
+	return treap_base<IS_IMPLICIT, false, true, true, true, false, T, U, F1, F2, F3, F4>(TT, T_id, UU, U_id, UT, Tflip);
 }
 // Supports query, update, and flip
 template<bool IS_IMPLICIT, class T, class U, class F1, class F2, class F3, class F4>
-auto make_QUF_treap_with_offset(F1 TT, T T_id, F2 UU, U U_id, F3 UT, F4 FlipT){
-	return treap_base<IS_IMPLICIT, true, true, true, true, false, T, U, F1, F2, F3, F4>(TT, T_id, UU, U_id, UT, FlipT);
+auto make_QUF_treap_with_offset(F1 TT, T T_id, F2 UU, U U_id, F3 UT, F4 Tflip){
+	return treap_base<IS_IMPLICIT, true, true, true, true, false, T, U, F1, F2, F3, F4>(TT, T_id, UU, U_id, UT, Tflip);
 }
 ]]></content>
 	<!-- Optional: Set a tabTrigger to define how to trigger the snippet -->
