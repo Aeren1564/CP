@@ -1,5 +1,21 @@
-<snippet>
-	<content><![CDATA[
+// #include <bits/allocator.h> // Temp fix for gcc13 global pragma
+// #pragma GCC target("avx2,bmi2,popcnt,lzcnt")
+// #pragma GCC optimize("O3,unroll-loops")
+#include <bits/stdc++.h>
+// #include <x86intrin.h>
+using namespace std;
+#if __cplusplus >= 202002L
+using namespace numbers;
+#endif
+#ifdef LOCAL
+	#include "Debug.h"
+#else
+	#define debug_endl() 42
+	#define debug(...) 42
+	#define debug2(...) 42
+	#define debug_bin(...) 42
+#endif
+
 template<bool HAS_PATH_QUERY, bool HAS_PATH_UPDATE, bool HAS_SUBTREE_QUERY, bool HAS_SUBTREE_UPDATE, bool IS_COMMUTATIVE, class T, class U, class F1, class F2, class F3, class F4, class F5, class F6>
 struct link_cut_trees_base{
 #ifdef LOCAL
@@ -621,9 +637,160 @@ auto make_PQPUSQSU_LCT(F1 TT, T T_id, F2 Tinv, F4 UU, U U_id, F5 Uinv, F6 UT){
 	using F3 = decltype(Tflip);
 	return link_cut_trees_base<true, true, true, true, true, T, U, F1, F2, F3, F4, F5, F6>(TT, T_id, Tinv, Tflip, UU, U_id, Uinv, UT);
 }
-]]></content>
-	<!-- Optional: Set a tabTrigger to define how to trigger the snippet -->
-	<tabTrigger>link_cut_trees</tabTrigger> -->
-	<!-- Optional: Set a scope to limit where the snippet will trigger -->
-	<scope>source.c++</scope> -->
-</snippet>
+
+int main(){
+	cin.tie(0)->sync_with_stdio(0);
+	cin.exceptions(ios::badbit | ios::failbit);
+	int n, qn;
+	cin >> n >> qn;
+	using T = pair<long long, int>;
+	auto TT = [&](const T &x, const T &y)->T{
+		return {
+			x.first + y.first,
+			x.second + y.second
+		};
+	};
+	T T_id{};
+	auto Tinv = [&](const T &x)->T{
+		return {
+			-x.first,
+			-x.second
+		};
+	};
+	auto UT = [&](long long f, const T &x)->T{
+		return {x.first + x.second * f, x.second};
+	};
+	auto lct = make_PU_LCT<T>(plus<>(), 0LL, UT);
+	vector<T> init(n, {0, 1});
+	for(auto &x: init | ranges::views::keys){
+		cin >> x;
+	}
+	lct.build(init);
+	for(auto qi = 0; qi < qn; ++ qi){
+		string op;
+		cin >> op;
+		if(op == "link"){
+			int u, v;
+			cin >> u >> v;
+			lct.link(u, v);
+		}
+		else if(op == "cut"){
+			int u, v;
+			cin >> u >> v;
+			lct.cut(u, v);
+		}
+		else if(op == "reroot"){
+			int u;
+			cin >> u;
+			lct.reroot(u);
+		}
+		else if(op == "root_of"){
+			int u;
+			cin >> u;
+			cout << lct.root_of(u) << "\n";
+		}
+		else if(op == "parent_or_is_root"){
+			int u;
+			cin >> u;
+			cout << lct.parent_or_is_root(u) << '\n';
+		}
+		else if(op == "lca_or_disconnected"){
+			int u, v;
+			cin >> u >> v;
+			cout << lct.lca_or_disconnected(u, v) << '\n';
+		}
+		else if(op == "adjacent"){
+			int u, v;
+			cin >> u >> v;
+			cout << lct.adjacent(u, v) << "\n";
+		}
+		else if(op == "depth"){
+			int u; cin >> u;
+			cout << lct.depth(u) << '\n';
+		}
+		else if(op == "distance"){
+			int u, v; cin >> u >> v;
+			cout << lct.distance(u, v) << "\n";
+		}
+		else if(op == "connected"){
+			int u, v; cin >> u >> v;
+			cout << lct.connected(u, v) << "\n";
+		}
+		else if(op == "find_ancestor_by_order"){
+			int u, k; cin >> u >> k;
+			cout << lct.find_ancestor_by_order(u, k) << "\n";
+		}
+		else if(op == "find_vertex_by_order"){
+			int u, v, k; cin >> u >> v >> k;
+			cout << lct.find_vertex_by_order(u, v, k) << "\n";
+		}
+		else if(op == "query"){
+			int u;
+			cin >> u;
+			cout << lct.query(u).first << "\n";
+		}
+		else if(op == "query_path"){
+			// int u, v;
+			// cin >> u >> v;
+			// cout << lct.query_path(u, v).first << "\n";
+		}
+		else if(op == "query_subtree"){
+			// int u;
+			// cin >> u;
+			// cout << lct.query_subtree(u).first << "\n";
+		}
+		else if(op == "set"){
+			int u, x;
+			cin >> u >> x;
+			lct.set(u, T{x, 1});
+		}
+		else if(op == "update"){
+			// int u, f;
+			// cin >> u >> f;
+			// lct.update(u, f);
+		}
+		else if(op == "update_path"){
+			int u, v, f;
+			cin >> u >> v >> f;
+			lct.update_path(u, v, f);
+		}
+		else if(op == "update_subtree"){
+			// int u, f;
+			// cin >> u >> f;
+			// lct.update_subtree(u, f);
+		}
+		else if(op == "partition_point"){
+			int u, v;
+			long long x;
+			cin >> u >> v >> x;
+			cout << lct.partition_point(u, v, [&](auto data){ return data.first < x; }) << "\n";
+		}
+		else if(op == "max_pref"){
+			// int u, v;
+			// long long x;
+			// cin >> u >> v >> x;
+			// cout << lct.max_pref(u, v, [&](auto sum){ return sum.first < x; }) << "\n";
+		}
+		else{
+			assert(false);
+		}
+		cout.flush();
+	}
+	return 0;
+}
+
+/*
+debug(lct.size);
+debug(lct.lazy_flip);
+debug(lct.pv);
+debug(lct.left);
+debug(lct.right);
+debug(lct.data);
+debug(lct.aux_data);
+debug(lct.virtual_data);
+debug(lct.subtr_data);
+debug(lct.aux_lazy);
+debug(lct.virtual_lazy);
+debug(lct.subtr_lazy);
+debug_endl();
+*/
