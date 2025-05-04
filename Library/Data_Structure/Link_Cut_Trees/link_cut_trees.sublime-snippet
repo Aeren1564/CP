@@ -17,14 +17,23 @@ struct link_cut_trees_base{
 	static_assert(HAS_PATH_QUERY || !HAS_PATH_UPDATE || !HAS_SUBTREE_QUERY);
 	// If there is subtree query, T has to be commutative and invertible
 	static_assert(!HAS_SUBTREE_QUERY || IS_COMMUTATIVE);
-	vector<int> size, lazy_flip, pv, left, right;
-	vector<T> data;
-	vector<T> aux_data; // aggregation of data in the subtree in the auxiliary splay tree, aggregates in fixed order
-	vector<T> virtual_data; // aggregation of subtr data of virtual childs
-	vector<T> subtr_data; // aggregation of data in the subtree in the auxiliary splay tree along with their virtual data
+	struct base_node_info{
+		base_node_info(){ }
+		base_node_info(const T &x): data(x){ }
+		int size = 1, pv = -1, lazy_flip = false;
+		T data;
+		array<int, 2> child = {-1, -1};
+	};
+	vector<base_node_info> base;
+	// aggregation of data in the subtree in the auxiliary splay tree, aggregates in fixed order
+	vector<T> aux_data;
+	// 0: aggregation of data in the subtree in the auxiliary splay tree along with their virtual data
+	// 1: aggregation of subtr data of virtual childs
+	vector<array<T, 2>> subtr_data;
 	vector<U> aux_lazy; // update splay subtree
-	vector<U> virtual_lazy; // update virtual childs
-	vector<U> subtr_lazy; // update splay subtree along with their virtual childs
+	// 0: update auxiliary splay subtree along with their virtual childs
+	// 1: update virtual childs
+	vector<array<U, 2>> subtr_lazy;
 	F1 TT; // monoid operation (always adjacent)
 	T T_id; // monoid identity
 	F2 Tinv; // group inverse
@@ -55,7 +64,7 @@ struct link_cut_trees_base{
 		for(auto r: roots){
 			out << "[Component rooted at " << r << "]:\n";
 			auto dfs = [&](auto self, int u)->void{
-				out << u << ": data{" << lct.data[u] << "}, pv{" << lct.parent_or_is_root(u) << "}, child{";
+				out << u << ": data{" << lct.base[u].data << "}, pv{" << lct.parent_or_is_root(u) << "}, child{";
 				for(auto i = 0; i < (int)adj[u].size(); ++ i){
 					out << adj[u][i];
 					if(i + 1 < (int)adj[u].size()) out << ", ";
@@ -69,135 +78,135 @@ struct link_cut_trees_base{
 	}
 	void _apply_aux(int u, const U &f){
 		static_assert(HAS_PATH_UPDATE);
-		ASSERT(0 <= u && u < (int)data.size());
-		data[u] = UT(f, data[u]);
+		ASSERT(0 <= u && u < (int)base.size());
+		base[u].data = UT(f, base[u].data);
 		aux_lazy[u] = UU(f, aux_lazy[u]);
 		ifPQ{
 			T x = UT(f, aux_data[u]);
-			ifSQ subtr_data[u] = TT(x, TT(subtr_data[u], Tinv(aux_data[u])));
+			ifSQ subtr_data[u][0] = TT(x, TT(subtr_data[u][0], Tinv(aux_data[u])));
 			aux_data[u] = x;
 		}
 	}
 	void _apply_subtr(int u, const U &f){
 		static_assert(HAS_SUBTREE_UPDATE);
-		ASSERT(0 <= u && u < (int)data.size());
-		data[u] = UT(f, data[u]);
+		ASSERT(0 <= u && u < (int)base.size());
+		base[u].data = UT(f, base[u].data);
 		ifPQ aux_data[u] = UT(f, aux_data[u]);
 		ifSQ{
-			virtual_data[u] = UT(f, virtual_data[u]);
-			subtr_data[u] = UT(f, subtr_data[u]);
+			subtr_data[u][0] = UT(f, subtr_data[u][0]);
+			subtr_data[u][1] = UT(f, subtr_data[u][1]);
 		}
-		virtual_lazy[u] = UU(f, virtual_lazy[u]);
-		subtr_lazy[u] = UU(f, subtr_lazy[u]);
+		subtr_lazy[u][0] = UU(f, subtr_lazy[u][0]);
+		subtr_lazy[u][1] = UU(f, subtr_lazy[u][1]);
 	}
 	void _apply_flip(int u){
-		ASSERT(0 <= u && u < (int)data.size());
-		lazy_flip[u] ^= 1;
+		ASSERT(0 <= u && u < (int)base.size());
+		base[u].lazy_flip ^= 1;
 		ifNC aux_data[u] = Tflip(aux_data[u]);
-		swap(left[u], right[u]);
+		swap(base[u].child[0], base[u].child[1]);
 	}
 	template<bool sign>
 	void _apply_virtual(int u, int v){
 		static_assert(HAS_SUBTREE_QUERY || HAS_SUBTREE_UPDATE);
-		ASSERT(0 <= min(u, v) && max(u, v) < (int)data.size());
+		ASSERT(0 <= min(u, v) && max(u, v) < (int)base.size());
 		if constexpr(sign == 0){
-			ifSQ virtual_data[u] = TT(virtual_data[u], subtr_data[v]);
-			ifSU _apply_subtr(v, Uinv(virtual_lazy[u]));
+			ifSQ subtr_data[u][1] = TT(subtr_data[u][1], subtr_data[v][0]);
+			ifSU _apply_subtr(v, Uinv(subtr_lazy[u][1]));
 		}
 		else{
-			ifSU _apply_subtr(v, virtual_lazy[u]);
-			ifSQ virtual_data[u] = TT(virtual_data[u], Tinv(subtr_data[v]));
+			ifSU _apply_subtr(v, subtr_lazy[u][1]);
+			ifSQ subtr_data[u][1] = TT(subtr_data[u][1], Tinv(subtr_data[v][0]));
 		}
 	}
 	void _push(int u){
-		ASSERT(0 <= u && u < (int)data.size());
+		ASSERT(0 <= u && u < (int)base.size());
 		ifPU if(aux_lazy[u] != U_id){
-			if(~left[u]) _apply_aux(left[u], aux_lazy[u]);
-			if(~right[u]) _apply_aux(right[u], aux_lazy[u]);
+			if(~base[u].child[0]) _apply_aux(base[u].child[0], aux_lazy[u]);
+			if(~base[u].child[1]) _apply_aux(base[u].child[1], aux_lazy[u]);
 			aux_lazy[u] = U_id;
 		}
 		ifSU{
-			if(subtr_lazy[u] != U_id){
-				if(~left[u]) _apply_subtr(left[u], subtr_lazy[u]);
-				if(~right[u]) _apply_subtr(right[u], subtr_lazy[u]);
-				subtr_lazy[u] = U_id;
+			if(subtr_lazy[u][0] != U_id){
+				if(~base[u].child[0]) _apply_subtr(base[u].child[0], subtr_lazy[u][0]);
+				if(~base[u].child[1]) _apply_subtr(base[u].child[1], subtr_lazy[u][0]);
+				subtr_lazy[u][0] = U_id;
 			}
 		}
-		if(lazy_flip[u]){
-			if(~left[u]) _apply_flip(left[u]);
-			if(~right[u]) _apply_flip(right[u]);
-			lazy_flip[u] = false;
+		if(base[u].lazy_flip){
+			if(~base[u].child[0]) _apply_flip(base[u].child[0]);
+			if(~base[u].child[1]) _apply_flip(base[u].child[1]);
+			base[u].lazy_flip = false;
 		}
 	}
 	void _refresh(int u){
-		ASSERT(0 <= u && u < (int)data.size());
+		ASSERT(0 <= u && u < (int)base.size());
 		ifPU ASSERT(aux_lazy[u] == U_id);
-		ifSU ASSERT(subtr_lazy[u] == U_id);
-		size[u] = 1 + _internal_size(left[u]) + _internal_size(right[u]);
-		ifPQ aux_data[u] = data[u];
-		ifSQ subtr_data[u] = TT(data[u], virtual_data[u]);
-		if(auto v = left[u]; ~v){
+		ifSU ASSERT(subtr_lazy[u][0] == U_id);
+		base[u].size = 1 + _internal_size(base[u].child[0]) + _internal_size(base[u].child[1]);
+		ifPQ aux_data[u] = base[u].data;
+		ifSQ subtr_data[u][0] = TT(base[u].data, subtr_data[u][1]);
+		if(auto v = base[u].child[0]; ~v){
 			ifPQ aux_data[u] = TT(aux_data[v], aux_data[u]);
-			ifSQ subtr_data[u] = TT(subtr_data[u], subtr_data[v]);
+			ifSQ subtr_data[u][0] = TT(subtr_data[u][0], subtr_data[v][0]);
 		}
-		if(auto w = right[u]; ~w){
+		if(auto w = base[u].child[1]; ~w){
 			ifPQ aux_data[u] = TT(aux_data[u], aux_data[w]);
-			ifSQ subtr_data[u] = TT(subtr_data[u], subtr_data[w]);
+			ifSQ subtr_data[u][0] = TT(subtr_data[u][0], subtr_data[w][0]);
 		}
 	}
 	int _dir(int u){
-		ASSERT(0 <= u && u < (int)data.size());
-		if(!~pv[u]) return -2; // root of its splay tree which contains LCT component root
-		if(left[pv[u]] == u) return 0; // left child
-		if(right[pv[u]] == u) return 1; // right child
+		ASSERT(0 <= u && u < (int)base.size());
+		if(!~base[u].pv) return -2; // root of its splay tree which contains LCT component root
+		if(base[base[u].pv].child[0] == u) return 0; // left child
+		if(base[base[u].pv].child[1] == u) return 1; // right child
 		return -1; // root of its splay tree which does not contain LCT component root
 	}
 	bool _is_auxiliary_root(int u){
-		ASSERT(0 <= u && u < (int)data.size());
+		ASSERT(0 <= u && u < (int)base.size());
 		return _dir(u) < 0;
 	}
 	void _set_link(int u, int v, int d){
-		ASSERT(-1 <= min(u, v) && max(u, v) < (int)data.size());
-		if(~v) pv[v] = u;
-		if(d >= 0) (d == 0 ? left : right)[u] = v;
+		ASSERT(-1 <= min(u, v) && max(u, v) < (int)base.size());
+		if(~v) base[v].pv = u;
+		if(d >= 0) (d == 0 ? base[u].child[0] : base[u].child[1]) = v;
 	}
 	// Assumes p and p->p propagated
 	void _rotate(int u){
-		ASSERT(0 <= u && u < (int)data.size() && !_is_auxiliary_root(u));
-		int x = _dir(u), g = pv[u];
-		_set_link(pv[g], u, _dir(g));
-		_set_link(g, x == 1 ? left[u] : right[u], x);
+		ASSERT(0 <= u && u < (int)base.size() && !_is_auxiliary_root(u));
+		int x = _dir(u), g = base[u].pv;
+		_set_link(base[g].pv, u, _dir(g));
+		_set_link(g, x == 1 ? base[u].child[0] : base[u].child[1], x);
 		_set_link(u, g, x ^ 1);
 		_refresh(g);
 	}
 	// Bring the node to the top
 	void _splay(int u){
-		ASSERT(0 <= u && u < (int)data.size());
-		for(; !_is_auxiliary_root(u) && !_is_auxiliary_root(pv[u]); _rotate(u)){
-			_push(pv[pv[u]]), _push(pv[u]), _push(u);
-			_dir(u) == _dir(pv[u]) ? _rotate(pv[u]) : _rotate(u);
+		ASSERT(0 <= u && u < (int)base.size());
+		for(; !_is_auxiliary_root(u) && !_is_auxiliary_root(base[u].pv); _rotate(u)){
+			_push(base[base[u].pv].pv), _push(base[u].pv), _push(u);
+			_dir(u) == _dir(base[u].pv) ? _rotate(base[u].pv) : _rotate(u);
 		}
-		if(!_is_auxiliary_root(u)) _push(pv[u]), _push(u), _rotate(u);
+		if(!_is_auxiliary_root(u)) _push(base[u].pv), _push(u), _rotate(u);
 		_push(u), _refresh(u);
 	}
 	int _internal_size(int u){
-		ASSERT(-1 <= u && u < (int)data.size());
-		return ~u ? size[u] : 0;
+		ASSERT(-1 <= u && u < (int)base.size());
+		return ~u ? base[u].size : 0;
 	}
 	// Put u on the preferred path then splay it (right subtree is empty)
 	void _access(int u){
-		ASSERT(0 <= u && u < (int)data.size());
-		for(auto v = u, p = -1; ~v; v = pv[p = v]){
+		ASSERT(0 <= u && u < (int)base.size());
+		for(auto v = u, p = -1; ~v; v = base[p = v].pv){
 			_splay(v);
 			if constexpr(HAS_SUBTREE_QUERY || HAS_SUBTREE_UPDATE){
 				if(~p) _apply_virtual<1>(v, p);
-				if(~right[v]) _apply_virtual<0>(v, right[v]);
+				if(~base[v].child[1]) _apply_virtual<0>(v, base[v].child[1]);
 			}
-			right[v] = p;
+			base[v].child[1] = p;
 			_refresh(v);
 		}
 		_splay(u);
-		ASSERT(!~right[u]);
+		ASSERT(!~base[u].child[1]);
 	}
 	void build(int n){
 		ASSERT(0 <= n);
@@ -210,134 +219,117 @@ struct link_cut_trees_base{
 	template<class V>
 	void build(const vector<V> &a){
 		int n = (int)a.size();
-		size.assign(n, 1);
-		lazy_flip.assign(n, false);
-		pv.assign(n, -1);
-		left.assign(n, -1);
-		right.assign(n, -1);
-		data = vector<T>(a.begin(), a.end());
+		base.assign(n, base_node_info{});
+		for(auto u = 0; u < n; ++ u) base[u].data = a[u];
 		ifPQ aux_data = vector<T>(a.begin(), a.end());
 		ifSQ{
-			virtual_data.assign(n, T_id);
-			subtr_data = data;
+			subtr_data.assign(n, array<T, 2>{T_id, T_id});
+			for(auto u = 0; u < n; ++ u) subtr_data[u][0] = base[u].data;
 		}
 		ifPU aux_lazy.assign(n, U_id);
-		ifSU{
-			virtual_lazy.assign(n, U_id);
-			subtr_lazy.assign(n, U_id);
-		}
+		ifSU subtr_lazy.assign(n, array<U, 2>{U_id, U_id});
 	}
 	int new_node(const T &x){
-		size.push_back(1);
-		lazy_flip.push_back(false);
-		pv.push_back(-1);
-		left.push_back(-1);
-		right.push_back(-1);
-		data.push_back(x);
+		base.push_back(base_node_info{x});
 		ifPQ aux_data.push_back(x);
-		ifSQ{
-			virtual_data.push_back(T_id);
-			subtr_data.push_back(x);
-		}
+		ifSQ subtr_data.push_back({x, T_id});
 		ifPU aux_lazy.push_back(U_id);
-		ifSU{
-			virtual_lazy.push_back(U_id);
-			subtr_lazy.push_back(U_id);
-		}
-		return (int)data.size() - 1;
+		ifSU subtr_lazy.push_back({U_id, U_id});
+		return (int)base.size() - 1;
 	}
 	// Make u the root of its connected component
 	void reroot(int u){
-		ASSERT(0 <= u && u < (int)data.size());
+		ASSERT(0 <= u && u < (int)base.size());
 		_access(u), _apply_flip(u), _access(u);
-		ASSERT(!~left[u] && !~right[u]);
+		ASSERT(!~base[u].child[0] && !~base[u].child[1]);
 	}
 	int root_of(int u){
-		ASSERT(0 <= u && u < (int)data.size());
-		for(_access(u); ~left[u]; _push(u)) u = left[u];
+		ASSERT(0 <= u && u < (int)base.size());
+		for(_access(u); ~base[u].child[0]; _push(u)) u = base[u].child[0];
 		return _access(u), u;
 	}
 	// If u is a non-root vertex in its component, return its parent
 	// Otherwise, return -1
 	int parent_or_is_root(int u){
-		ASSERT(0 <= u && u < (int)data.size());
+		ASSERT(0 <= u && u < (int)base.size());
 		_access(u);
-		if(!~left[u]) return -1;
-		for(_push(u = left[u]); ~right[u]; _push(u)) u = right[u];
+		if(!~base[u].child[0]) return -1;
+		for(_push(u = base[u].child[0]); ~base[u].child[1]; _push(u)) u = base[u].child[1];
 		return _access(u), u;
 	}
 	// If u and v are in the same component, find the lca
 	// Otherwise, return -1
 	int lca_or_disconnected(int u, int v){
-		ASSERT(0 <= min(u, v) && max(u, v) < (int)data.size());
+		ASSERT(0 <= min(u, v) && max(u, v) < (int)base.size());
 		if(u == v) return u;
 		_access(u), _access(v);
-		if(!~pv[u]) return -1;
+		if(!~base[u].pv) return -1;
 		_splay(u);
-		return ~pv[u] ? pv[u] : u;
+		return ~base[u].pv ? base[u].pv : u;
 	}
 	bool adjacent(int u, int v){
-		ASSERT(0 <= min(u, v) && max(u, v) < (int)data.size());
+		ASSERT(0 <= min(u, v) && max(u, v) < (int)base.size());
 		if(u == v) return false;
 		int w = lca_or_disconnected(u, v);
 		if(!~w || u != w && v != w) return false;
 		return u != w ? w == parent_or_is_root(u) : w == parent_or_is_root(v);
 	}
 	int depth(int u){
-		ASSERT(0 <= u && u < (int)data.size());
+		ASSERT(0 <= u && u < (int)base.size());
 		_access(u);
-		return _internal_size(left[u]);
+		return _internal_size(base[u].child[0]);
 	}
 	template<bool RESTORE_ROOT = true>
 	int distance(int u, int v){
-		ASSERT(0 <= min(u, v) && max(u, v) < (int)data.size() && connected(u, v));
+		ASSERT(0 <= min(u, v) && max(u, v) < (int)base.size() && connected(u, v));
 		int init_root = -1;
 		if constexpr(RESTORE_ROOT) init_root = root_of(u);
-		reroot(u), _access(v);
-		int res = _internal_size(left[v]);
-		if constexpr(RESTORE_ROOT) reroot(init_root);
+		if(u != init_root) reroot(u);
+		_access(v);
+		int res = _internal_size(base[v].child[0]);
+		if constexpr(RESTORE_ROOT) if(u != init_root) reroot(init_root);
 		return res;
 	}
 	bool connected(int u, int v){
-		ASSERT(0 <= min(u, v) && max(u, v) < (int)data.size());
+		ASSERT(0 <= min(u, v) && max(u, v) < (int)base.size());
 		if(u == v) return true;
 		_access(u), _access(v);
-		return ~pv[u];
+		return ~base[u].pv;
 	}
 	// Returns the k-th ancestor on the path to root
 	int find_ancestor_by_order(int u, int k){
-		ASSERT(0 <= u && u < (int)data.size() && 0 <= k);
+		ASSERT(0 <= u && u < (int)base.size() && 0 <= k);
 		k = depth(u) - k;
 		ASSERT(k >= 0);
 		for(; ; _push(u)){
-			int size = _internal_size(left[u]);
+			int size = _internal_size(base[u].child[0]);
 			if(size == k) return _access(u), u;
-			if(size < k) k -= size + 1, u = right[u];
-			else u = left[u];
+			if(size < k) k -= size + 1, u = base[u].child[1];
+			else u = base[u].child[0];
 		}
 		ASSERT(false);
 	}
 	// Returns the k-th vertex on the u-v path
 	template<bool RESTORE_ROOT = true>
 	int find_vertex_by_order(int u, int v, int k){
-		ASSERT(0 <= min(u, v) && max(u, v) < (int)data.size() && connected(u, v) && 0 <= k);
+		ASSERT(0 <= min(u, v) && max(u, v) < (int)base.size() && connected(u, v) && 0 <= k);
 		int init_root = -1;
-		if constexpr(RESTORE_ROOT) init_root = root_of(u);
-		reroot(v);
+		if constexpr(RESTORE_ROOT) init_root = root_of(v);
+		if(v != init_root) reroot(v);
 		int res = find_ancestor_by_order(u, k);
-		if constexpr(RESTORE_ROOT) reroot(init_root);
+		if constexpr(RESTORE_ROOT) if(v != init_root) reroot(init_root);
 		return res;
 	}
 	// Make u the parent of v
 	void link(int u, int v){
-		ASSERT(0 <= min(u, v) && max(u, v) < (int)data.size() && !connected(u, v));
+		ASSERT(0 <= min(u, v) && max(u, v) < (int)base.size() && !connected(u, v));
 		reroot(v), _access(u), _set_link(v, u, 0), _refresh(v);
 	}
 	bool cut_from_parent(int u){
-		ASSERT(0 <= u && u < (int)data.size());
+		ASSERT(0 <= u && u < (int)base.size());
 		_access(u);
-		if(!~left[u]) return false; // no parent
-		left[u] = pv[left[u]] = -1;
+		if(!~base[u].child[0]) return false; // no parent
+		base[u].child[0] = base[base[u].child[0]].pv = -1;
 		_refresh(u);
 		return true;
 	}
@@ -347,55 +339,57 @@ struct link_cut_trees_base{
 		cut_from_parent(depth(u) > depth(v) ? u : v);
 	}
 	T query(int u){
-		ASSERT(0 <= u && u < (int)data.size());
+		ASSERT(0 <= u && u < (int)base.size());
 		ifPUSU _access(u);
-		return data[u];
+		return base[u].data;
 	}
 	template<bool RESTORE_ROOT = true>
 	T query_path(int u, int v){
 		static_assert(HAS_PATH_QUERY);
-		ASSERT(0 <= min(u, v) && max(u, v) < (int)data.size() && connected(u, v));
+		ASSERT(0 <= min(u, v) && max(u, v) < (int)base.size() && connected(u, v));
 		int init_root = -1;
 		if constexpr(RESTORE_ROOT) init_root = root_of(u);
-		reroot(u), _access(v);
+		if(init_root != u) reroot(u);
+		_access(v);
 		T res = aux_data[v];
-		if constexpr(RESTORE_ROOT) reroot(init_root);
+		if constexpr(RESTORE_ROOT) if(init_root != u) reroot(init_root);
 		return res;
 	}
 	T query_subtree(int u){
 		static_assert(HAS_SUBTREE_QUERY);
-		ASSERT(0 <= u && u < (int)data.size());
+		ASSERT(0 <= u && u < (int)base.size());
 		int v = parent_or_is_root(u);
 		if(~v) cut_from_parent(u);
-		T res = subtr_data[u];
+		T res = subtr_data[u][0];
 		if(~v) link(v, u);
 		return res;
 	}
 	void set(int u, const T &x){
-		ASSERT(0 <= u && u < (int)data.size());
+		ASSERT(0 <= u && u < (int)base.size());
 		_access(u);
-		data[u] = x;
+		base[u].data = x;
 		_refresh(u);
 	}
 	void update(int u, const U &f){
 		static_assert(HAS_PATH_UPDATE || HAS_SUBTREE_UPDATE);
-		ASSERT(0 <= u && u < (int)data.size());
+		ASSERT(0 <= u && u < (int)base.size());
 		_access(u);
-		data[u] = UT(f, data[u]);
+		base[u].data = UT(f, base[u].data);
 		_refresh(u);
 	}
 	template<bool RESTORE_ROOT = true>
 	void update_path(int u, int v, const U &f){
 		static_assert(HAS_PATH_UPDATE);
-		ASSERT(0 <= min(u, v) && max(u, v) < (int)data.size() && connected(u, v));
+		ASSERT(0 <= min(u, v) && max(u, v) < (int)base.size() && connected(u, v));
 		int init_root = -1;
 		if constexpr(RESTORE_ROOT) init_root = root_of(u);
-		reroot(u), _access(v), _apply_aux(v, f);
-		if constexpr(RESTORE_ROOT) reroot(init_root);
+		if(u != init_root) reroot(u);
+		_access(v), _apply_aux(v, f);
+		if constexpr(RESTORE_ROOT) if(u != init_root) reroot(init_root);
 	}
 	void update_subtree(int u, const U &f){
 		static_assert(HAS_SUBTREE_UPDATE);
-		ASSERT(0 <= u && u < (int)data.size());
+		ASSERT(0 <= u && u < (int)base.size());
 		int v = parent_or_is_root(u);
 		if(~v) cut_from_parent(u);
 		_apply_subtr(u, f);
@@ -406,30 +400,31 @@ struct link_cut_trees_base{
 	// Returns the r where everything in A[0, r) evaluates to true, and A[r, len(A)) evalutes to false
 	template<bool RESTORE_ROOT = true>
 	int partition_point(int u, int v, auto pred){
-		ASSERT(0 <= min(u, v) && max(u, v) < (int)data.size() && connected(u, v));
+		ASSERT(0 <= min(u, v) && max(u, v) < (int)base.size() && connected(u, v));
 		int init_root = -1;
 		if constexpr(RESTORE_ROOT) init_root = root_of(u);
-		reroot(u), _access(v);
+		if(u != init_root) reroot(u);
+		_access(v);
 		int res = 0;
 		while(true){
 			_push(v);
-			if(pred(data[v])){
-				res += _internal_size(left[v]) + 1;
-				if(!~right[v]){
+			if(pred(base[v].data)){
+				res += _internal_size(base[v].child[0]) + 1;
+				if(!~base[v].child[1]){
 					_splay(v);
 					break;
 				}
-				v = right[v];
+				v = base[v].child[1];
 			}
 			else{
-				if(!~left[v]){
+				if(!~base[v].child[0]){
 					_splay(v);
 					break;
 				}
-				v = left[v];
+				v = base[v].child[0];
 			}
 		}
-		if constexpr(RESTORE_ROOT) reroot(init_root);
+		if constexpr(RESTORE_ROOT) if(u != init_root) reroot(init_root);
 		return res;
 	}
 	// Let the data on the u-v path be represented by an array A
@@ -438,10 +433,10 @@ struct link_cut_trees_base{
 	template<bool RESTORE_ROOT = true>
 	int max_pref(int u, int v, auto pred){
 		static_assert(HAS_PATH_QUERY);
-		ASSERT(0 <= min(u, v) && max(u, v) < (int)data.size() && connected(u, v) && pred(T_id));
+		ASSERT(0 <= min(u, v) && max(u, v) < (int)base.size() && connected(u, v) && pred(T_id));
 		int init_root = -1;
 		if constexpr(RESTORE_ROOT) init_root = root_of(u);
-		reroot(u);
+		if(u != init_root) reroot(u);
 		int n = depth(v) + 1;
 		if(pred(aux_data[v])){
 			if constexpr(RESTORE_ROOT) reroot(init_root);
@@ -455,16 +450,16 @@ struct link_cut_trees_base{
 				return n;
 			}
 			_push(u);
-			if(auto p = self(self, left[u], l); p < n) return p;
-			l += _internal_size(left[u]);
-			if(!pred(sum = TT(sum, data[u]))){
+			if(auto p = self(self, base[u].child[0], l); p < n) return p;
+			l += _internal_size(base[u].child[0]);
+			if(!pred(sum = TT(sum, base[u].data))){
 				_splay(u);
 				return l;
 			}
-			return self(self, right[u], l + 1);
+			return self(self, base[u].child[1], l + 1);
 		};
 		int res = recurse(recurse, v, 0);
-		if constexpr(RESTORE_ROOT) reroot(init_root);
+		if constexpr(RESTORE_ROOT) if(u != init_root) reroot(init_root);
 		return res;
 	}
 #undef ASSERT
