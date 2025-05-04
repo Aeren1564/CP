@@ -34,6 +34,39 @@ struct link_cut_trees_base{
 	F5 Uinv; // group inverse
 	F6 UT; // action of U on T (superset, subset)
 	link_cut_trees_base(F1 TT, T T_id, F2 Tinv, F3 Tflip, F4 UU, U U_id, F5 Uinv, F6 UT): TT(TT), T_id(T_id), Tinv(Tinv), Tflip(Tflip), UU(UU), U_id(U_id), Uinv(Uinv), UT(UT){ }
+	template<class ostream>
+	friend ostream &operator<<(ostream &out, link_cut_trees_base lct){
+		int n = (int)lct.data.size();
+		vector<int> roots;
+		vector<vector<int>> adj(n);
+		vector<array<int, 2>> edge;
+		for(auto u = 0; u < n; ++ u){
+			if(auto p = lct.parent_or_is_root(u); ~p) adj[p].push_back(u), edge.push_back({p, u});
+			else roots.push_back(u);
+		}
+		out << "\n=========== LCT Info Begin ===========\n";
+		out << "[# of nodes]: " << n << "\n";
+		out << "[Edges]: {";
+		for(auto i = 0; i < (int)edge.size(); ++ i){
+			out << "{" << edge[i][0] << ", " << edge[i][1] << "}";
+			if(i + 1 < (int)edge.size()) out << ", ";
+		}
+		out << "}\n";
+		for(auto r: roots){
+			out << "[Component rooted at " << r << "]:\n";
+			auto dfs = [&](auto self, int u)->void{
+				out << u << ": data{" << lct.data[u] << "}, pv{" << lct.parent_or_is_root(u) << "}, child{";
+				for(auto i = 0; i < (int)adj[u].size(); ++ i){
+					out << adj[u][i];
+					if(i + 1 < (int)adj[u].size()) out << ", ";
+				}
+				out << "}\n";
+				for(auto v: adj[u]) self(self, v);
+			};
+			dfs(dfs, r);
+		}
+		return out << "============ LCT Info End ============";
+	}
 	void _apply_aux(int u, const U &f){
 		static_assert(HAS_PATH_UPDATE);
 		ASSERT(0 <= u && u < (int)data.size());
@@ -300,12 +333,13 @@ struct link_cut_trees_base{
 		ASSERT(0 <= min(u, v) && max(u, v) < (int)data.size() && !connected(u, v));
 		reroot(v), _access(u), _set_link(v, u, 0), _refresh(v);
 	}
-	void cut_from_parent(int u){
+	bool cut_from_parent(int u){
 		ASSERT(0 <= u && u < (int)data.size());
 		_access(u);
-		ASSERT(~left[u]); // Assumes u is not the root of its component
+		if(!~left[u]) return false; // no parent
 		left[u] = pv[left[u]] = -1;
 		_refresh(u);
+		return true;
 	}
 	// Assumes u and v are adjacent in tree
 	void cut(int u, int v){
