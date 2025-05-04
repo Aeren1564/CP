@@ -8,7 +8,7 @@ struct integral_multiset{
 	vector<int> freq;
 	vector<int> data;
 	integral_multiset(int len, T offset = {}): len(len), offset(offset), maxval(offset + len), freq(len), data(len){ }
-	integral_multiset(const vector<T> &init, int len, T offset = 0): offset(offset), maxval(offset + len), freq(len){
+	integral_multiset(const vector<T> &init, int len, T offset = 0): len(len), offset(offset), maxval(offset + len), freq(len){
 		for(auto x: init){
 			assert(offset <= x && x < maxval);
 			++ freq[x - offset], ++ _size;
