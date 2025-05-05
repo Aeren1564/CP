@@ -5,6 +5,7 @@
 	],
 	"installed_packages":
 	[
+		"MarkdownPreview",
 		"Package Control",
 		"Tact",
 		"TypeScript Syntax"
