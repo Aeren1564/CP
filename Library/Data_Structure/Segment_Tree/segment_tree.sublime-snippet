@@ -309,16 +309,16 @@ struct segment_tree_base{
 template<class T, class F>
 auto make_Q_segment_tree(F TT, T T_id){
 	using U = int;
-	auto _UU = [&](U, U)->U{ return U{}; };
-	auto _UT = [&](U, T)->T{ return T{}; };
+	auto _UU = [&](){ assert(false); };
+	auto _UT = [&](){ assert(false); };
 	return segment_tree_base<true, false, T, U, F, decltype(_UU), decltype(_UT)>(TT, T_id, _UU, U{}, _UT);
 }
 // Supports update
 template<class U, class F>
 auto make_U_segment_tree(F UU, U U_id){
 	using T = int;
-	auto _TT = [&](T, T)->T{ return T{}; };
-	auto _UT = [&](U, T)->T{ return T{}; };
+	auto _TT = [&](){ assert(false); };
+	auto _UT = [&](){ assert(false); };
 	return segment_tree_base<false, true, T, U, decltype(_TT), F, decltype(_UT)>(_TT, T{}, UU, U_id, _UT);
 }
 // Supports query and update

@@ -60,7 +60,7 @@ struct sqrt_decomposition_heavy_point_update_light_range_query_commutative_group
 
 template<int B, class T, class F = plus<>, class I = negate<>>
 auto make_sqrt_decomposition_hpu_lrq(F TT = plus<>(), T T_id = 0, I Tinv = negate<>()){
-	return sqrt_decomposition_heavy_point_update_light_range_query_commutative_group(TT, T_id, Tinv);
+	return sqrt_decomposition_heavy_point_update_light_range_query_commutative_group<B, T, F, I>(TT, T_id, Tinv);
 }
 ]]></content>
 	<!-- Optional: Set a tabTrigger to define how to trigger the snippet -->

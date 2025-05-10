@@ -23,6 +23,8 @@ struct grid_bfs_forest{
 	grid_bfs_forest(int nr, int nc){ init(nr, nc); }
 	template<class Container, class F = equal_to<>>
 	grid_bfs_forest(const vector<Container> &grid, F propagate = equal_to<>()){ init((int)grid.size(), (int)grid[0].size()); bfs_all(grid, propagate); }
+	template<class Container, class F = equal_to<>>
+	grid_bfs_forest(const vector<Container> &grid, const vector<array<int, 2>> &src, F propagate = equal_to<>()){ init((int)grid.size(), (int)grid[0].size()); bfs(grid, src, propagate); }
 	void init(int nr, int nc){
 		ASSERT(1 <= nr && 1 <= nc);
 		init(nr, vector(nr, nc));
