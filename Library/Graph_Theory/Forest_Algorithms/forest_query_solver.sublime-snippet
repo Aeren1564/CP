@@ -27,7 +27,7 @@ struct forest_query_solver_base{
 	vector<int> root_of;
 	vector<int> depth;
 	vector<int> was;
-	void init(int n){
+	void _init(int n){
 		assert(n >= 1);
 		this->n = n;
 		ifLCA{
@@ -54,7 +54,7 @@ struct forest_query_solver_base{
 	// O(n)
 	template<class T>
 	void build(const graph<T> &g, const vector<int> &src){
-		init(g.n);
+		_init(g.n);
 		++ attempt;
 		int timer = 1;
 		auto dfs = [&](auto self, int u, int pe)->void{
