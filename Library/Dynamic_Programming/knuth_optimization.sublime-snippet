@@ -1,10 +1,55 @@
 <snippet>
 	<content><![CDATA[
-// Recurrence relation of form dp[i][j] = min/max{k in [i, j)} (dp[i][k] + dp[k][j] + C[i][j])
+template<class T>
+auto _knuth_optimization(const vector<T> &base, auto cost, auto cmp){
+	int n = (int)base.size();
+#ifdef LOCAL
+	for(auto a = 0; a <= n; ++ a) for(auto b = a; b <= n; ++ b) for(auto c = b; c <= n; ++ c) for(auto d = c; d <= n; ++ d) if(a < c && b < d) assert(!cmp(cost(a, d) + cost(b, d), cost(a, c) + cost(b, d)));
+#endif
+	vector dp(n, vector<T>(n + 1));
+	vector<int> opt(n), opt_next;
+	for(auto i = 0; i < n; ++ i){
+		dp[i][i + 1] = base[i];
+		opt[i] = i;
+	}
+	for(auto len = 2; len <= n; ++ len){
+		opt_next.resize(n - len + 1);
+		for(auto l = 0; l + len <= n; ++ l){
+			int r = l + len;
+			T cur_cost = cost(l, r);
+			dp[l][r] = dp[l][max(l + 1, opt[l])] + dp[max(l + 1, opt[l])][r] + cur_cost;
+			opt_next[l] = max(l + 1, opt[l]);
+			for(auto m = max(l + 1, opt[l]) + 1; m <= min(r - 1, opt[l + 1]); ++ m) if(cmp(dp[l][m] + dp[m][r] + cur_cost, dp[l][r])){
+				dp[l][r] = dp[l][m] + dp[m][r] + cur_cost;
+				opt_next[l] = m;
+			}
+		}
+		swap(opt, opt_next);
+	}
+	return dp;
+}
+// Recurrence relation of form dp[i][j] = min{i < k < j} (dp[i][k] + dp[k][j] + C[i][j])
 // Must satisfy C[a][c] + C[b][d] <= C[a][d] + C[b][d] (C is a monge array) and C[a][d] >= C[b][c] for all a<=b<=c<=d
 // It can be proved that opt[i][j - 1] <= opt[i][j] <= opt[i + 1][j]
 // Fill the dp table in increasing order of j - i.
+// base[i] = dp[i][i + 1] for 0 <= i < n
+// cost(l, r) = C[l][r] for l < r
 // O(N^2)
+template<class T>
+auto knuth_optimization_min(const vector<T> &base, auto cost){
+	return _knuth_optimization(base, cost, less<>());
+}
+// Recurrence relation of form dp[i][j] = max{i < k < j} (dp[i][k] + dp[k][j] + C[i][j])
+// Must satisfy C[a][c] + C[b][d] >= C[a][d] + C[b][d] (C is a monge array) and C[a][d] <= C[b][c] for all a<=b<=c<=d
+// It can be proved that opt[i][j - 1] <= opt[i][j] <= opt[i + 1][j]
+// Fill the dp table in increasing order of j - i.
+// base[i] = dp[i][i] for 0 <= i < n
+// cost(l, r) = C[l][r]
+// O(N^2)
+template<class T>
+auto knuth_optimization_max(const vector<T> &base, auto cost){
+	return _knuth_optimization(base, cost, greater<>());
+}
 ]]></content>
 	<!-- Optional: Set a tabTrigger to define how to trigger the snippet -->
 	<tabTrigger>knuth_optimization</tabTrigger> -->
