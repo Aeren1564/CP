@@ -1,12 +1,15 @@
 <snippet>
 	<content><![CDATA[
+// source: https://github.com/dacin21/dacin21_codebook/blob/master/flow/maxflow_short.cpp
 // Requires flow_network
+// NOTE: T has to be bigger than sum of edge capacities, even when the actual flow is far lower than that
 template<class T>
 struct push_relabel{
-	static constexpr T eps = (T)1e-9, inf = numeric_limits<T>::max();
+	static constexpr T eps = (T)1e-9;
+	static constexpr int inf = numeric_limits<int>::max();
 	flow_network<T> &F;
-	vector<T> ec, H;
-	vector<int> cur, co;
+	vector<T> ec;
+	vector<int> H, cur, co;
 	vector<vector<int>> hs;
 	push_relabel(flow_network<T> &F): F(F), ec(F.n), cur(F.n), H(F.n), co(F.n << 1), hs(F.n << 1){ }
 	// Find a maximum source-sink flow
