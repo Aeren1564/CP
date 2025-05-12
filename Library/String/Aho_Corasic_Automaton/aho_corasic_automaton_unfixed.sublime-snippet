@@ -4,6 +4,7 @@
 // O(log(sigma) * (sum of length)) where sigma is the size of alphabets
 template<class Char_Type>
 struct aho_corasic_automaton_unfixed{
+	static_assert(!is_same_v<Char_Type, char>);
 	// Begin States
 	vector<int> len{0}, link{-1}, exit_link{-1}, is_terminal{false};
 	vector<map<Char_Type, int>> next{{}};
@@ -17,6 +18,14 @@ struct aho_corasic_automaton_unfixed{
 		return (int)len.size() - 1;
 	}
 	aho_corasic_automaton_unfixed(){ }
+	aho_corasic_automaton_unfixed(const vector<string> &s){
+		vector<vector<int>> patterns((int)s.size());
+		for(auto i = 0; i < (int)s.size(); ++ i){
+			patterns[i].resize((int)s[i].size());
+			for(auto j = 0; j < (int)s[i].size(); ++ j) patterns[i][j] = tolower(s[i][j]) - 'a';
+		}
+		*this = aho_corasic_automaton_unfixed(patterns);
+	}
 	aho_corasic_automaton_unfixed(const vector<vector<Char_Type>> &patterns){
 		for(auto s: patterns){
 			int u = 0;
@@ -36,9 +45,20 @@ struct aho_corasic_automaton_unfixed{
 			}
 		}
 	}
+	int next_state(int u, char c){
+		return next_state(u, Char_Type(tolower(c) - 'a'));
+	}
 	int next_state(int u, Char_Type c){
 		while(~u && !next[u].count(c)) u = link[u];
 		return ~u ? next[u][c] : 0;
+	}
+	int next_state(int u, const string &s) const{
+		for(auto c: s) u = next_state(u, Char_Type(tolower(c) - 'a'));
+		return u;
+	}
+	int next_state(int u, const vector<Char_Type> &s) const{
+		for(auto c: s) u = next_state(u, c);
+		return u;
 	}
 	int size() const{ // # of states
 		return (int)len.size();

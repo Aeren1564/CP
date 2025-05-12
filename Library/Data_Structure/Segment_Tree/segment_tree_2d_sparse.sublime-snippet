@@ -1,124 +1,203 @@
 <snippet>
 	<content><![CDATA[
-template<class B, class T, class F>
-struct segment_tree_2d_sparse{
-	vector<B> X;
-	vector<vector<array<B, 2>>> Y;
-	vector<vector<T>> data;
-	F TT; // Commutative monoid operation (always adjacent)
-	T T_id; // Commutative monoid identity
-	// Every point holds T_id except for base points
-	// O(n * log^2(n))
-	segment_tree_2d_sparse(vector<pair<array<B, 2>, T>> init, F TT, T T_id): X(init.size()), TT(TT), T_id(T_id){
-		int n = (int)init.size();
-		sort(init.begin(), init.end());
-		for(auto i = 0; i < n; ++ i) X[i] = init[i].first[0];
-		X.erase(unique(X.begin(), X.end()), X.end());
-		Y.resize(X.size() << 1);
-		data.resize(X.size() << 1);
-		vector<vector<pair<array<B, 2>, T>>> hold(X.size() << 1);
-		for(auto i = 0, x = 0; i < n; ++ i){
-			auto [pos, val] = init[i];
-			while(X[x] < pos[0]) ++ x;
-			hold[x + (int)X.size()].push_back({{pos[1], pos[0]}, val});
+// Source: https://github.com/maspypy/library/blob/main/ds/segtree/segtree_2d.hpp
+template<bool COMPRESS, class B, class T, class F>
+struct segment_tree_2d_sparse_base{
+#ifdef LOCAL
+	#define ASSERT(x) assert(x)
+#else
+	#define ASSERT(x) 42
+#endif
+	int n;
+	// X to idx
+	vector<B> keyX;
+	int minX;
+	// top node の点列
+	vector<B> all_Y;
+	vector<int> pos;
+	// segtree data
+	int NX, log, size;
+	vector<int> indptr;
+	vector<T> data;
+	// fractional cascading
+	vector<int> to_left;
+	F TT;
+	T T_id;
+	segment_tree_2d_sparse_base(F TT, T T_id): TT(TT), T_id(T_id){ }
+	void build(const vector<B> &X, const vector<B> &Y){
+		build((int)X.size(), [&](int i){ return tuple{X[i], Y[i], T_id}; });
+	}
+	void build(const vector<B> &X, const vector<B> &Y, const vector<T> &data){
+		build((int)X.size(), [&](int i){ return tuple{X[i], Y[i], data[i]}; });
+	}
+	// f(i) = (x,y,val)
+	void build(int n, auto f){
+		this->n = n;
+		vector<B> X(n), Y(n);
+		vector<T> wt(n);
+		for(auto i = 0; i < n; ++ i){
+			auto [a, b, c] = f(i);
+			X[i] = a, Y[i] = b, wt[i] = c;
 		}
-		for(auto x = 2 * (int)X.size() - 1; x >= 1; -- x){
-			if(x < (int)X.size()) merge(hold[x << 1].begin(), hold[x << 1].end(), hold[x << 1 | 1].begin(), hold[x << 1 | 1].end(), back_inserter(hold[x]));
-			auto &Y0 = Y[x];
-			auto &hold0 = hold[x];
-			sort(hold0.begin(), hold0.end());
-			Y0.resize(hold0.size());
-			for(auto j = 0; j < (int)hold0.size(); ++ j) Y0[j] = hold0[j].first;
-			Y0.erase(unique(Y0.begin(), Y0.end()), Y0.end());
-			data[x].resize(Y0.size() << 1, T_id);
-			for(auto j = 0, y = 0; j < (int)hold0.size(); ++ j){
-				while(Y0[y] < hold0[j].first) ++ y;
-				data[x][y + (int)Y0.size()] = TT(data[x][y + (int)Y0.size()], hold0[j].second);
+		if constexpr(COMPRESS){
+			keyX = X;
+			sort(keyX.begin(), keyX.end());
+			keyX.erase(unique(keyX.begin(), keyX.end()), keyX.end());
+			NX = (int)keyX.size();
+		}
+		else{
+			minX = (X.empty() ? 0 : *min_element(X.begin(), X.end()));
+			NX = (X.empty() ? 1 : *max_element(X.begin(), X.end()) - minX + 1);
+		}
+		log = 0;
+		while((1 << log) < NX) ++log;
+		size = 1 << log;
+		vector<int> IX(n);
+		for(auto i = 0; i < n; ++ i) IX[i] = xtoi(X[i]);
+		indptr.assign(2 * size, 0);
+		for(auto i: IX) for(i += size; i; i >>= 1) ++ indptr[i];
+		indptr.insert(indptr.begin(), 0);
+		for(auto i = 1; i < (int)indptr.size(); ++ i) indptr[i] += indptr[i - 1];
+		data.assign(2 * indptr.back(), T_id);
+		to_left.assign(indptr[size], 0);
+		vector<int> ptr = indptr;
+		vector<int> I((int)Y.size());
+		iota(I.begin(), I.end(), 0);
+		sort(I.begin(), I.end(), [&](int i, int j){ return Y[i] < Y[j]; });
+		pos.resize(n);
+		for(auto i = 0; i < n; ++ i) pos[I[i]] = i;
+		for(auto raw_idx: I){
+			int i = IX[raw_idx] + size;
+			int j = -1;
+			for(; i; i >>= 1) {
+				int p = ptr[i];
+				ptr[i]++;
+				data[indptr[i + 1] + p] = wt[raw_idx];
+				if(j != -1){ to_left[p] = (j % 2 == 0); }
+				j = i;
 			}
-			for(auto y = (int)Y0.size() - 1; y >= 1; -- y) data[x][y] = TT(data[x][y << 1], data[x][y << 1 | 1]);
+		}
+		to_left.insert(to_left.begin(), 0);
+		for(auto i = 1; i < (int)to_left.size(); ++ i) to_left[i] += to_left[i - 1];
+		for(auto i = 0; i < 2 * size; ++ i){
+			int off = 2 * indptr[i], n = indptr[i + 1] - indptr[i];
+			for(auto j = n - 1; j >= 1; -- j) data[off + j] = TT(data[off + 2 * j + 0], data[off + 2 * j + 1]);
+		}
+		all_Y = Y;
+		sort(all_Y.begin(), all_Y.end());
+	}
+	// raw_idx: index in the original point cloud
+	void multiply(int raw_idx, T val){
+		ASSERT(0 <= raw_idx && raw_idx < n);
+		int i = 1, p = pos[raw_idx];
+		while(true){
+			multiply_i(i, p - indptr[i], val);
+			if (i >= size) break;
+			int lc = to_left[p] - to_left[indptr[i]];
+			int rc = (p - indptr[i]) - lc;
+			if (to_left[p + 1] - to_left[p]) {
+				p = indptr[2 * i + 0] + lc;
+				i = 2 * i + 0;
+			} else {
+				p = indptr[2 * i + 1] + rc;
+				i = 2 * i + 1;
+			}
 		}
 	}
-	// O(n * log^2(n))
-	segment_tree_2d_sparse(vector<array<B, 2>> base, F TT, T T_id): TT(TT), T_id(T_id){
-		vector<pair<array<B, 2>, T>> init(base.size());
-		for(auto i = 0; i < (int)base.size(); ++ i) init[i] = {base[i], T_id};
-		*this = segment_tree_2d_sparse(init, TT, T_id);
-	}
-	segment_tree_2d_sparse &operator=(const segment_tree_2d_sparse &otr){
-		X = otr.X;
-		Y = otr.Y;
-		data = otr.data;
-		return *this;
-	}
-	// O(log^2(n))
-	void set(B _p, B _q, const T &x){
-		int p = lower_bound(X.begin(), X.end(), _p) - X.begin();
-		assert(p < (int)X.size() && X[p] == _p);
-		for(p += (int)X.size(); p; p >>= 1){
-			auto &Y0 = Y[p];
-			auto &data0 = data[p];
-			int q = lower_bound(Y0.begin(), Y0.end(), array{_q, _p}) - Y0.begin();
-			assert(q < (int)Y0.size() && Y0[q][0] == _q && Y0[q][1] == _p);
-			q += (int)Y0.size();
-			data0[q] = x;
-			while(q >>= 1) data0[q] = TT(data0[q << 1], data0[q << 1 | 1]);
+	// raw_idx: index in the original point cloud
+	void set(int raw_idx, T val){
+		int i = 1, p = pos[raw_idx];
+		while (1) {
+			set_i(i, p - indptr[i], val);
+			if (i >= size) break;
+			int lc = to_left[p] - to_left[indptr[i]];
+			int rc = (p - indptr[i]) - lc;
+			if (to_left[p + 1] - to_left[p]) {
+				p = indptr[2 * i + 0] + lc;
+				i = 2 * i + 0;
+			} else {
+				p = indptr[2 * i + 1] + rc;
+				i = 2 * i + 1;
+			}
 		}
 	}
-	// O(log^2(n))
-	void update(B _p, B _q, const T &x){
-		int p = lower_bound(X.begin(), X.end(), _p) - X.begin();
-		assert(p < (int)X.size() && X[p] == _p);
-		for(p += (int)X.size(); p; p >>= 1){
-			auto &Y0 = Y[p];
-			auto &data0 = data[p];
-			int q = lower_bound(Y0.begin(), Y0.end(), array{_q, _p}) - Y0.begin();
-			assert(q < (int)Y0.size() && Y0[q][0] == _q && Y0[q][1] == _p);
-			q += (int)Y0.size();
-			data0[q] = TT(data0[q], x);
-			while(q >>= 1) data0[q] = TT(data0[q << 1], data0[q << 1 | 1]);
-		}
-	}
-	// O(log(n))
-	T query(B _p, B _q){
-		int p = lower_bound(X.begin(), X.end(), _p) - X.begin();
-		if(p == (int)X.size() || X[p] != _p) return T_id;
-		auto &Y0 = Y[p + (int)X.size()];
-		int q = lower_bound(Y0.begin(), Y0.end(), array{_q, _p}) - Y0.begin();
-		if(q == (int)Y0.size() || Y0[q] != array{_q, _p}) return T_id;
-		return data[p + (int)X.size()][q + (int)Y0.size()];
-	}
-	// O(log^2(n))
-	T query(B _xl, B _xr, B _yl, B _yr){
-		int xl = lower_bound(X.begin(), X.end(), _xl) - X.begin();
-		int xr = lower_bound(X.begin(), X.end(), _xr) - X.begin();
+	T query(B lx, B rx, B ly, B ry){
+		ASSERT(lx <= rx && ly <= ry);
+		int L = xtoi(lx), R = xtoi(rx);
 		T res = T_id;
-		for(xl += (int)X.size(), xr += (int)X.size(); xl < xr; xl >>= 1, xr >>= 1){
-			if(xl & 1){
-				auto &Y0 = Y[xl];
-				auto &data0 = data[xl];
-				int yl = lower_bound(Y0.begin(), Y0.end(), array{_yl, numeric_limits<B>::min()}) - Y0.begin();
-				int yr = lower_bound(Y0.begin(), Y0.end(), array{_yr, numeric_limits<B>::min()}) - Y0.begin();
-				for(yl += (int)Y0.size(), yr += (int)Y0.size(); yl < yr; yl >>= 1, yr >>= 1){
-					if(yl & 1) res = TT(res, data0[yl ++]);
-					if(yr & 1) res = TT(res, data0[-- yr]);
-				}
-				++ xl;
+		auto dfs = [&](auto self, int i, int l, int r, int a, int b)->void{
+			if(a == b || R <= l || r <= L) return;
+			if(L <= l && r <= R){
+				res = TT(res, query_i(i, a, b));
+				return;
 			}
-			if(xr & 1){
-				-- xr;
-				auto &Y0 = Y[xr];
-				auto &data0 = data[xr];
-				int yl = lower_bound(Y0.begin(), Y0.end(), array{_yl, numeric_limits<B>::min()}) - Y0.begin();
-				int yr = lower_bound(Y0.begin(), Y0.end(), array{_yr, numeric_limits<B>::min()}) - Y0.begin();
-				for(yl += (int)Y0.size(), yr += (int)Y0.size(); yl < yr; yl >>= 1, yr >>= 1){
-					if(yl & 1) res = TT(res, data0[yl ++]);
-					if(yr & 1) res = TT(res, data0[-- yr]);
-				}
-			}
-		}
+			int la = to_left[indptr[i] + a] - to_left[indptr[i]];
+			int ra = a - la;
+			int lb = to_left[indptr[i] + b] - to_left[indptr[i]];
+			int rb = b - lb;
+			int m = (l + r) / 2;
+			self(self, 2 * i + 0, l, m, la, lb);
+			self(self, 2 * i + 1, m, r, ra, rb);
+		};
+		dfs(dfs, 1, 0, size, lower_bound(all_Y.begin(), all_Y.end(), ly) - all_Y.begin(), lower_bound(all_Y.begin(), all_Y.end(), ry) - all_Y.begin());
 		return res;
 	}
+	// Count all points within the rectangle
+	// O(n * log(n))
+	int count(B lx, B rx, B ly, B ry){
+		ASSERT(lx <= rx && ly <= ry);
+		int L = xtoi(lx), R = xtoi(rx);
+		int res = 0;
+		auto dfs = [&](auto self, int i, int l, int r, int a, int b) -> void {
+			if(a == b || R <= l || r <= L) return;
+			if(L <= l && r <= R){
+				res += b - a;
+				return;
+			}
+			int la = to_left[indptr[i] + a] - to_left[indptr[i]];
+			int ra = a - la;
+			int lb = to_left[indptr[i] + b] - to_left[indptr[i]];
+			int rb = b - lb;
+			int m = (l + r) / 2;
+			self(self, 2 * i + 0, l, m, la, lb);
+			self(self, 2 * i + 1, m, r, ra, rb);
+		};
+		dfs(dfs, 1, 0, size, lower_bound(all_Y.begin(), all_Y.end(), ly) - all_Y.begin(), lower_bound(all_Y.begin(), all_Y.end(), ry) - all_Y.begin());
+		return res;
+	}
+private:
+	inline int xtoi(B x){
+		if constexpr(COMPRESS) return lower_bound(keyX.begin(), keyX.end(), x) - keyX.begin();
+		return clamp<B>(x - minX, 0, NX);
+	}
+	T query_i(int i, int a, int b){
+		int LID = indptr[i], n = indptr[i + 1] - indptr[i];
+		int off = 2 * LID;
+		T val = T_id;
+		for(auto L = n + a, R = n + b; L < R; L >>= 1, R >>= 1){
+			if(L & 1) val = TT(val, data[off + L ++]);
+			if(R & 1) val = TT(data[off + -- R], val);
+		}
+		return val;
+	}
+	void multiply_i(int i, int j, T val){
+		int LID = indptr[i], n = indptr[i + 1] - indptr[i];
+		int off = 2 * LID;
+		for(j += n; j; j >>= 1) data[off + j] = TT(data[off + j], val);
+	}
+	void set_i(int i, int j, T val){
+		int LID = indptr[i], n = indptr[i + 1] - indptr[i];
+		int off = 2 * LID;
+		j += n;
+		data[off + j] = val;
+		for(; (j >>= 1) >= 1; ) data[off + j] = TT(data[off + 2 * j + 0], data[off + 2 * j + 1]);
+	}
+#undef ASSERT
 };
+template<bool COMPRESS, class B, class T, class F>
+auto make_segment_tree_2d_sparse(F TT, T T_id){
+	return segment_tree_2d_sparse_base<COMPRESS, B, T, F>(TT, T_id);
+}
 ]]></content>
 	<!-- Optional: Set a tabTrigger to define how to trigger the snippet -->
 	<tabTrigger>segment_tree_2d_sparse</tabTrigger> -->

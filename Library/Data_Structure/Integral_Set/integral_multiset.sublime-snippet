@@ -32,6 +32,11 @@ struct integral_multiset{
 		}
 		return out << "}";
 	}
+	void clear(){
+		_size = 0;
+		fill(freq.begin(), freq.end(), T{0});
+		fill(data.begin(), data.end(), T{0});
+	}
 	// O(1)
 	int size() const{
 		return _size;

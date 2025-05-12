@@ -1,12 +1,12 @@
 <snippet>
 	<content><![CDATA[
-template<class Char_Type, int sigma>
+template<int sigma>
 struct aho_corasic_automaton_fixed{
 	vector<int> len{0};
 	vector<int> link{-1};
 	vector<int> exit_link{-1};
 	vector<int> is_terminal{false};
-	vector<pair<int, Char_Type>> pv{{-1, {}}};
+	vector<pair<int, int>> pv{{-1, {}}};
 	vector<array<int, sigma>> next{{}};
 	int new_state(){
 		len.push_back(0);
@@ -18,9 +18,17 @@ struct aho_corasic_automaton_fixed{
 		return (int)len.size() - 1;
 	}
 	aho_corasic_automaton_fixed(){ }
+	aho_corasic_automaton_fixed(const vector<string> &s){
+		vector<vector<int>> patterns((int)s.size());
+		for(auto i = 0; i < (int)s.size(); ++ i){
+			patterns[i].resize((int)s[i].size());
+			for(auto j = 0; j < (int)s[i].size(); ++ j) patterns[i][j] = tolower(s[i][j]) - 'a';
+		}
+		*this = aho_corasic_automaton_fixed(patterns);
+	}
 	// O(sigma * (sum of length)) where sigma is the size of alphabets
 	// All alphabets must be within [0, sigma)
-	aho_corasic_automaton_fixed(const vector<vector<Char_Type>> &patterns){
+	aho_corasic_automaton_fixed(const vector<vector<int>> &patterns){
 		for(auto s: patterns){
 			int u = 0;
 			for(auto c: s){
@@ -47,19 +55,26 @@ struct aho_corasic_automaton_fixed{
 			if(u) for(auto c = 0; c < sigma; ++ c) if(!next[u][c]) next[u][c] = next[link[u]][c];
 		}
 	}
-	int next_state(int u, Char_Type c) const{
+	int next_state(int u, char c) const{
+		return next[u][tolower(c) - 'a'];
+	}
+	int next_state(int u, int c) const{
 		return next[u][c];
 	}
-	int next_state(int u, const vector<Char_Type> &s) const{
+	int next_state(int u, const string &s) const{
+		for(auto c: s) u = next[u][tolower(c) - 'a'];
+		return u;
+	}
+	int next_state(int u, const vector<int> &s) const{
 		for(auto c: s) u = next[u][c];
 		return u;
 	}
 	int size() const{ // # of states
 		return (int)len.size();
 	}
-	vector<Char_Type> restore(int u) const{
+	vector<int> restore(int u) const{
 		assert(0 <= u && u < (int)next.size());
-		vector<Char_Type> res;
+		vector<int> res;
 		for(; u; u = pv[u].first) res.push_back(pv[u].second);
 		reverse(res.begin(), res.end());
 		return res;
