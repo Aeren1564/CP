@@ -1,0 +1,46 @@
+<snippet>
+	<content><![CDATA[
+template<class T>
+void _divide_and_conquer_optimization(const vector<T> &dp, auto cost, auto process_ans, auto cmp){
+	int n = (int)dp.size();
+#ifdef LOCAL
+	for(auto a = 0; a < n; ++ a)
+		for(auto b = a; b < n; ++ b)
+			for(auto c = b + 1; c < n; ++ c)
+				for(auto d = c; d < n; ++ d)
+					assert(!cmp(cost(a, d) + cost(b, c), cost(a, c) + cost(b, d)));
+#endif
+	auto recurse = [&](auto self, int l, int r, int optl, int optr)->void{
+		if(l == r) return;
+		int m = l + r >> 1;
+		T opt = dp[optl] + cost(optl, m);
+		int opti = optl;
+		for(auto i = min(m, optr) - 1; i > optl; -- i) if(auto cur = dp[i] + cost(i, m); cmp(cur, opt)) opt = cur, opti = i;
+		process_ans(m, opt);
+		self(self, l, m, optl, opti + 1);
+		self(self, m + 1, r, opti, optr);
+	};
+	recurse(recurse, 0, n, 0, n);
+}
+// Given is the recurrence relation of form dp_next[i] = min{0 <= j < i} (dp[j] + cost(j, i))
+// where cost is monge: cost(a, c) + cost(b, d) <= cost(a, d) + cost(b, c) for all a<=b<c<=d
+// For each 0 <= i < n, process_ans(i, dp_next[i]) gets called once
+// O(n * log(n))
+template<class T>
+void divide_and_conquer_optimization_min(const vector<T> &dp, auto cost, auto process_ans){
+	_divide_and_conquer_optimization(dp, cost, process_ans, less<>());
+}
+// Given is the recurrence relation of form dp_next[i] = max{0 <= j < i} (dp[j] + cost(j, i))
+// where cost is monge: cost(a, c) + cost(b, d) >= cost(a, d) + cost(b, c) for all a<=b<c<=d
+// For each 0 <= i < n, process_ans(i, dp_next[i]) gets called once
+// O(n * log(n))
+template<class T>
+void divide_and_conquer_optimization_max(const vector<T> &dp, auto cost, auto process_ans){
+	_divide_and_conquer_optimization(dp, cost, process_ans, greater<>());
+}
+]]></content>
+	<!-- Optional: Set a tabTrigger to define how to trigger the snippet -->
+	<tabTrigger>divide_and_conquer_optimization</tabTrigger> -->
+	<!-- Optional: Set a scope to limit where the snippet will trigger -->
+	<scope>source.c++</scope> -->
+</snippet>
