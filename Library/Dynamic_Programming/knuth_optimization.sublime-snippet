@@ -4,7 +4,13 @@ template<class T>
 auto _knuth_optimization(const vector<T> &base, auto cost, auto cmp){
 	int n = (int)base.size();
 #ifdef LOCAL
-	for(auto a = 0; a <= n; ++ a) for(auto b = a; b <= n; ++ b) for(auto c = b; c <= n; ++ c) for(auto d = c; d <= n; ++ d) if(a < c && b < d) assert(!cmp(cost(a, d) + cost(b, d), cost(a, c) + cost(b, d)));
+	for(auto a = 0; a <= n; ++ a)
+		for(auto b = a; b <= n; ++ b)
+			for(auto c = b + 1; c <= n; ++ c)
+				for(auto d = c; d <= n; ++ d){
+					assert(!cmp(cost(a, d) + cost(b, c), cost(a, c) + cost(b, d)));
+					assert(!cmp(cost(a, d), cost(b, c)));
+				}
 #endif
 	vector dp(n, vector<T>(n + 1));
 	vector<int> opt(n), opt_next;
@@ -28,24 +34,24 @@ auto _knuth_optimization(const vector<T> &base, auto cost, auto cmp){
 	}
 	return dp;
 }
-// Recurrence relation of form dp[i][j] = min{i < k < j} (dp[i][k] + dp[k][j] + C[i][j])
-// Must satisfy C[a][c] + C[b][d] <= C[a][d] + C[b][d] (C is a monge array) and C[a][d] >= C[b][c] for all a<=b<=c<=d
-// It can be proved that opt[i][j - 1] <= opt[i][j] <= opt[i + 1][j]
-// Fill the dp table in increasing order of j - i.
-// base[i] = dp[i][i + 1] for 0 <= i < n
-// cost(l, r) = C[l][r] for l < r
-// O(N^2)
+// Given is the recurrence relation of form dp[i][j] = min{i < k < j} (dp[i][k] + dp[k][j] + cost(i, j))
+// where
+// 1. cost is monge: cost(a, c) + cost(b, d) <= cost(a, d) + cost(b, c) for all a<=b<c<=d, and 
+// 2. cost(a, d) >= cost(b, c) for all a<=b<c<=d
+// Return the dp table constructed from the following base values
+// dp[i][i + 1] = base[i] for 0 <= i < n
+// O(n^2)
 template<class T>
 auto knuth_optimization_min(const vector<T> &base, auto cost){
 	return _knuth_optimization(base, cost, less<>());
 }
-// Recurrence relation of form dp[i][j] = max{i < k < j} (dp[i][k] + dp[k][j] + C[i][j])
-// Must satisfy C[a][c] + C[b][d] >= C[a][d] + C[b][d] (C is a monge array) and C[a][d] <= C[b][c] for all a<=b<=c<=d
-// It can be proved that opt[i][j - 1] <= opt[i][j] <= opt[i + 1][j]
-// Fill the dp table in increasing order of j - i.
-// base[i] = dp[i][i] for 0 <= i < n
-// cost(l, r) = C[l][r]
-// O(N^2)
+// Given is the recurrence relation of form dp[i][j] = max{i < k < j} (dp[i][k] + dp[k][j] + cost(i, j))
+// where
+// 1. cost is monge: cost(a, c) + cost(b, d) >= cost(a, d) + cost(b, c) for all a<=b<c<=d, and
+// 2. cost(a, d) <= cost(b, c) for all a<=b<c<=d
+// Return the dp table constructed from the following base values
+// dp[i][i + 1] = base[i] for 0 <= i < n
+// O(n^2)
 template<class T>
 auto knuth_optimization_max(const vector<T> &base, auto cost){
 	return _knuth_optimization(base, cost, greater<>());
