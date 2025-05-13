@@ -16,30 +16,28 @@ struct heavy_light_decomposition{
 	vector<int> end;
 	vector<int> order;
 	vector<int> was;
-	void init(int n){
+	void _init(int n){
 		assert(n >= 1);
 		this->n = n;
-		adj.assign(n, {});
-		pv.assign(n, -1);
-		pe.assign(n, -1);
+		adj.resize(n, {});
+		pv.resize(n, -1);
+		pe.resize(n, -1);
 		order.clear();
-		pos.assign(n, -1);
-		end.assign(n, -1);
-		size.assign(n, 1);
-		root_of.assign(n, -1);
+		pos.resize(n, -1);
+		end.resize(n, -1);
+		size.resize(n, 1);
+		root_of.resize(n, -1);
 		root.clear();
-		depth.assign(n, -1);
-		next.assign(n, -1);
-		prev.assign(n, -1);
-		was.assign(n, -2);
-		attempt = -1;
+		depth.resize(n, -1);
+		next.resize(n, -1);
+		prev.resize(n, -1);
+		was.resize(n, -2);
+		++ attempt;
 	}
-	int attempt;
+	int attempt = -1;
 	template<class T>
 	void build(const graph<T> &g, const vector<int> &src){
-		assert(g.n <= n);
-		++ attempt;
-		root.clear(), order.clear();
+		_init(g.n);
 		for(auto id = 0; id < (int)g.edge.size(); ++ id){
 			if(g.ignore && g.ignore(id)) continue;
 			auto &e = g.edge[id];
