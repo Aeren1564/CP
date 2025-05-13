@@ -2,9 +2,14 @@
 	<content><![CDATA[
 template<bool HAS_QUERY, bool HAS_UPDATE, class T, class U, class F1, class F2, class F3>
 struct segment_tree_base{
-	static_assert(HAS_QUERY || HAS_UPDATE);
+#ifdef LOCAL
+	#define ASSERT(x) assert(x)
+#else
+	#define ASSERT(x) 42
+#endif
 #define ifQ if constexpr(HAS_QUERY)
 #define ifU if constexpr(HAS_UPDATE)
+	static_assert(HAS_QUERY || HAS_UPDATE);
 	int n, size, log;
 	vector<T> data;
 	vector<U> data_action;
@@ -32,67 +37,60 @@ struct segment_tree_base{
 	}
 	// O(n)
 	void build(int n){
-		assert(n >= 0);
-		this->n = n;
-		size = 1;
-		while(size < n) size <<= 1;
-		log = __lg(size);
-		ifQ data.assign(size << 1, T_id);
-		ifU data_action.assign(HAS_QUERY ? size : size << 1, U_id);
+		static_assert(HAS_QUERY);
+		build(n, [&](int i){ return T_id; });
 	}
 	// O(n)
 	void build(int n, T x){
 		static_assert(HAS_QUERY);
-		assert(n >= 0);
-		this->n = n;
-		size = 1;
-		while(size < n) size <<= 1;
-		log = __lg(size);
-		data.assign(size << 1, T_id);
-		fill(data.begin() + size, data.begin() + size + n, x);
-		for(auto i = size - 1; i >= 1; -- i) refresh(i);
-		ifU data_action.assign(size, U_id);
+		build(n, [&](int i){ return x; });
 	}
 	// O(n)
 	template<class V>
 	void build(const vector<V> &a){
 		static_assert(HAS_QUERY);
-		n = (int)a.size();
+		build((int)a.size(), [&](int i){ return a[i]; });
+	}
+	// get_data(i) is the data at index i
+	// O(n)
+	void build(int n, auto get_data){
+		static_assert(HAS_QUERY);
+		ASSERT(0 <= n);
+		this->n = n;
 		size = 1;
 		while(size < n) size <<= 1;
 		log = __lg(size);
 		data.assign(size << 1, T_id);
-		copy(a.begin(), a.end(), data.begin() + size);
+		for(auto i = 0; i < n; ++ i) data[size + i] = get_data(i);
 		for(auto i = size - 1; i >= 1; -- i) refresh(i);
 		ifU data_action.assign(size, U_id);
 	}
 	// O(n)
 	void build_action(int n){
 		static_assert(!HAS_QUERY && HAS_UPDATE);
-		assert(n >= 0);
-		build(n);
+		build_action(n, [&](int i){ return U_id; });
 	}
 	// O(n)
 	void build_action(int n, U f){
 		static_assert(!HAS_QUERY && HAS_UPDATE);
-		assert(n >= 0);
-		this->n = n;
-		size = 1;
-		while(size < n) size <<= 1;
-		log = __lg(size);
-		data_action.assign(size << 1, U_id);
-		fill(data_action.begin() + size, data_action.begin() + size + n, f);
+		build_action(n, [&](int i){ return f; });
 	}
 	// O(n)
 	template<class V>
 	void build_action(const vector<V> &a){
 		static_assert(!HAS_QUERY && HAS_UPDATE);
-		n = (int)a.size();
+		build_action((int)a.size(), [&](int i){ return a[i]; });
+	}
+	// get_data(i) is the data at index i
+	// O(n)
+	void build_action(int n, auto get_data){
+		static_assert(!HAS_QUERY && HAS_UPDATE);
+		this->n = n;
 		size = 1;
 		while(size < n) size <<= 1;
 		log = __lg(size);
 		data_action.assign(size << 1, U_id);
-		copy(a.begin(), a.end(), data_action.begin() + size);
+		for(auto i = 0; i < n; ++ i) data_action[size + i] = get_data(i);
 	}
 	// O(1)
 	void refresh(int u){
@@ -114,7 +112,7 @@ struct segment_tree_base{
 	// O(log(n)) if HAS_UPDATE, O(1) otherwise.
 	T query(int p){
 		static_assert(HAS_QUERY);
-		assert(0 <= p && p < n);
+		ASSERT(0 <= p && p < n);
 		p += size;
 		ifU for(auto i = log; i >= 1; -- i) push(p >> i);
 		return data[p];
@@ -122,7 +120,7 @@ struct segment_tree_base{
 	// O(log(n))
 	U query_action(int p){
 		static_assert(!HAS_QUERY && HAS_UPDATE);
-		assert(0 <= p && p < n);
+		ASSERT(0 <= p && p < n);
 		p += size;
 		ifU for(auto i = log; i >= 1; -- i) push(p >> i);
 		return data_action[p];
@@ -130,7 +128,7 @@ struct segment_tree_base{
 	// O(log(n))
 	T query(int ql, int qr){
 		static_assert(HAS_QUERY);
-		assert(0 <= ql && ql <= qr && qr <= n);
+		ASSERT(0 <= ql && ql <= qr && qr <= n);
 		if(ql == qr) return T_id;
 		ql += size, qr += size;
 		ifU for(auto i = log; i >= 1; -- i){
@@ -164,7 +162,7 @@ struct segment_tree_base{
 	// O(log(n))
 	void set(int p, T x){
 		static_assert(HAS_QUERY);
-		assert(0 <= p && p < n);
+		ASSERT(0 <= p && p < n);
 		p += size;
 		ifU for(auto i = log; i >= 1; -- i) push(p >> i);
 		data[p] = x;
@@ -173,7 +171,7 @@ struct segment_tree_base{
 	// O(log(n))
 	void set_action(int p, U f){
 		static_assert(!HAS_QUERY && HAS_UPDATE);
-		assert(0 <= p && p < n);
+		ASSERT(0 <= p && p < n);
 		p += size;
 		for(auto i = log; i >= 1; -- i) push(p >> i);
 		data_action[p] = f;
@@ -181,7 +179,7 @@ struct segment_tree_base{
 	// O(log(n))
 	void update(int p, U f){
 		static_assert(HAS_UPDATE);
-		assert(0 <= p && p < n);
+		ASSERT(0 <= p && p < n);
 		p += size;
 		for(auto i = log; i >= 1; -- i) push(p >> i);
 		ifQ{
@@ -193,7 +191,7 @@ struct segment_tree_base{
 	// O(log(n))
 	void update(int ql, int qr, U f){
 		static_assert(HAS_UPDATE);
-		assert(0 <= ql && ql <= qr && qr <= n);
+		ASSERT(0 <= ql && ql <= qr && qr <= n);
 		if(ql == qr) return;
 		ql += size, qr += size;
 		for(auto i = log; i >= 1; -- i){
@@ -213,7 +211,7 @@ struct segment_tree_base{
 	}
 	void update_beats(int ql, int qr, auto exit_rule, auto enter_rule, auto update_rule){
 		static_assert(HAS_QUERY && HAS_UPDATE);
-		assert(0 <= ql && ql <= qr && qr <= n);
+		ASSERT(0 <= ql && ql <= qr && qr <= n);
 		if(ql == qr) return;
 		ql += size, qr += size;
 		for(auto i = log; i >= 1; -- i){
@@ -246,7 +244,7 @@ struct segment_tree_base{
 	// O(log(n))
 	int max_pref(int ql, auto pred){
 		static_assert(HAS_QUERY);
-		assert(0 <= ql && ql <= n && pred(T_id));
+		ASSERT(0 <= ql && ql <= n && pred(T_id));
 		if(ql == n) return n;
 		ql += size;
 		ifU for(auto i = log; i >= 1; -- i) push(ql >> i);
@@ -271,7 +269,7 @@ struct segment_tree_base{
 	// O(log(n))
 	int max_suff(int qr, auto pred){
 		static_assert(HAS_QUERY);
-		assert(0 <= qr && qr <= n && pred(T_id));
+		ASSERT(0 <= qr && qr <= n && pred(T_id));
 		if(qr == 0) return 0;
 		qr += size;
 		ifU for(auto i = log; i >= 1; -- i) push(qr - 1 >> i);
@@ -301,6 +299,7 @@ struct segment_tree_base{
 		}
 		return out << '}';
 	}
+#undef ASSERT
 #undef ifQ
 #undef ifU
 };
