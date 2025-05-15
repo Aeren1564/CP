@@ -25,13 +25,13 @@ struct line{
 	point<T> q() const{
 		return p + d;
 	}
-	line &flip(){
+	line &inplace_flip(){
 		p += d;
 		d = -d;
 		return *this;
 	}
-	line flipped() const{
-		return line(*this).flip();
+	line flip() const{
+		return line(*this).inplace_flip();
 	}
 	// d.y * (X - p.x) - d.x * (Y - p.y) = 0
 	tuple<T, T, T> coef() const{
@@ -124,6 +124,14 @@ struct line{
 		return x <= 0 ? point<T>(p) : x >= d.squared_norm() ? point<T>(q()) : projection_f(r);
 	}
 };
+template<class T>
+bool concurrent(const line<T> &l0, const line<T> &l1, const line<T> &l2){
+	const T eps = (T)1e-9;
+	auto [a0, b0, c0] = l0.coef();
+	auto [a1, b1, c1] = l1.coef();
+	auto [a2, b2, c2] = l2.coef();
+	return a0 * (b1 * c2 - c1 * b2) + b0 * (c1 * a2 - a1 * c2) + c0 * (a1 * b2 - b1 * a2) <= eps;
+}
 
 using lineint = line<int>;
 using linell = line<long long>;
