@@ -3,7 +3,7 @@
 int n, m;
 cin >> n >> m;
 graph<int> g(n);
-for(auto i = 0; i < m; ++ i){
+for(auto id = 0; id < m; ++ id){
 	int u, v, w;
 	cin >> u >> v >> w, -- u, -- v;
 	g.orient(u, v, w);

@@ -3,7 +3,7 @@
 int n;
 cin >> n;
 graph<int> g(n);
-for(auto i = 0; i < n - 1; ++ i){
+for(auto id = 0; id < n - 1; ++ id){
 	int u, v, w;
 	cin >> u >> v >> w, -- u, -- v;
 	g.link(u, v, w);

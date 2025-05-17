@@ -3,7 +3,7 @@
 int n, m;
 cin >> n >> m;
 vector<vector<int>> adj(n);
-for(auto i = 0; i < m; ++ i){
+for(auto id = 0; id < m; ++ id){
 	int u, v;
 	cin >> u >> v, -- u, -- v;
 	adj[u].push_back(v), adj[v].push_back(u);
