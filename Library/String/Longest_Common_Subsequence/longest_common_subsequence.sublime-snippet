@@ -1,14 +1,18 @@
 <snippet>
 	<content><![CDATA[
 // Hirschburg's space optimization of LCS dp
-// O(n m / w) time (with about twice the constant factor)
+// O(n * m / w) time
 // O(n + m + Lim * m / w) space
 // Requires longest_common_subsequence_lengths
-template<class Char_Type, int Lim>
-vector<Char_Type> longest_common_subsequence(const vector<Char_Type> &s, const vector<Char_Type> &t){
+template<int Lim>
+vector<int> longest_common_subsequence(const vector<int> &s, const vector<int> &t){
+	#ifdef LOCAL
+	for(auto c: s) assert(0 <= c && c < Lim);
+	for(auto c: t) assert(0 <= c && c < Lim);
+	#endif
 	if(s.empty() || t.empty()) return {};
 	int n = (int)s.size(), m = (int)t.size();
-	vector<Char_Type> res;
+	vector<int> res;
 	auto solve = [&](auto self, int il, int ir, int jl, int jr){
 		if(jr - jl == 1){
 			for(auto p = il; p < ir; ++ p) if(s[p] == t[jl]){
@@ -18,8 +22,8 @@ vector<Char_Type> longest_common_subsequence(const vector<Char_Type> &s, const v
 			return;
 		}
 		int jm = jl + (jr - jl >> 1);
-		auto dp_left = longest_common_subsequence_lengths<Char_Type, Lim>({s.begin() + il, s.begin() + ir}, {t.begin() + jl, t.begin() + jm});
-		auto dp_right = longest_common_subsequence_lengths<Char_Type, Lim>({s.rend() - ir, s.rend() - il}, {t.rend() - jr, t.rend() - jm});
+		auto dp_left = longest_common_subsequence_lengths<Lim>({s.begin() + il, s.begin() + ir}, {t.begin() + jl, t.begin() + jm});
+		auto dp_right = longest_common_subsequence_lengths<Lim>({s.rend() - ir, s.rend() - il}, {t.rend() - jr, t.rend() - jm});
 		array<int, 2> pos{dp_left[0] + dp_right[ir - il], 0};
 		for(auto l = 1; l <= ir - il; ++ l) pos = max(pos, array{dp_left[l] + dp_right[ir - il - l], l});
 		int im = pos[1] + il;
@@ -27,6 +31,12 @@ vector<Char_Type> longest_common_subsequence(const vector<Char_Type> &s, const v
 	};
 	solve(solve, 0, n, 0, m);
 	return res;
+}
+vector<int> longest_common_subsequence(const string &s, const string &t){
+	vector<int> _s((int)s.size()), _t((int)t.size());
+	for(auto i = 0; i < (int)s.size(); ++ i) _s[i] = tolower(s[i]) - 'a';
+	for(auto i = 0; i < (int)t.size(); ++ i) _t[i] = tolower(t[i]) - 'a';
+	return longest_common_subsequence<26>(_s, _t);
 }
 ]]></content>
 	<!-- Optional: Set a tabTrigger to define how to trigger the snippet -->
