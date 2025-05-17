@@ -3,10 +3,14 @@
 // source: http://www.secmem.org/blog/2019/09/12/lcs-with-bitset/
 // bitset optimization of LCS dp
 // res[i]: length of the LCS of s[0:i) and t
-// O(n m / w) time
+// O(n * m / w) time
 // O(n + m * Lim / w) space
-template<class Char_Type, int Lim>
-vector<int> longest_common_subsequence_lengths(const vector<Char_Type> &s, const vector<Char_Type> &t){
+template<int Lim>
+vector<int> longest_common_subsequence_lengths(const vector<int> &s, const vector<int> &t){
+	#ifdef LOCAL
+	for(auto c: s) assert(0 <= c && c < Lim);
+	for(auto c: t) assert(0 <= c && c < Lim);
+	#endif
 	if(s.empty()) return {0};
 	int n = (int)s.size(), m = (int)t.size(), sz = (m >> 6) + 1;
 	using mask_type = unsigned long long;
@@ -40,6 +44,12 @@ vector<int> longest_common_subsequence_lengths(const vector<Char_Type> &s, const
 		res[i + 1] = accumulate(dp.begin(), dp.end(), 0, [&](int sum, auto y){ return sum + __builtin_popcountll(y); });
 	}
 	return res;
+}
+vector<int> longest_common_subsequence_lengths(const string &s, const string &t){
+	vector<int> _s((int)s.size()), _t((int)t.size());
+	for(auto i = 0; i < (int)s.size(); ++ i) _s[i] = tolower(s[i]) - 'a';
+	for(auto i = 0; i < (int)t.size(); ++ i) _t[i] = tolower(t[i]) - 'a';
+	return longest_common_subsequence_lengths<26>(_s, _t);
 }
 ]]></content>
 	<!-- Optional: Set a tabTrigger to define how to trigger the snippet -->
