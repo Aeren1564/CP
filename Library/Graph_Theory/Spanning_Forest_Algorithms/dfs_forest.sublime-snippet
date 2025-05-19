@@ -1,8 +1,9 @@
 <snippet>
 	<content><![CDATA[
 // Requires graph
-template<class T, int level>
+template<class T, int type, int level>
 struct dfs_forest{
+	static_assert(0 <= type && type <= 2);
 	static_assert(0 <= level && level <= 2);
 	int n;
 	vector<int> pv;
@@ -90,6 +91,7 @@ struct dfs_forest{
 					root_of[v] = root_of[u];
 				}
 				self(self, v);
+				if constexpr(type == 2) order.push_back(u);
 				size[u] += size[v];
 				if constexpr(level >= 2) if(min_depth[u] > min_depth[v]){
 					min_depth[u] = min_depth[v];
@@ -98,6 +100,7 @@ struct dfs_forest{
 				}
 			}
 			end[u] = (int)order.size();
+			if constexpr(type == 1) order.push_back(u);
 		};
 		recurse(recurse, u);
 	}
@@ -164,20 +167,25 @@ struct dfs_forest{
 	}
 };
 
+/*
+type 0: adds to order at the beginning
+type 1: adds to order at the beginning and the end
+type 2: adds to order at the beginning and after every child
+*/
 // pv, pe, order, pos, end, size, depth
-template<class T>
+template<class T, int type = 0>
 auto make_basic_dfs_forest(){
-	return dfs_forest<T, 0>();
+	return dfs_forest<T, type, 0>();
 }
 // (basic_set), root_of, root, dist
-template<class T>
+template<class T, int type = 0>
 auto make_augmented_dfs_forest(){
-	return dfs_forest<T, 1>();
+	return dfs_forest<T, type, 1>();
 }
 // (augmented_set), min_depth, min_depth_origin, min_depth_spanning_edge, extra_edge
-template<class T>
+template<class T, int type = 0>
 auto make_full_dfs_forest(){
-	return dfs_forest<T, 2>();
+	return dfs_forest<T, type, 2>();
 }
 ]]></content>
 	<!-- Optional: Set a tabTrigger to define how to trigger the snippet -->
