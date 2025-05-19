@@ -35,11 +35,11 @@ struct graph{
 		}
 		else for(auto u = 0; u < n; ++ u) for(auto [v, w]: adj[u]) orient(u, v, w);
 	}
-	graph(int n, vector<array<int, 2>> &edge, bool undirected = true): n(n), adj(n){
+	graph(int n, const vector<array<int, 2>> &edge, bool undirected = true): n(n), adj(n){
 		assert(n >= 1);
 		for(auto [u, v]: edge) undirected ? link(u, v) : orient(u, v);
 	}
-	graph(int n, vector<tuple<int, int, T>> &edge, bool undirected = true): n(n), adj(n){
+	graph(int n, const vector<tuple<int, int, T>> &edge, bool undirected = true): n(n), adj(n){
 		assert(n >= 1);
 		for(auto [u, v, w]: edge) undirected ? link(u, v, w) : orient(u, v, w);
 	}
@@ -123,6 +123,21 @@ struct graph{
 			out << "{" << e.from << ", " << e.to << ", " << e.cost << "}\n";
 		}
 		return out;
+	}
+	template<bool directed = false, bool has_weight = false>
+	static graph read(int n, int m = -1, int offset = 1){
+		assert(n >= 1);
+		if(m == -1) m = n - 1;
+		assert(m >= 0);
+		graph<T> g(n);
+		for(auto id = 0; id < m; ++ id){
+			int u, v;
+			T w = T{1};
+			cin >> u >> v, u -= offset, v -= offset;
+			if constexpr(has_weight) cin >> w;
+			directed ? g.orient(u, v, w) : g.link(u, v, w);
+		}
+		return move(g);
 	}
 };
 ]]></content>
