@@ -1,30 +1,109 @@
 <snippet>
 	<content><![CDATA[
 // http://www.sccg.sk/~samuelcik/dgs/quad_edge.pdf
+template<class T>
 struct quad_edge{
-	int o = -1; // origin of the arc
-	quad_edge *onext, *rot;
-	bool mark = false;
-	quad_edge(){ }
-	quad_edge(int o): o(o){ }
-	int d(){ return sym()->o; } // destination of the arc
-	quad_edge *sym(){ return rot->rot; }
-	quad_edge *oprev(){ return rot->onext->rot; }
-	quad_edge *lnext(){ return sym()->oprev(); }
-	static quad_edge *make_sphere(int a, int b){
-		array<quad_edge *, 4> q{{new quad_edge{a}, new quad_edge{}, new quad_edge{b}, new quad_edge{}}};
-		for(auto i = 0; i < 4; ++ i) q[i]->onext = q[-i & 3], q[i]->rot = q[i + 1 & 3];
+#ifdef LOCAL
+	#define ASSERT(x) assert(x)
+#else
+	#define ASSERT(x) 42
+#endif
+	// origin, onext, rot, mark
+	vector<tuple<T, int, int, bool>> data;
+	vector<int> dead, is_alive;
+	int new_quad_edge(const T &origin){
+		int u;
+		if(!dead.empty()){
+			u = dead.back();
+			dead.pop_back();
+			data[u] = {origin, -1, -1, false};
+		#ifdef LOCAL
+			is_alive[u] = true;
+		#endif
+		}
+		else{
+			u = (int)data.size();
+			data.push_back({origin, -1, -1, false});
+		#ifdef LOCAL
+			is_alive.push_back(true);
+		#endif
+		}
+		return u;
+	}
+	void erase(int u){
+		ASSERT(0 <= u && u < (int)is_alive.size() && is_alive[u]);
+	#ifdef LOCAL
+		is_alive[u] = false;
+	#endif
+		dead.push_back(u);
+	}
+	T origin(int u) const{
+		ASSERT(0 <= u && u < (int)is_alive.size() && is_alive[u]);
+		return get<0>(data[u]);
+	}
+	void origin(int u, const T &x){
+		ASSERT(0 <= u && u < (int)is_alive.size() && is_alive[u]);
+		get<0>(data[u]) = x;
+	}
+	int onext(int u) const{
+		ASSERT(0 <= u && u < (int)is_alive.size() && is_alive[u]);
+		return get<1>(data[u]);
+	}
+	void onext(int u, int x){
+		ASSERT(0 <= u && u < (int)is_alive.size() && is_alive[u]);
+		get<1>(data[u]) = x;
+	}
+	int rot(int u) const{
+		ASSERT(0 <= u && u < (int)is_alive.size() && is_alive[u]);
+		return get<2>(data[u]);
+	}
+	void rot(int u, int x){
+		ASSERT(0 <= u && u < (int)is_alive.size() && is_alive[u]);
+		get<2>(data[u]) = x;
+	}
+	bool mark(int u) const{
+		ASSERT(0 <= u && u < (int)is_alive.size() && is_alive[u]);
+		return get<3>(data[u]);
+	}
+	void mark(int u, bool x){
+		ASSERT(0 <= u && u < (int)is_alive.size() && is_alive[u]);
+		get<3>(data[u]) = x;
+	}
+	T dest(int u) const{
+		ASSERT(0 <= u && u < (int)is_alive.size() && is_alive[u]);
+		return origin(sym(u));
+	}
+	int sym(int u) const{
+		ASSERT(0 <= u && u < (int)is_alive.size() && is_alive[u]);
+		return rot(rot(u));
+	}
+	int oprev(int u) const{
+		ASSERT(0 <= u && u < (int)is_alive.size() && is_alive[u]);
+		return rot(onext(rot(u)));
+	}
+	int lnext(int u) const{
+		ASSERT(0 <= u && u < (int)is_alive.size() && is_alive[u]);
+		return oprev(sym(u));
+	}
+	int make_sphere(const T &a, const T &b){
+		array<int, 4> q{new_quad_edge(a), new_quad_edge(T{}), new_quad_edge(b), new_quad_edge(T{})};
+		for(auto i = 0; i < 4; ++ i) onext(q[i], q[-i & 3]), rot(q[i], q[i + 1 & 3]);
 		return q[0];
 	}
-	static void splice(quad_edge *a, quad_edge *b){
-		swap(a->onext->rot->onext, b->onext->rot->onext);
-		swap(a->onext, b->onext);
+	void splice(int u, int v){
+		ASSERT(0 <= u && u < (int)is_alive.size() && is_alive[u]);
+		ASSERT(0 <= v && v < (int)is_alive.size() && is_alive[v]);
+		swap(get<1>(data[rot(onext(u))]), get<1>(data[rot(onext(v))]));
+		swap(get<1>(data[u]), get<1>(data[v]));
 	}
-	static quad_edge *connect(quad_edge *a, quad_edge *b){
-		quad_edge *q = make_sphere(a->d(), b->o);
-		splice(q, a->lnext()), splice(q->sym(), b);
-		return q;
+	int connect(int u, int v){
+		ASSERT(0 <= u && u < (int)is_alive.size() && is_alive[u]);
+		ASSERT(0 <= v && v < (int)is_alive.size() && is_alive[v]);
+		int w = make_sphere(dest(u), origin(v));
+		splice(w, lnext(u)), splice(sym(w), v);
+		return w;
 	}
+#undef ASSERT
 };
 ]]></content>
 	<!-- Optional: Set a tabTrigger to define how to trigger the snippet -->
