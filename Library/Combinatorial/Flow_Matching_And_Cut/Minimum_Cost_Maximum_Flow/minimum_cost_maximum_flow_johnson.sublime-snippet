@@ -21,6 +21,7 @@ struct minimum_cost_maximum_flow_johnson{
 		iota(q.begin(), q.end(), 0);
 		in_queue.assign(F.n, false);
 		pe.assign(F.n, -1);
+		state.resize(F.n);
 		auto detect_cycle = [&]()->bool{
 			stack.clear();
 			fill(state.begin(), state.end(), 0);
@@ -96,7 +97,7 @@ struct minimum_cost_maximum_flow_johnson{
 	template<bool type>
 	T _expath(int source, int sink, T threshold){
 		for(auto e: F.edge) if(e.capacity - e.flow > eps) ASSERT(e.cost + h[e.from] - h[e.to] >= 0);
-		static const C inf = numeric_limits<C>::max();
+		static const C inf = numeric_limits<C>::max() / 2;
 		fill(h_next.begin(), h_next.end(), inf);
 		h_next[source] = 0;
 		pe.assign(F.n, -1);
@@ -159,7 +160,7 @@ struct minimum_cost_maximum_flow_johnson{
 	//  additional O(Cycle_Cnt * SPFA) if negative cycle exists
 	//  additional O(SPFA) if an unsaturated edge with negative cost exists
 	template<bool type = false, bool negative_cycle_presence = false>
-	pair<T, C> solve(int source, int sink, T threshold = numeric_limits<T>::max()){
+	pair<T, C> solve(int source, int sink, T threshold = numeric_limits<T>::max() / 2){
 		assert(0 <= min(source, sink) && max(source, sink) < F.n && source != sink && threshold >= 0);
 		C init_cost = F.cost;
 		if(negative_cycle_presence) while(_try_cycle_cancelling());
