@@ -4,84 +4,85 @@
 // O(n * log(n))
 // Requires point and quad_edge
 template<class T, class T_large, class F1, class F2>
-bool delaunay_triangulation(const vector<point<T>> &a, F1 process_outer_face, F2 process_triangles){
-	vector<int> ind(a.size());
-	iota(ind.begin(), ind.end(), 0);
-	sort(ind.begin(), ind.end(), [&](int i, int j){ return a[i] < a[j]; });
-	ind.erase(unique(ind.begin(), ind.end(), [&](int i, int j){ return a[i] == a[j]; }), ind.end());
-	int n = (int)ind.size();
+bool delaunay_triangulation(vector<point<T>> a, F1 process_outer_face, F2 process_triangles){
+	sort(a.begin(), a.end());
+	a.erase(unique(a.begin(), a.end()), a.end());
+	int n = (int)a.size();
 	if(n < 2) return {};
-	auto circular = [&](point<T> p, point<T> a, point<T> b, point<T> c){
+	auto circular = [&](const point<T> &p, point<T> a, point<T> b, point<T> c){
 		a -= p, b -= p, c -= p;
 		return ((T_large)a.squared_norm() * (b ^ c) + (T_large)b.squared_norm() * (c ^ a) + (T_large)c.squared_norm() * (a ^ b)) * (doubled_signed_area(a, b, c) > 0 ? 1 : -1) > 0;
 	};
-	auto recurse = [&](auto self, int l, int r)->array<quad_edge *, 2>{
+	quad_edge<point<T>> qe;
+	auto recurse = [&](auto self, int l, int r)->array<int, 2>{
 		if(r - l <= 3){
-			quad_edge *p = quad_edge::make_sphere(ind[l], ind[l + 1]);
-			if(r - l == 2) return {p, p->sym()};
-			quad_edge *q = quad_edge::make_sphere(ind[l + 1], ind[l + 2]);
-			quad_edge::splice(p->sym(), q);
-			auto side = doubled_signed_area(a[ind[l]], a[ind[l + 1]], a[ind[l + 2]]);
-			quad_edge *c = side ? quad_edge::connect(q, p) : NULL;
-			return {side < 0 ? c->sym() : p, side < 0 ? c : q->sym()};
+			int p = qe.make_sphere(a[l], a[l + 1]);
+			if(r - l == 2) return {p, qe.sym(p)};
+			int q = qe.make_sphere(a[l + 1], a[l + 2]);
+			qe.splice(qe.sym(p), q);
+			auto side = doubled_signed_area(a[l], a[l + 1], a[l + 2]);
+			int c = side ? qe.connect(q, p) : -1;
+			return {side < 0 ? qe.sym(c) : p, side < 0 ? c : qe.sym(q)};
 		}
 		int m = l + (r - l >> 1);
 		auto [ra, A] = self(self, l, m);
 		auto [B, rb] = self(self, m, r);
-		while(doubled_signed_area(a[B->o], a[A->d()], a[A->o]) < 0 && (A = A->lnext()) || doubled_signed_area(a[A->o], a[B->d()], a[B->o]) > 0 && (B = B->sym()->onext));
-		quad_edge *base = quad_edge::connect(B->sym(), A);
-		if(A->o == ra->o) ra = base->sym();
-		if(B->o == rb->o) rb = base;
-#define valid(e) (doubled_signed_area(a[e->d()], a[base->d()], a[base->o]) > 0)
+		while(doubled_signed_area(qe.origin(B), qe.dest(A), qe.origin(A)) < 0 && (A = qe.lnext(A)) || doubled_signed_area(qe.origin(A), qe.dest(B), qe.origin(B)) > 0 && (B = qe.onext(qe.sym(B))));
+		int base = qe.connect(qe.sym(B), A);
+		if(qe.origin(A) == qe.origin(ra)) ra = qe.sym(base);
+		if(qe.origin(B) == qe.origin(rb)) rb = base;
+#define valid(e) (doubled_signed_area(qe.dest(e), qe.dest(base), qe.origin(base)) > 0)
 #define DEL(e, init, dir) \
-quad_edge *e = init->dir; \
-if(valid(e)) while(circular(a[e->dir->d()], a[base->d()], a[base->o], a[e->d()])){ \
-	quad_edge *t = e->dir; \
-	quad_edge::splice(e, e->oprev()); \
-	quad_edge::splice(e->sym(), e->sym()->oprev()); \
-	delete e->rot->rot->rot; \
-	delete e->rot->rot; \
-	delete e->rot; \
-	delete e; \
+int e = qe.dir(init); \
+if(valid(e)) while(circular(qe.dest(qe.dir(e)), qe.dest(base), qe.origin(base), qe.dest(e))){ \
+	int t = qe.dir(e); \
+	qe.splice(e, qe.oprev(e)); \
+	qe.splice(qe.sym(e), qe.oprev(qe.sym(e))); \
+	qe.erase(qe.rot(qe.rot(qe.rot(e)))); \
+	qe.erase(qe.rot(qe.rot(e))); \
+	qe.erase(qe.rot(e)); \
+	qe.erase(e); \
 	e = t; \
 }
 		while(true){
-			DEL(LC, base->sym(), onext);
-			DEL(RC, base, oprev());
+			DEL(LC, qe.sym(base), onext);
+			DEL(RC, base, oprev);
 			if(!valid(LC) && !valid(RC)) break;
-			if(!valid(LC) || valid(RC) && circular(a[RC->d()], a[RC->o], a[LC->d()], a[LC->o])) base = quad_edge::connect(RC, base->sym());
-			else base = quad_edge::connect(base->sym(), LC->sym());
+			if(!valid(LC) || valid(RC) && circular(qe.dest(RC), qe.origin(RC), qe.dest(LC), qe.origin(LC))) base = qe.connect(RC, qe.sym(base));
+			else base = qe.connect(qe.sym(base), qe.sym(LC));
 		}
 		return {ra, rb};
 	};
 	auto e = recurse(recurse, 0, n)[0];
-	vector<quad_edge *> q = {e}, rem;
-	while(doubled_signed_area(a[e->onext->d()], a[e->d()], a[e->o]) < 0) e = e->onext;
-	vector<int> face;
-	face.reserve(n);
+	vector<int> q = {e}, rem;
+	while(doubled_signed_area(qe.dest(qe.onext(e)), qe.dest(e), qe.origin(e)) < 0) e = qe.onext(e);
+	vector<point<T>> face;
 	bool colinear = false;
 #define ADD \
 { \
-	quad_edge *c = e; \
+	int c = e; \
 	face.clear(); \
 	do{ \
-		c->mark = true; \
-		face.push_back(c->o); \
-		q.push_back(c->sym()); \
+		qe.mark(c, true); \
+		face.push_back(qe.origin(c)); \
+		q.push_back(qe.sym(c)); \
 		rem.push_back(c); \
-		c = c->lnext(); \
+		c = qe.lnext(c); \
 	}while(c != e); \
 }
 	ADD;
 	process_outer_face(face);
 	for(auto qi = 0; qi < (int)q.size(); ++ qi){
-		if(!(e = q[qi])->mark){
+		if(!qe.mark(e = q[qi])){
 			ADD;
 			colinear = false;
 			process_triangles(face[0], face[1], face[2]);
 		}
 	}
-	for(auto e: rem) delete e->rot, delete e;
+	for(auto e: rem) qe.erase(qe.rot(e)), qe.erase(e);
+#undef valid
+#undef DEL
+#undef ADD
 	return !colinear;
 }
 ]]></content>
