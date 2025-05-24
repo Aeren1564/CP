@@ -1,31 +1,84 @@
 <snippet>
 	<content><![CDATA[
 // Requires graph
-struct euler_walk{
+struct Euler_walk{
 	int n, m;
 	optional<vector<int>> walk;
 	vector<int> iter;
 	vector<int> wasv;
 	vector<int> wase;
-	int attempt;
-	euler_walk(){}
-	euler_walk(int n, int m){ init(n, m); }
+	int attempt = -1;
+	Euler_walk(){}
 	template<class T>
-	euler_walk(const graph<T> &g, int u){ init(g.n, (int)g.edge.size()); run(g, u); }
-	void init(int n, int m){
+	Euler_walk(const graph<T> &g, int start){ run(g, start); }
+	void _init(int n, int m){
 		this->n = n;
 		this->m = m;
-		iter.assign(n, 0);
+		iter.resize(n, 0);
 		walk = {};
-		wasv.assign(n, -2);
-		wase.assign(m, -2);
-		attempt = -1;
+		wasv.resize(n, -2);
+		wase.resize(m, -2);
+		++ attempt;
 	}
 	template<class T>
-	void run(const graph<T> &g, int u){
-		assert(g.n <= n && (int)g.edge.size() <= m);
-		assert(0 <= u && u < n);
-		++ attempt;
+	optional<pair<int, int>> get_start_and_end_if_Eulerian(const graph<T> &g, bool directed){
+		int n = g.n;
+		if(directed){
+			vector<int> outdeg(n), indeg(n);
+			for(auto u = 0; u < n; ++ u){
+				for(auto id: g.adj[u]){
+					if(g.ignore && g.ignore(id)) continue;
+					++ outdeg[u];
+					++ indeg[g(u, id)];
+				}
+			}
+			int start = -1, end = -1;
+			for(auto u = 0; u < n; ++ u){
+				if(outdeg[u] == indeg[u]) continue;
+				if(abs(outdeg[u] - indeg[u]) >= 2) return {};
+				if(outdeg[u] > indeg[u]){
+					if(~start) return {};
+					start = u;
+				}
+				else{
+					if(~end) return {};
+					end = u;
+				}
+			}
+			if(!~start || !~end){
+				assert(!~start && !~end);
+				return {pair{0, 0}};
+			}
+			else return {pair{start, end}};
+		}
+		else{
+			int odd_cnt = 0;
+			for(auto u = 0; u < n; ++ u){
+				int deg = 0;
+				for(auto id: g.adj[u]) deg += !g.ignore || !g.ignore(id);
+				odd_cnt += deg % 2;
+			}
+			assert(odd_cnt % 2 == 0);
+			if(odd_cnt >= 4) return {};
+			if(odd_cnt == 0) return {pair{0, 0}};
+			vector<int> start_and_end;
+			for(auto u = 0; u < n; ++ u){
+				int deg = 0;
+				for(auto id: g.adj[u]) deg += !g.ignore || !g.ignore(id);
+				if(deg % 2) start_and_end.push_back(u);
+			}
+			assert((int)start_and_end.size() == 2);
+			return {pair{start_and_end[0], start_and_end[1]}};
+		}
+	}
+	template<class T>
+	bool is_Eulerian(const graph<T> &g, bool directed){
+		return (bool)get_start_and_end_if_Eulerian(g, directed);
+	}
+	template<class T>
+	void run_from(const graph<T> &g, int start){
+		_init(g.n, (int)g.edge.size());
+		assert(0 <= start && start < n);
 		vector<int> w;
 		auto recurse = [&](auto self, int u)->void{
 			if(wasv[u] != attempt) wasv[u] = attempt, iter[u] = 0;
@@ -38,19 +91,26 @@ struct euler_walk{
 				w.push_back(id);
 			}
 		};
-		recurse(recurse, u);
+		recurse(recurse, start);
 		reverse(w.begin(), w.end());
-		int v = u;
+		int u = start;
 		for(auto id: w){
-			if(g.edge[id].from != v && g.edge[id].to != v) walk = {};
-			v = g(v, id);
+			if(g.edge[id].from != u && g.edge[id].to != u){
+				walk = {};
+				return;
+			}
+			u = g(u, id);
 		}
 		walk = {w};
+	}
+	bool visited(int u){
+		assert(0 <= u && u < n);
+		return wasv[u] == attempt;
 	}
 };
 ]]></content>
 	<!-- Optional: Set a tabTrigger to define how to trigger the snippet -->
-	<tabTrigger>euler_walk</tabTrigger> -->
+	<tabTrigger>Euler_walk</tabTrigger> -->
 	<!-- Optional: Set a scope to limit where the snippet will trigger -->
 	<scope>source.c++</scope> -->
 </snippet>
