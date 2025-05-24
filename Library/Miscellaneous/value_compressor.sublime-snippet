@@ -3,6 +3,20 @@
 template<class T>
 struct value_compressor{
 	vector<T> _cmpr;
+#if __cplusplus >= 202002L
+	template<ranges::range Range>
+	void _collect(const Range &data){
+		if constexpr(is_convertible_v<ranges::range_value_t<Range>, T>) _cmpr.insert(_cmpr.end(), ranges::begin(data), ranges::end(data));
+		else for(const auto &sub: data) _collect(sub);
+	}
+	template<ranges::range Range>
+	void init(const Range &data){
+		_cmpr.clear();
+		_collect(data);
+		ranges::sort(_cmpr);
+		_cmpr.erase(unique(_cmpr.begin(), _cmpr.end()), _cmpr.end());
+	}
+#else
 	template<class Container>
 	void _collect(const Container &data){
 		if constexpr(is_convertible_v<typename Container::value_type, T>) _cmpr.insert(_cmpr.end(), data.begin(), data.end());
@@ -10,12 +24,17 @@ struct value_compressor{
 	}
 	template<class Container>
 	void init(const Container &data){
+		_cmpr.clear();
 		_collect(data);
 		sort(_cmpr.begin(), _cmpr.end());
 		_cmpr.erase(unique(_cmpr.begin(), _cmpr.end()), _cmpr.end());
 	}
-	int operator()(const T& x) const{
+#endif
+	int operator()(const T &x) const{
 		return lower_bound(_cmpr.begin(), _cmpr.end(), x) - _cmpr.begin();
+	}
+	int size() const{
+		return (int)_cmpr.size();
 	}
 };
 ]]></content>
