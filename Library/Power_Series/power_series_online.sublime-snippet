@@ -1,22 +1,33 @@
 <snippet>
 	<content><![CDATA[
-// Requires modular and number_theoric_transform
-template<class T, class FFT>
-struct power_series_online_wrapper{
+template<bool ENABLE_FFT, class T, class FFT>
+struct power_series_online_wrapper_base{
 #ifdef LOCAL
 	#define ASSERT(x) assert(x)
 #else
 	#define ASSERT(x) 42
 #endif
 	static constexpr int inf = numeric_limits<int>::max();
-	enum type_t{DEAD, LEAF, LEAF_CONST, LEAF_CIRCULAR, SHIFT, SUM, DIFFERENCE, PRODUCT};
+	enum type_t{
+		DEAD,              // Deleted series
+		LEAF,              // Series whose coefficients will be appended one by one
+		LEAF_CONST,        // Fixed finite series
+		LEAF_CIRCULAR,     // Fixed periodic infinite series
+		SHIFT,             // [i] = LHS[i - shift_amount]
+		SUM,               // [i] = LHS[i] + RHS[i]
+		DIFFERENCE,        // [i] = LHS[i] - RHS[i]
+		PRODUCT_COEF,      // [i] = LHS[i] * RHS[i]
+		DIV_COEF,          // [i] = LHS[i] / RHS[i]
+		PRODUCT,           // [i] = \sum_{0 <= j <= i} LHS[j] * RHS[i - j]
+		SUBSET_TRANSFORM,  // [i] = \sum_{j bit_or i = j} LHS[j]
+	};
 	vector<type_t> type;
 	vector<int> arg0;
 	vector<int> arg1;
 	vector<int> variate_flag; // true iff one of its leaves are variate
 	vector<int> n; // current size
 	vector<int> threshold; // for i >= threshold, the i-th coefficient is always zero
-	vector<vector<T>> data, mul_buffer;
+	vector<vector<T>> data, aux_data;
 	vector<int> mul_aux_lhs;
 	vector<int> mul_aux_rhs;
 	vector<int> mul_aux_res;
@@ -41,7 +52,7 @@ struct power_series_online_wrapper{
 				n.push_back(0);
 				threshold.push_back(inf);
 				data.emplace_back();
-				mul_buffer.emplace_back();
+				aux_data.emplace_back();
 				mul_aux_lhs.push_back(-1);
 				mul_aux_rhs.push_back(-1);
 				mul_aux_res.push_back(-1);
@@ -53,7 +64,7 @@ struct power_series_online_wrapper{
 		n[u] = 0;
 		threshold[u] = inf;
 		data[u].clear();
-		mul_buffer[u].clear();
+		aux_data[u].clear();
 		mul_aux_lhs[u] = -1;
 		mul_aux_rhs[u] = -1;
 		mul_aux_res[u] = -1;
@@ -125,7 +136,30 @@ struct power_series_online_wrapper{
 		threshold[u] = max(threshold[v], threshold[w]);
 		return u;
 	}
+	int multiply_coefficientwise(int v, int w, int u = -1){
+		ASSERT(-1 <= u && u < (int)type.size());
+		ASSERT(0 <= min(v, w) && max(v, w) < (int)type.size() && type[v] != type_t::DEAD && type[w] != type_t::DEAD);
+		u = _new_series(u);
+		type[u] = type_t::PRODUCT_COEF;
+		arg0[u] = v;
+		arg1[u] = w;
+		variate_flag[u] = variate_flag[v] | variate_flag[w];
+		threshold[u] = max(threshold[v], threshold[w]);
+		return u;
+	}
+	int divide_coefficientwise(int v, int w, int u = -1){
+		ASSERT(-1 <= u && u < (int)type.size());
+		ASSERT(0 <= min(v, w) && max(v, w) < (int)type.size() && type[v] != type_t::DEAD && type[w] != type_t::DEAD);
+		u = _new_series(u);
+		type[u] = type_t::DIV_COEF;
+		arg0[u] = v;
+		arg1[u] = w;
+		variate_flag[u] = variate_flag[v] | variate_flag[w];
+		threshold[u] = max(threshold[v], threshold[w]);
+		return u;
+	}
 	int multiply(int v, int w, int u = -1){
+		static_assert(ENABLE_FFT);
 		ASSERT(-1 <= u && u < (int)type.size());
 		ASSERT(0 <= min(v, w) && max(v, w) < (int)type.size() && type[v] != type_t::DEAD && type[w] != type_t::DEAD);
 		u = _new_series(u);
@@ -133,8 +167,23 @@ struct power_series_online_wrapper{
 		arg0[u] = v;
 		arg1[u] = w;
 		variate_flag[u] = variate_flag[v] | variate_flag[w];
-		threshold[u] = threshold[v] == inf || threshold[w] == inf ? inf : threshold[v] + threshold[w];
+		threshold[u] = threshold[v] == inf || threshold[w] == inf ? inf : threshold[v] + threshold[w] - (threshold[v] && threshold[w]);
 		return u;
+	}
+	int transform_subset(int v, bool invert, int u = -1){
+		ASSERT(-1 <= u && u < (int)type.size());
+		ASSERT(0 <= v && v < (int)type.size() && type[v] != type_t::DEAD);
+		u = _new_series(u);
+		type[u] = type_t::SUBSET_TRANSFORM;
+		arg0[u] = v;
+		arg1[u] = invert;
+		variate_flag[u] = variate_flag[v];
+		threshold[u] = threshold[v];
+		return u;
+	}
+	int convolve_subset(int v, int w, array<int, 4> u = {-1, -1, -1, -1}){
+		ASSERT(0 <= min(v, w) && max(v, w) < (int)type.size() && type[v] != type_t::DEAD && type[w] != type_t::DEAD);
+		return transform_subset(multiply_coefficientwise(transform_subset(v, false, u[0]), transform_subset(w, false, u[1]), u[2]), true, u[3]);
 	}
 	int push_back(int u, T x){
 		ASSERT(0 <= u && u < (int)type.size() && type[u] == type_t::LEAF);
@@ -144,6 +193,7 @@ struct power_series_online_wrapper{
 	vector<T> buffer;
 	// Assume no circular dependency
 	// Amortized O(log(i)^2) per incrementation for PRODUCT
+	// Amortized O(log(i)) per incrementation for BITOR_CONVOLUTION
 	T _eval(int u, int i){
 		ASSERT(0 <= u && u < (int)type.size() && 0 <= i && type[u] != type_t::DEAD);
 		if(i >= threshold[u]) return T{0};
@@ -161,14 +211,18 @@ struct power_series_online_wrapper{
 			return _eval(arg0[u], i) + _eval(arg1[u], i);
 		case type_t::DIFFERENCE:
 			return _eval(arg0[u], i) - _eval(arg1[u], i);
+		case type_t::PRODUCT_COEF:
+			return _eval(arg0[u], i) * _eval(arg1[u], i);
+		case type_t::DIV_COEF:
+			return _eval(arg0[u], i) / _eval(arg1[u], i);
 		case type_t::PRODUCT:
-			{
+			if constexpr(ENABLE_FFT){
 				int v = arg0[u], w = arg1[u];
 				if(variate_flag[v] && !variate_flag[w]){
 					swap(v, w);
 				}
 				if(variate_flag[v]){
-					if(mul_buffer[u].empty()) mul_buffer[u].resize(2, T{0});
+					if(aux_data[u].empty()) aux_data[u].resize(2, T{0});
 					while(n[u] <= i){
 						int p = n[u] ++;
 						if((int)data[u].size() <= p) data[u].resize(p + 1, T{0});
@@ -184,15 +238,15 @@ struct power_series_online_wrapper{
 						}
 						for(auto len = 1; (p & len - 1) == len - 1 && 2 * len <= p + 1; len <<= 1){
 							if(2 * len == p + 1){
-								assert(len << 1 == (int)mul_buffer[u].size());
-								mul_buffer[u].resize(len << 2, T{0});
-								for(auto j = 2 * len; j < 3 * len; ++ j) mul_buffer[u][j] = _eval(v, j - len);
-								FFT::transform(len << 1, mul_buffer[u].data() + 2 * len);
+								assert(len << 1 == (int)aux_data[u].size());
+								aux_data[u].resize(len << 2, T{0});
+								for(auto j = 2 * len; j < 3 * len; ++ j) aux_data[u][j] = _eval(v, j - len);
+								FFT::transform(len << 1, aux_data[u].data() + 2 * len);
 							}
 							buffer.assign(len << 1, T{0});
 							for(auto j = 0; j < len; ++ j) buffer[j] = _eval(w, p + 1 - len + j);
 							FFT::transform(len << 1, buffer.data());
-							for(auto j = 0; j < len << 1; ++ j) buffer[j] *= mul_buffer[u][2 * len + j];
+							for(auto j = 0; j < len << 1; ++ j) buffer[j] *= aux_data[u][2 * len + j];
 							FFT::transform(len << 1, buffer.data(), true);
 							if((int)data[u].size() <= p + 2 * len) data[u].resize(p + 2 * len + 1);
 							for(auto j = 0; j < len << 1; ++ j) data[u][p + 1 + j] += buffer[j];
@@ -213,7 +267,7 @@ struct power_series_online_wrapper{
 					}
 				}
 				else{
-					if(mul_buffer[u].empty()) mul_buffer[u].resize(16, T{0});
+					if(aux_data[u].empty()) aux_data[u].resize(16, T{0});
 					while(n[u] <= i){
 						int p = n[u] ++;
 						if((int)data[u].size() <= p) data[u].resize(p + 1, T{0});
@@ -224,20 +278,46 @@ struct power_series_online_wrapper{
 								for(auto l = len; l < min(len << 1, threshold[v]); ++ l) for(auto r = p + 1 - len; r <= p; ++ r) data[u][l + r] += _eval(v, l) * _eval(w, r);
 								continue;
 							}
-							if((int)mul_buffer[u].size() <= len << 1){
-								int s = (int)mul_buffer[u].size();
-								mul_buffer[u].resize(s << 1, T{0});
-								for(auto j = s; j < s / 2 * 3; ++ j) mul_buffer[u][j] = _eval(v, j - s / 2);
-								FFT::transform(s, mul_buffer[u].data() + s);
+							if((int)aux_data[u].size() <= len << 1){
+								int s = (int)aux_data[u].size();
+								aux_data[u].resize(s << 1, T{0});
+								for(auto j = s; j < s / 2 * 3; ++ j) aux_data[u][j] = _eval(v, j - s / 2);
+								FFT::transform(s, aux_data[u].data() + s);
 							}
 							buffer.assign(len << 1, T{0});
 							for(auto j = 0; j < len; ++ j) buffer[j] = _eval(w, p + 1 - len + j);
 							FFT::transform(len << 1, buffer.data());
-							for(auto j = 0; j < len << 1; ++ j) buffer[j] *= mul_buffer[u][2 * len + j];
+							for(auto j = 0; j < len << 1; ++ j) buffer[j] *= aux_data[u][2 * len + j];
 							FFT::transform(len << 1, buffer.data(), true);
 							if((int)data[u].size() <= p + 2 * len) data[u].resize(p + 2 * len + 1);
 							for(auto j = 0; j < len << 1; ++ j) data[u][p + 1 + j] += buffer[j];
 						}
+					}
+				}
+				return data[u][i];
+			}
+		case type_t::SUBSET_TRANSFORM: // Source: https://atcoder.jp/contests/arc198/editorial/13123
+			{
+				int v = arg0[u];
+				bool invert = arg1[u];
+				if(!invert){
+					while(n[u] <= i){
+						int p = n[u] ++;
+						if((int)data[u].size() <= p) data[u].resize(p + 1, T{0});
+						if((int)aux_data[u].size() <= p) aux_data[u].resize(p + 1, T{0});
+						data[u][p] = aux_data[u][p] = _eval(v, p);
+						for(auto q = p; q; q -= q & -q) data[u][p] += aux_data[u][p ^ q & -q];
+						for(auto len = 2; (p & len - 1) == len - 1 && len < threshold[v]; len <<= 1) for(auto i = p + 1 - len / 2; i <= p; ++ i) aux_data[u][i] += aux_data[u][i - len / 2];
+					}
+				}
+				else{
+					while(n[u] <= i){
+						int p = n[u] ++;
+						if((int)data[u].size() <= p) data[u].resize(p + 1, T{0});
+						if((int)aux_data[u].size() <= p) aux_data[u].resize(p + 1, T{0});
+						data[u][p] = aux_data[u][p] = _eval(v, p);
+						for(auto q = p; q; q -= q & -q) data[u][p] -= aux_data[u][p ^ q & -q];
+						for(auto len = 2; (p & len - 1) == len - 1 && len < threshold[v]; len <<= 1) for(auto i = p + 1 - len / 2; i <= p; ++ i) aux_data[u][i] -= aux_data[u][i - len / 2];
 					}
 				}
 				return data[u][i];
@@ -259,7 +339,16 @@ struct power_series_online_wrapper{
 #undef ASSERT
 };
 
-using power_series_online = power_series_online_wrapper<modular, number_theoric_transform_wrapper<modular>>;
+// Requires modular and number_theoric_transform
+template<class T, class FFT>
+auto make_power_series_online_wrapper(){
+	return power_series_online_wrapper_base<true, T, FFT>();
+}
+template<class T>
+auto make_power_series_online_wrapper_without_fft(){
+	struct _aux_fft_template{ static void transform(int, T *, bool = false){ } };
+	return power_series_online_wrapper_base<false, T, _aux_fft_template>();
+}
 ]]></content>
 	<!-- Optional: Set a tabTrigger to define how to trigger the snippet -->
 	<tabTrigger>power_series_online</tabTrigger> -->
