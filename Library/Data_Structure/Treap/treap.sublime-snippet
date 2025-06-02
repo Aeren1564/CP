@@ -794,6 +794,7 @@ struct treap_base{
 		return recurse(recurse, u, n);
 	}
 #undef ASSERT
+#undef ifP
 #undef ifQ
 #undef ifU
 #undef ifF
