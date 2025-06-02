@@ -1,0 +1,100 @@
+<snippet>
+	<content><![CDATA[
+template<size_t DIM>
+struct linear_equation_solver_GF2{
+	using V = bitset<DIM>;
+	int dim;
+	vector<V> equations; // In reduced lower triangular form
+	vector<int> outputs;
+	vector<int> pivots;
+	linear_equation_solver_GF2(int dim): dim(dim){ assert(0 <= dim && dim <= DIM); }
+	void clear(int dim = -1){
+		assert(dim >= -1);
+		if(~dim) this->dim = dim;
+		equations.clear();
+		outputs.clear();
+		pivots.clear();
+	}
+	V _construct_equation(auto f) const{
+		V equation{};
+		for(auto i = 0; i < dim; ++ i) equation[i] = f(i);
+		return equation;
+	}
+	// O(dim^2 / w)
+	pair<V, bool> reduce(V equation, bool output = 0) const{
+		for(auto i = rank() - 1; i >= 0; -- i) if(equation[pivots[i]]){
+			equation ^= equations[i];
+			output ^= outputs[i];
+		}
+		return {equation, output};
+	}
+	// O(dim^2 / w)
+	pair<V, bool> reduce(auto f, bool output = 0) const{
+		return reduce(_construct_equation(f), output);
+	}
+	// O(dim^2 / w)
+	bool consistent(V equation, bool output = 0) const{
+		tie(equation, output) = reduce(equation, output);
+		return equation.any() || output == 0;
+	}
+	// O(dim^2 / w)
+	bool consistent(auto f, bool output = 0) const{
+		return consistent(_construct_equation(f), output);
+	}
+	// O(dim^2 / w)
+	bool add_equation_if_consistent(V equation, bool output = 0){
+		tie(equation, output) = reduce(equation, output);
+		if(equation.none()) return output == 0;
+		int pivot = dim - 1;
+		while(!equation[pivot]) -- pivot;
+		for(auto i = 0; i < rank(); ++ i) if(equations[i][pivot]){
+			equations[i] ^= equation;
+			outputs[i] ^= output;
+		}
+		int pos = lower_bound(pivots.begin(), pivots.end(), pivot) - pivots.begin();
+		equations.insert(equations.begin() + pos, equation);
+		outputs.insert(outputs.begin() + pos, output);
+		pivots.insert(pivots.begin() + pos, pivot);
+		return true;
+	}
+	// O(dim^2 / w)
+	bool add_equation_if_consistent(auto f, bool output = 0){
+		return add_equation_if_consistent(_construct_equation(f), output);
+	}
+	// Returns a pair of assignment and a basis of nullspace
+	// O(dim^2 / w)
+	pair<V, vector<V>> solve() const{
+		V assignment{}, pivot_mask{};
+		vector<V> basis;
+		for(auto i = 0; i < rank(); ++ i){
+			pivot_mask.set(pivots[i]);
+			if(outputs[i]) assignment.set(pivots[i]);
+		}
+		for(auto i = 0; i < dim; ++ i) if(!pivot_mask[i]){
+			V v{};
+			v.set(i);
+			for(auto j = 0; j < rank(); ++ j) if(equations[j][i]) v.set(pivots[j]);
+			basis.push_back(v);
+		}
+	#ifdef LOCAL
+		assert((int)basis.size() == nullity());
+		for(auto i = 0; i < rank(); ++ i){
+			assert((equations[i] & assignment).count() % 2 == outputs[i]);
+			for(auto v: basis) assert((equations[i] & v).count() % 2 == 0);
+		}
+	#endif
+		return {assignment, basis};
+	}
+	int rank() const{
+		return (int)equations.size();
+	}
+	int nullity() const{
+		return dim - rank();
+	}
+};
+]]></content>
+	<!-- Optional: Set a tabTrigger to define how to trigger the snippet -->
+	<tabTrigger>linear_equation_solver_GF2</tabTrigger> -->
+	<!-- Optional: Set a scope to limit where the snippet will trigger -->
+	<scope>source.c++</scope> -->
+</snippet>
