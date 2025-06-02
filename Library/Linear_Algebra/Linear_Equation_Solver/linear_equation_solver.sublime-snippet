@@ -1,0 +1,113 @@
+<snippet>
+	<content><![CDATA[
+// TODO: test
+// T must be a field
+template<class T>
+struct linear_equation_solver{
+	using V = vector<T>;
+	int dim;
+	vector<V> equations; // In reduced lower triangular form
+	vector<int> outputs;
+	vector<int> pivots;
+	linear_equation_solver(int dim): dim(dim){ assert(0 <= dim); }
+	void clear(int dim = -1){
+		assert(dim >= -1);
+		if(~dim) this->dim = dim;
+		equations.clear();
+		outputs.clear();
+		pivots.clear();
+	}
+	V _construct_equation(auto f) const{
+		V equation(dim, T{0});
+		for(auto i = 0; i < dim; ++ i) equation[i] = f(i);
+		return equation;
+	}
+	// O(dim^2)
+	pair<V, bool> reduce(V equation, T output = T{0}) const{
+		for(auto i = rank() - 1; i >= 0; -- i) if(equation[pivots[i]] != T{0}){
+			T c = equation[pivots[i]];
+			for(auto j = 0; j <= pivots[i]; ++ j) equation[j] -= equations[i][j] * c;
+			output -= outputs[i] * c;
+		}
+		return {equation, output};
+	}
+	// O(dim^2)
+	pair<V, bool> reduce(auto f, T output = T{0}) const{
+		return reduce(_construct_equation(f), output);
+	}
+	// O(dim^2)
+	bool consistent(V equation, T output = T{0}) const{
+		tie(equation, output) = reduce(equation, output);
+		return equation.any() || output == T{0};
+	}
+	// O(dim^2)
+	bool consistent(auto f, T output = T{0}) const{
+		return consistent(_construct_equation(f), output);
+	}
+	// O(dim^2)
+	bool add_equation_if_consistent(V equation, T output = T{0}){
+		tie(equation, output) = reduce(equation, output);
+		if(equation == V(dim, T{0})) return output == T{0};
+		int pivot = dim - 1;
+		while(equation[pivot] == T{0}) -- pivot;
+		T inv = T{1} / equation[pivot];
+		for(auto i = 0; i <= pivot; ++ i) equation[i] *= inv;
+		for(auto i = 0; i < rank(); ++ i) if(equations[i][pivot] != T{0}){
+			T c = equations[i][pivot];
+			for(auto j = 0; j <= pivot; ++ j) equations[i][j] -= equation[j] * c;
+			outputs[i] -= output * c;
+		}
+		int pos = lower_bound(pivots.begin(), pivots.end(), pivot) - pivots.begin();
+		equations.insert(equations.begin() + pos, equation);
+		outputs.insert(outputs.begin() + pos, output);
+		pivots.insert(pivots.begin() + pos, pivot);
+		return true;
+	}
+	// O(dim^2 / w)
+	bool add_equation_if_consistent(auto f, T output = T{0}){
+		return add_equation_if_consistent(_construct_equation(f), output);
+	}
+	// Returns a pair of assignment and a basis of nullspace
+	// O(dim^2)
+	pair<V, vector<V>> solve() const{
+		V assignment(dim, T{0});
+		vector<int> pivot_mask(dim);
+		vector<V> basis;
+		for(auto i = 0; i < rank(); ++ i){
+			pivot_mask[pivots[i]] = true;
+			if(outputs[i] != T{0}) assignment[i] = pivots[i];
+		}
+		for(auto i = 0; i < dim; ++ i) if(!pivot_mask[i]){
+			V v(dim, T{0});
+			v[i] = T{1};
+			for(auto j = 0; j < rank(); ++ j) if(equations[j][i] != T{0}) v[pivots[j]] = -T{1} / equations[j][i];
+			basis.push_back(v);
+		}
+	#ifdef LOCAL
+		assert((int)basis.size() == nullity());
+		for(auto i = 0; i < rank(); ++ i){
+			T sum = T{0};
+			for(auto j = 0; j < dim; ++ j) sum += equations[i][j] * assignment[j];
+			assert(sum == outputs[i]);
+			for(auto v: basis){
+				sum = T{0};
+				for(auto j = 0; j < dim; ++ j) sum += equations[i][j] * v[j];
+				assert(sum == T{0});
+			}
+		}
+	#endif
+		return {assignment, basis};
+	}
+	int rank() const{
+		return (int)equations.size();
+	}
+	int nullity() const{
+		return dim - rank();
+	}
+};
+]]></content>
+	<!-- Optional: Set a tabTrigger to define how to trigger the snippet -->
+	<tabTrigger>linear_equation_solver</tabTrigger> -->
+	<!-- Optional: Set a scope to limit where the snippet will trigger -->
+	<scope>source.c++</scope> -->
+</snippet>
