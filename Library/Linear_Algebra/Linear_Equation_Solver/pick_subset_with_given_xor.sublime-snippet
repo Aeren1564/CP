@@ -1,0 +1,45 @@
+<snippet>
+	<content><![CDATA[
+// Requires linear_equation_solver_GF2
+// Returns the set of indices of any subset whose xor equals target
+// O(n * dim^2 / w)
+template<size_t DIM, size_t SZ = 1>
+optional<vector<int>> pick_subset_with_given_xor(const vector<bitset<DIM>> &values, const bitset<DIM> &target){
+	if(SZ < (int)values.size()){
+		return pick_subset_with_given_xor<DIM, min<size_t>(3'000, SZ << 1)>(values, target);
+	}
+	int n = (int)values.size();
+	linear_equation_solver_GF2<SZ> solver(n);
+	vector<int> res;
+	for(auto i = 0; i < DIM; ++ i){
+		bitset<SZ> equation{};
+		for(auto j = 0; j < n; ++ j) if(values[j][i]) equation.set(j);
+		if(!solver.add_equation_if_consistent(equation, target[i])) return {};
+	}
+	auto pick_mask = solver.solve().first;
+	vector<int> subset;
+	for(auto i = 0; i < n; ++ i) if(pick_mask[i]) subset.push_back(i);
+	return subset;
+}
+// Returns the set of indices of any subset whose xor equals target
+// the i-th value contains the dim-dimensional vector where j-th argument is values_f(i, j)
+// the i-th argument of target is target_f(i)
+// O(n * dim^2 / w)
+template<size_t DIM = 1>
+optional<vector<int>> pick_subset_with_given_xor(int n, int dim, auto values_f, auto target_f){
+	assert(0 <= min(n, dim));
+	if(DIM < dim){
+		return pick_subset_with_given_xor<min<size_t>(3'000, DIM << 1)>(n, dim, values_f, target_f);
+	}
+	vector<bitset<DIM>> values(n);
+	bitset<DIM> target{};
+	for(auto i = 0; i < n; ++ i) for(auto j = 0; j < dim; ++ j) values[i][j] = values_f(i, j);
+	for(auto j = 0; j < dim; ++ j) target[j] = target_f(j);
+	return pick_subset_with_given_xor<DIM>(values, target);
+}
+]]></content>
+	<!-- Optional: Set a tabTrigger to define how to trigger the snippet -->
+	<tabTrigger>pick_subset_with_given_xor</tabTrigger> -->
+	<!-- Optional: Set a scope to limit where the snippet will trigger -->
+	<scope>source.c++</scope> -->
+</snippet>
