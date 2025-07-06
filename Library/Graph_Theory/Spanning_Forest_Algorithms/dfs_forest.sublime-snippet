@@ -149,6 +149,16 @@ struct dfs_forest{
 		left.insert(left.end(), right.rbegin(), right.rend());
 		return left;
 	}
+	// if exc = -1, returns the subtree size of u on current root
+	// otherwise, returns the size of tree containing u assuming the edge u-exc has been cut
+	int get_size(int u, int exc = -1) const{
+		static_assert(level >= 1);
+		assert(visited(u));
+		if(exc == -1) return size[u];
+		assert(visited(exc));
+		assert(pv[u] == exc || pv[exc] == u);
+		return pv[u] == exc ? size[u] : size[root_of[u]] - size[exc];
+	}
 	// Check if any cycle is found during the last dfs-like call.
 	// If must_contain_root = true, the sought cycle is forced to contain one of the root of the trees.
 	template<class U>

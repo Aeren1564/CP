@@ -2,11 +2,16 @@
   "enable_mathjax": true,
 	"js": [
 		"https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js",
-		        "res://MarkdownPreview/js/math_config.js",
+		"res://MarkdownPreview/js/math_config.js",
 	],
 	"markdown_extensions": {
-        "pymdownx.arithmatex": {
-            "generic": true
-        }
-    }
+		"pymdownx.arithmatex": {
+			"generic": true
+		}
+	},
+	"github_extensions": {
+		"pymdownx.arithmatex": {
+			"generic": true
+		}
+	}
 }

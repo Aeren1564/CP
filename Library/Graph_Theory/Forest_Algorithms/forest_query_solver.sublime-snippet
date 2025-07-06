@@ -205,6 +205,12 @@ struct forest_query_solver_base{
 		if(x > 0 && (x & (1 << p + 1) - 1) == 0) x -= 1 << p;
 		return order[ladder[jump[x]][k + depth[order[jump[x]]] - depth[u] - 1]];
 	}
+	// Get the parent of u
+	int find_parent(int u) const{
+		static_assert(ENABLE_LEVEL_ANCESTOR_SOLVER);
+		assert(visited(u));
+		return order[ladder[pos[u]][0]];
+	}
 	// Get the k-th vertex in the u-v path
 	// Assumes u and v are on the same component
 	// O(1)
@@ -215,6 +221,14 @@ struct forest_query_solver_base{
 		int w = lca(u, v);
 		if(k <= depth[u] - depth[w]) return find_ancestor_by_order(u, k);
 		else return find_ancestor_by_order(v, depth[u] + depth[v] - 2 * depth[w] - k);
+	}
+	// Get the next vertex of u in the u-v path
+	int find_next(int u, int v) const{
+		static_assert(ENABLE_LCA_SOLVER && ENABLE_LEVEL_ANCESTOR_SOLVER);
+		assert(visited(u) && visited(v) && u != v && root_of[u] == root_of[v]);
+		int w = lca(u, v);
+		if(w != u) return find_parent(u);
+		return find_ancestor_by_order(v, depth[u] + depth[v] - 2 * depth[w] - 1);
 	}
 	// For an ancestor p of u, pred(p) is T, ..., T, F, ..., F in decreasing order of depth
 	// Returns the furthest p with T

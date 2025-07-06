@@ -11,6 +11,12 @@ struct fenwick_tree_2d_sum{
 	}
 	// O(n * m)
 	fenwick_tree_2d_sum(int n, int m): n(n), m(m), data(n, vector<T>(m)){}
+	// O(n * m)
+	fenwick_tree_2d_sum(int n, int m, auto f){
+		vector data(n, vector<T>(m));
+		for(auto i = 0; i < n; ++ i) for(auto j = 0; j < m; ++ j) data[i][j] = f(i, j);
+		*this = fenwick_tree_2d_sum(data);
+	}
 	// a[p][q] += x
 	// O(log(n) * log(m))
 	void update(int p, int q, T x){

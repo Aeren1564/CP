@@ -26,6 +26,12 @@ struct fenwick_tree{
 		for(auto i = 1; i <= n; ++ i) if(i + (i & -i) <= n) data[i + (i & -i) - 1] = TT(data[i + (i & -i) - 1], data[i - 1]);
 	}
 	// O(n)
+	void build(int n, auto f){
+		vector<T> data(n);
+		for(auto i = 0; i < n; ++ i) data[i] = f(i);
+		build(data);
+	}
+	// O(n)
 	template<class U>
 	void build(const vector<U> &a){
 		n = (int)a.size();
