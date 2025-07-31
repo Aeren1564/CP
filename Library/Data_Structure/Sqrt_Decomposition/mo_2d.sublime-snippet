@@ -1,66 +1,73 @@
 <snippet>
 	<content><![CDATA[
-// Reorder N 2D points with max_x - min_x <= X, max_y - min_y <= Y
-// so that sum(abs(xi - x(i+1)) + abs(yi - y(i+1)) is small
-// and process queries on the new order.
-// X * BX inc_x and dec_x calls, X * Y / BX inc_y and dec_y calls at max
-// set BX = sqrt(X Y / N) to achieve sqrt(X Y N) calls at max
+// Reorder N 2D intervals with max_l - min_l <= L, max_r - min_r <= R
+// so that sum(abs(l_i - l_{i+1}) + abs(r_i - r_{i+1}) is small
+// O(sqrt(L * R * N)) inc_x, dec_x, inc_y, dec_y calls
 struct mo_2d{
-	vector<array<int, 2>> points;
-	void query(int x, int y){
-		points.push_back({x, y});
+	vector<array<int, 2>> q;
+	void query(int l, int r){
+		q.push_back({l, r});
 	}
-	static vector<int> get_order(const vector<array<int, 2>> &points){
-		if(points.empty()) return {};
+	static vector<int> get_order(const vector<array<int, 2>> &q){
+		return get_order([&](int x){ return x; }, q);
+	}
+	static vector<int> get_order(auto weight, const vector<array<int, 2>> &q){
+		if(q.empty()) return {};
 		int n = 1;
-		for(auto [x, y]: points) n = max({n, x, y});
-		int BX = max<int>(1, sqrt(3) * n / sqrt(2 * (int)points.size()));
-		vector<int> order((int)points.size());
+		for(auto [l, r]: q) n = max({n, l, r});
+		int BX = max<int>(1, sqrt(3) * n / sqrt(2 * (int)q.size()));
+		vector<int> order((int)q.size());
 		iota(order.begin(), order.end(), 0);
-		sort(order.begin(), order.end(), [&](int i, int j){ return points[i][0] / BX != points[j][0] / BX ? points[i][0] < points[j][0] : points[i][0] / BX & 1 ? points[i][1] > points[j][1] : points[i][1] < points[j][1]; });
+		sort(order.begin(), order.end(), [&](int i, int j){
+			return weight(q[i][0]) / BX != weight(q[j][0]) / BX ? q[i][0] < q[j][0] : weight(q[i][0]) / BX & 1 ? q[i][1] > q[j][1] : q[i][1] < q[j][1];
+		});
 		auto dist = [&](int i, int j){
-			return abs(points[order[i]][0] - points[order[j]][0]) + abs(points[order[i]][1] - points[order[j]][1]);
+			return abs(weight(q[order[i]][0]) - weight(q[order[j]][0])) + abs(weight(q[order[i]][1]) - weight(q[order[j]][1]));
 		};
-		for(auto i = 0; i < (int)points.size() - 5; ++ i){
+		for(auto i = 0; i < (int)q.size() - 5; ++ i){
 			if(dist(i, i + 2) + dist(i + 1, i + 3) < dist(i, i + 1) + dist(i + 2, i + 3)) swap(order[i + 1], order[i + 2]);
 			if(dist(i, i + 3) + dist(i + 1, i + 4) < dist(i, i + 1) + dist(i + 3, i + 4)) swap(order[i + 1], order[i + 3]);
 		}
 		return order;
 	}
-	// Access each points starting from (0, 0)
-	// Each functions acts as if [x, y) is an interval
-	void solve(auto dec_x, auto inc_y, auto inc_x, auto dec_y, auto process){
-		int x = 0, y = 0;
-		for(auto qi: get_order(points)){
-			while(points[qi][0] < x) dec_x(-- x); // Insertion
-			while(y < points[qi][1]) inc_y(y ++); // Insertion
-			while(x < points[qi][0]) inc_x(x ++); // Deletion
-			while(points[qi][1] < y) dec_y(-- y); // Deletion
+	int l, r;
+	// Access each intervals starting from [0, 0)
+	void solve(auto dec_l, auto inc_r, auto inc_l, auto dec_r, auto process){
+		solve([&](int x){ return x; }, dec_l, inc_r, inc_l, dec_r, process);
+	}
+	// Access each intervals starting from [0, 0)
+	void solve(auto weight, auto dec_l, auto inc_r, auto inc_l, auto dec_r, auto process){
+		l = 0, r = 0;
+		for(auto qi: get_order(weight, q)){
+			while(q[qi][0] < l) dec_l(-- l); // Insertion
+			while(r < q[qi][1]) inc_r(r ++); // Insertion
+			while(l < q[qi][0]) inc_l(l ++); // Deletion
+			while(q[qi][1] < r) dec_r(-- r); // Deletion
 			process(qi);
 		}
 	}
 };
 /*
 // Insert a[i] from left
-	auto dec_x = [&](int i)->void{
+	auto dec_l = [&](int i)->void{
 		
 	};
 	// Insert a[i] from right
-	auto inc_y = [&](int i)->void{
+	auto inc_r = [&](int i)->void{
 
 	};
 	// Erase a[i] from left
-	auto inc_x = [&](int i)->void{
+	auto inc_l = [&](int i)->void{
 
 	};
 	// Erase a[i] from right
-	auto dec_y = [&](int i)->void{
+	auto dec_r = [&](int i)->void{
 
 	};
 	auto process = [&](int qi)->void{
 
 	};
-	mo.solve(dec_x, inc_y, inc_x, dec_y, process);
+	mo.solve(dec_l, inc_r, inc_l, dec_r, process);
 */
 ]]></content>
 	<!-- Optional: Set a tabTrigger to define how to trigger the snippet -->
