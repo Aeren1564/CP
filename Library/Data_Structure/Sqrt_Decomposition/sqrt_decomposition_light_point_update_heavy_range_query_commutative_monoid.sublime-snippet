@@ -46,6 +46,32 @@ struct sqrt_decomposition_light_point_update_heavy_range_query_commutative_monoi
 		}
 		return res;
 	}
+	// pred(sum[ql, r)) is T, T, ..., T, F, F, ..., F
+	// Returns max r with T
+	// O(B + n/B)
+	int max_pref(int ql, auto pred){
+		assert(0 <= ql && ql <= n && pred(T_id));
+		if(ql == n) return n;
+		T sum = T_id;
+		for(auto rem = (B - ql % B) % B; rem --; ++ ql) if(!pred(sum = TT(sum, data[ql]))) return ql;
+		int bi = ql / B;
+		for(; bi < nB && pred(TT(sum, dataB[bi])); ql += B) sum = TT(sum, dataB[bi ++]);
+		if(bi == nB) return n;
+		for(; ; ++ ql) if(!pred(sum = TT(sum, data[ql]))) return ql;
+	}
+	// pred(sum[l, qr)) is F, F, ..., F, T, T, ..., T
+	// Returns min l with T
+	// O(B + n/B)
+	int max_suff(int qr, auto pred){
+		assert(0 <= qr && qr <= n && pred(T_id));
+		if(qr == 0) return 0;
+		T sum = T_id;
+		for(auto rem = qr % B; rem --; -- qr) if(!pred(sum = TT(data[qr - 1], sum))) return qr;
+		int bi = qr / B;
+		for(; bi > 0 && pred(TT(dataB[bi - 1], sum)); qr -= B) sum = TT(dataB[-- bi], sum);
+		if(bi == 0) return 0;
+		for(; ; -- qr) if(!pred(sum = TT(data[qr - 1], sum))) return qr;
+	}
 	friend ostream &operator<<(ostream &out, const sqrt_decomposition_light_point_update_heavy_range_query_commutative_monoid<B, T, F> &sqrt_decomp){
 		out << "{";
 		for(auto i = 0; i < sqrt_decomp.n; ++ i){
