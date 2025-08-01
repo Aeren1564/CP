@@ -289,6 +289,20 @@ struct segment_tree_base{
 		}while((qr & -qr) != qr);
 		return 0;
 	}
+	// Assuming each index x stores a non-negative integer indicating how many of x exists,
+	// find the k-th smallest element >= ql, or return n if no such element
+	// O(log(n))
+	int find_by_order(int ql, long long k) const{
+		ASSERT(0 <= ql && ql <= n && 0 <= k);
+		return max_pref(ql, [&](auto sum){ return sum <= k; });
+	}
+	// Assuming each index x stores a non-negative integer indicating how many of x exists,
+	// find the k-th largest element < qr, or return -1 if no such element
+	// O(log(n))
+	int find_by_reverse_order(int qr, long long k) const{
+		ASSERT(0 <= qr && qr <= n && 0 <= k);
+		return max_suff(qr, [&](auto sum){ return sum <= k; }) - 1;
+	}
 	template<class output_stream>
 	friend output_stream &operator<<(output_stream &out, segment_tree_base<HAS_QUERY, HAS_UPDATE, T, U, F1, F2, F3> seg){
 		out << "{";
