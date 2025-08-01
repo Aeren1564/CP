@@ -1,40 +1,54 @@
 <snippet>
 	<content><![CDATA[
-template<int B, class T, class F>
+template<class T, class F>
 struct sqrt_decomposition_light_point_update_heavy_range_query_commutative_monoid{
-	int n, nB;
+#ifdef LOCAL
+	#define ASSERT(x) assert(x)
+#else
+	#define ASSERT(x) 42
+#endif
+	int n;
+	int B; // size of a single block
+	int nB; // number of blocks
 	vector<T> data, dataB;
 	F TT; // commutative monoid operation
 	T T_id; // commutative monoid identity
 	// O(n)
 	sqrt_decomposition_light_point_update_heavy_range_query_commutative_monoid(F TT, T T_id): TT(TT), T_id(T_id){ }
 	// O(n)
-	void build(int n){
-		build(vector<T>(n, T_id));
+	void build(int n, int _B = -1){
+		build(vector<T>(n, T_id), _B);
 	}
 	// O(n)
-	void build(int n, T x){
-		build(vector<T>(n, x));
+	void build(int n, T x, int _B = -1){
+		build(vector<T>(n, x), _B);
 	}
 	// O(n)
 	template<class U>
-	void build(const vector<U> &a){
+	void build(const vector<U> &a, int _B = -1){
 		n = (int)a.size();
+		B = ~_B ? _B : max<int>(1, sqrt(n / 2));
 		nB = (n + B - 1) / B;
 		data = a;
 		dataB.assign(nB, T_id);
 		for(auto iB = 0; iB < nB; ++ iB) for(auto i = B * iB; i < min(n, B * (iB + 1)); ++ i) dataB[iB] = TT(dataB[iB], data[i]);
 	}
+	// O(n)
+	void build(int n, auto f, int _B = -1){
+		vector<T> a(n, T_id);
+		for(auto i = 0; i < n; ++ i) a[i] = f(i);
+		build(a, _B);
+	}
 	// O(1)
 	void update(int p, T x){
-		assert(0 <= p && p < n);
+		ASSERT(0 <= p && p < n);
 		data[p] = TT(data[p], x);
 		int pB = p / B;
 		dataB[pB] = TT(dataB[pB], x);
 	}
-	// O(B + n/B)
+	// O(sqrt(n)) = O(2*B + n/B)
 	T query(int l, int r) const{
-		assert(0 <= l && l <= r && r <= n);
+		ASSERT(0 <= l && l <= r && r <= n);
 		if(l == r) return T_id;
 		int lB = l / B, rB = (r - 1) / B;
 		T res = T_id;
@@ -48,9 +62,9 @@ struct sqrt_decomposition_light_point_update_heavy_range_query_commutative_monoi
 	}
 	// pred(sum[ql, r)) is T, T, ..., T, F, F, ..., F
 	// Returns max r with T
-	// O(B + n/B)
-	int max_pref(int ql, auto pred){
-		assert(0 <= ql && ql <= n && pred(T_id));
+	// O(sqrt(n)) = O(2*B + n/B)
+	int max_pref(int ql, auto pred) const{
+		ASSERT(0 <= ql && ql <= n && pred(T_id));
 		if(ql == n) return n;
 		T sum = T_id;
 		for(auto rem = (B - ql % B) % B; rem --; ++ ql) if(!pred(sum = TT(sum, data[ql]))) return ql;
@@ -61,9 +75,9 @@ struct sqrt_decomposition_light_point_update_heavy_range_query_commutative_monoi
 	}
 	// pred(sum[l, qr)) is F, F, ..., F, T, T, ..., T
 	// Returns min l with T
-	// O(B + n/B)
-	int max_suff(int qr, auto pred){
-		assert(0 <= qr && qr <= n && pred(T_id));
+	// O(sqrt(n)) = O(2*B + n/B)
+	int max_suff(int qr, auto pred) const{
+		ASSERT(0 <= qr && qr <= n && pred(T_id));
 		if(qr == 0) return 0;
 		T sum = T_id;
 		for(auto rem = qr % B; rem --; -- qr) if(!pred(sum = TT(data[qr - 1], sum))) return qr;
@@ -72,7 +86,21 @@ struct sqrt_decomposition_light_point_update_heavy_range_query_commutative_monoi
 		if(bi == 0) return 0;
 		for(; ; -- qr) if(!pred(sum = TT(data[qr - 1], sum))) return qr;
 	}
-	friend ostream &operator<<(ostream &out, const sqrt_decomposition_light_point_update_heavy_range_query_commutative_monoid<B, T, F> &sqrt_decomp){
+	// Assuming each index x stores a non-negative integer indicating how many of x exists,
+	// find the k-th smallest element >= ql, or return n if no such element
+	// O(sqrt(n)) = O(2*B + n/B)
+	int find_by_order(int ql, long long k) const{
+		ASSERT(0 <= ql && ql <= n && 0 <= k);
+		return max_pref(ql, [&](auto sum){ return sum <= k; });
+	}
+	// Assuming each index x stores a non-negative integer indicating how many of x exists,
+	// find the k-th largest element < qr, or return -1 if no such element
+	// O(sqrt(n)) = O(2*B + n/B)
+	int find_by_reverse_order(int qr, long long k) const{
+		ASSERT(0 <= qr && qr <= n && 0 <= k);
+		return max_suff(qr, [&](auto sum){ return sum <= k; }) - 1;
+	}
+	friend ostream &operator<<(ostream &out, const sqrt_decomposition_light_point_update_heavy_range_query_commutative_monoid &sqrt_decomp){
 		out << "{";
 		for(auto i = 0; i < sqrt_decomp.n; ++ i){
 			out << sqrt_decomp.data[i];
@@ -80,11 +108,12 @@ struct sqrt_decomposition_light_point_update_heavy_range_query_commutative_monoi
 		}
 		return out << "}";
 	}
+#undef ASSERT
 };
 
-template<int B, class T, class F = plus<>>
+template<class T, class F = plus<>>
 auto make_sqrt_decomposition_lpu_hrq(F TT = plus<>(), T T_id = 0){
-	return sqrt_decomposition_light_point_update_heavy_range_query_commutative_monoid<B, T, F>(TT, T_id);
+	return sqrt_decomposition_light_point_update_heavy_range_query_commutative_monoid<T, F>(TT, T_id);
 }
 ]]></content>
 	<!-- Optional: Set a tabTrigger to define how to trigger the snippet -->
