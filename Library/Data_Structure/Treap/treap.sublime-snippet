@@ -793,6 +793,22 @@ struct treap_base{
 		};
 		return recurse(recurse, u, n);
 	}
+	// Assuming each index x stores a non-negative integer indicating how many of x exists,
+	// find the k-th smallest element >= ql, or return n if no such element
+	// O(log(n))
+	int find_by_order(int u, int ql, long long k) const{
+		int n = size(u);
+		ASSERT(0 <= ql && ql <= n && 0 <= k);
+		return max_pref(u, ql, [&](auto sum){ return sum <= k; });
+	}
+	// Assuming each index x stores a non-negative integer indicating how many of x exists,
+	// find the k-th largest element < qr, or return -1 if no such element
+	// O(log(n))
+	int find_by_reverse_order(int u, int qr, long long k) const{
+		int n = size(u);
+		ASSERT(0 <= qr && qr <= n && 0 <= k);
+		return max_suff(u, qr, [&](auto sum){ return sum <= k; }) - 1;
+	}
 #undef ASSERT
 #undef ifP
 #undef ifQ
