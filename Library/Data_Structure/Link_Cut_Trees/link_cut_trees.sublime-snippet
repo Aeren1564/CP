@@ -462,6 +462,15 @@ struct link_cut_trees_base{
 		if constexpr(RESTORE_ROOT) if(u != init_root) reroot(init_root);
 		return res;
 	}
+	// Let the data on the u-v path be represented by an array A
+	// Assuming A[i] is a non-negative integer indicating how many of i exists,
+	// find the k-th smallest element, or return n if no such element
+	// O(log(n))
+	template<bool RESTORE_ROOT = true>
+	int find_by_order(int u, int v, long long k){
+		ASSERT(0 <= min(u, v) && max(u, v) < (int)base.size() && connected(u, v) && 0 <= k);
+		return max_pref(u, v, [&](auto sum){ return sum <= k; });
+	}
 #undef ASSERT
 #undef ifPQ
 #undef ifPU
