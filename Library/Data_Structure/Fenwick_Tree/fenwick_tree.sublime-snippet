@@ -2,6 +2,11 @@
 	<content><![CDATA[
 template<bool ALLOW_NON_PREFIX_QUERY, class T, class F, class I>
 struct fenwick_tree{
+#ifdef LOCAL
+	#define ASSERT(x) assert(x)
+#else
+	#define ASSERT(x) 42
+#endif
 	int n;
 	vector<T> data;
 	F TT;
@@ -86,6 +91,22 @@ struct fenwick_tree{
 		}
 		return p;
 	}
+	// Assuming each index x stores a non-negative integer indicating how many of x exists,
+	// find the k-th smallest element, or return n if no such element
+	// O(log(n))
+	int find_by_order(long long k) const{
+		ASSERT(0 <= k);
+		return max_pref([&](auto sum){ return sum <= k; });
+	}
+	// Assuming each index x stores a non-negative integer indicating how many of x exists,
+	// find the k-th largest element, or return -1 if no such element
+	// O(log(n))
+	int find_by_reverse_order(long long k) const{
+		ASSERT(0 <= k);
+		auto tot = query_all();
+		if(k >= tot) return -1;
+		return max_pref([&](auto sum){ return sum <= tot - 1 - k; });
+	}
 	template<class output_stream>
 	friend output_stream &operator<<(output_stream &out, const fenwick_tree &fw){
 		out << "{";
@@ -95,6 +116,7 @@ struct fenwick_tree{
 		}
 		return out << '}';
 	}
+#undef ASSERT
 };
 
 template<class T, class F, class I>
