@@ -5,6 +5,11 @@ template<class T, int type, int level>
 struct dfs_forest{
 	static_assert(0 <= type && type <= 2);
 	static_assert(0 <= level && level <= 2);
+#ifdef LOCAL
+	#define ASSERT(x) assert(x)
+#else
+	#define ASSERT(x) 42
+#endif
 	int n;
 	vector<int> pv;
 	vector<int> pe;
@@ -110,7 +115,7 @@ struct dfs_forest{
 		init(g.n);
 		++ attempt;
 		for(auto u: src){
-			assert(0 <= u && u < n);
+			ASSERT(0 <= u && u < n);
 			if(was[u] != attempt) _dfs(g, u, UT, base_dist);
 		}
 	}
@@ -123,18 +128,19 @@ struct dfs_forest{
 	}
 	// Check if u is visited during the last dfs-like call.
 	bool visited(int u) const{
-		assert(0 <= u && u < n);
+		ASSERT(0 <= u && u < n);
 		return was[u] == attempt;
 	}
 	// Check if u is an ancestor of v in some spanning tree.
 	bool ancestor_of(int u, int v) const{
-		assert(visited(u) && visited(v));
+		ASSERT(visited(u) && visited(v));
 		return pos[u] <= pos[v] && end[v] <= end[u];
 	}
 	vector<int> get_path(int u, int v) const{
-		assert(visited(u) && visited(v));
+		ASSERT(visited(u) && visited(v));
 		vector<int> left, right;
-		while(u != v && ~pv[u] && ~pv[v]){
+		while(u != v){
+			ASSERT(~u && ~v);
 			if(depth[u] >= depth[v]){
 				left.push_back(u);
 				u = pv[u];
@@ -144,7 +150,6 @@ struct dfs_forest{
 				v = pv[v];
 			}
 		}
-		assert(u == v);
 		left.push_back(u);
 		left.insert(left.end(), right.rbegin(), right.rend());
 		return left;
@@ -153,10 +158,10 @@ struct dfs_forest{
 	// otherwise, returns the size of tree containing u assuming the edge u-exc has been cut
 	int get_size(int u, int exc = -1) const{
 		static_assert(level >= 1);
-		assert(visited(u));
+		ASSERT(visited(u));
 		if(exc == -1) return size[u];
-		assert(visited(exc));
-		assert(pv[u] == exc || pv[exc] == u);
+		ASSERT(visited(exc));
+		ASSERT(pv[u] == exc || pv[exc] == u);
 		return pv[u] == exc ? size[u] : size[root_of[u]] - size[exc];
 	}
 	// Check if any cycle is found during the last dfs-like call.
@@ -175,6 +180,7 @@ struct dfs_forest{
 		}
 		return {};
 	}
+#undef ASSERT
 };
 
 /*
