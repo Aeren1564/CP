@@ -2,41 +2,86 @@
 	<content><![CDATA[
 template<int sigma>
 struct deterministic_finite_automaton{
+#ifdef LOCAL
+	#define ASSERT(x) assert(x)
+#else
+	#define ASSERT(x) 42
+#endif
 	using DFA_t = deterministic_finite_automaton<sigma>;
 	int initial_state;
 	vector<array<int, sigma>> next;
 	vector<int> is_accepting_state;
 	deterministic_finite_automaton(int n): initial_state(0), next(n), is_accepting_state(n){
-		assert(1 <= n);
+		ASSERT(1 <= n);
 		for(auto u = 0; u < n; ++ u) next[u].fill(-1);
 	}
-	deterministic_finite_automaton(int initial_state, const vector<array<int, sigma>> &next, const vector<int> &is_accepting_state): initial_state(initial_state), next(next), is_accepting_state(is_accepting_state){ }
+	deterministic_finite_automaton(int initial_state, const vector<array<int, sigma>> &next, const vector<int> &is_accepting_state): initial_state(initial_state), next(next), is_accepting_state(is_accepting_state){
+		ASSERT(valid());
+	}
+	friend ostream &operator<<(ostream &out, const deterministic_finite_automaton &aut){
+		out << "Initial state: " << aut.initial_state << "\n";
+		for(auto u = 0; u < aut.size(); ++ u){
+			out << "state " << setw(3) << u << "(" << (aut.is_accepting_state[u] ? "AC" : "RJ") << "): ";
+			for(auto c = 0; c < sigma; ++ c) out << "[" << c << "]" << aut.next[u][c] << " ";
+			out << "\n";
+		}
+		return out.flush();
+	}
+	bool valid() const{
+		int n = (int)next.size();
+		if(!(0 <= initial_state && initial_state < n)) return false;
+		for(auto row: next) if(!all_of(row.begin(), row.end(), [&](int x){ return 0 <= x && x < n; })) return false;
+		if((int)is_accepting_state.size() != n) return false;
+		for(auto x: is_accepting_state) if(!(0 <= x && x < 2)) return false;
+		return true;
+	}
 	int size() const{
+		ASSERT(valid());
 		return (int)next.size();
+	}
+	bool operator==(const DFA_t &aut) const{
+		ASSERT(valid() && aut.valid());
+		auto a = reduce(), b = aut.reduce();
+		return a.initial_state == b.initial_state && a.next == b.next && a.is_accepting_state == b.is_accepting_state;
+	}
+	bool operator!=(const DFA_t &aut) const{
+		ASSERT(valid() && aut.valid());
+		return !(*this == aut);
+	}
+	int next_state(int u, const vector<int> &s) const{
+		ASSERT(valid());
+		for(auto c: s){
+			ASSERT(0 <= c && c < sigma);
+			u = next[u][c];
+		}
+		return u;
+	}
+	bool is_accepted(const vector<int> &s) const{
+		ASSERT(valid());
+		return is_accepting_state[next_state(initial_state, s)];
 	}
 	// https://en.wikipedia.org/wiki/DFA_minimization
 	// Returns the smallest automaton accepting the same regular language
 	DFA_t reduce() const{
-		vector<int> color = is_accepting_state;
+		ASSERT(valid());
+		vector<int> color = is_accepting_state, next_color(size());
+		vector<array<int, sigma + 1>> temp(size()), values;
 		while(true){
-			vector<array<int, sigma + 1>> temp(size());
 			for(auto u = 0; u < size(); ++ u){
 				temp[u][0] = color[u];
 				for(auto c = 0; c < sigma; ++ c) temp[u][c + 1] = color[next[u][c]];
 			}
-			auto values = temp;
+			values = temp;
 			sort(values.begin(), values.end());
 			values.erase(unique(values.begin(), values.end()), values.end());
-			vector<int> next_color(size());
 			for(auto u = 0; u < size(); ++ u) next_color[u] = lower_bound(values.begin(), values.end(), temp[u]) - values.begin();
 			if(color == next_color) break;
-			color = next_color;
+			swap(color, next_color);
 		}
-		int n = max_element(color.begin(), color.end()) + 1;
+		int n = *max_element(color.begin(), color.end()) + 1;
 		auto res = deterministic_finite_automaton(n);
 		res.initial_state = color[initial_state];
-		for(auto u = 0; u < size(); ++ u){
-			if(~res.next[color[u]][0]) continue;
+		for(auto u = 0; u < size(); ++ u) if(!~res.next[color[u]][0]){
 			for(auto c = 0; c < sigma; ++ c) res.next[color[u]][c] = color[next[u][c]];
 			res.is_accepting_state[color[u]] = is_accepting_state[u];
 		}
@@ -44,6 +89,7 @@ struct deterministic_finite_automaton{
 	}
 	// Returns the smallest automaton corresponding to the intersection of two regular languages
 	DFA_t operator&(const DFA_t &aut) const{
+		ASSERT(valid() && aut.valid());
 		auto res = deterministic_finite_automaton(size() * aut.size());
 		auto index = [&](int u, int v)->int{ return aut.size() * u + v; };
 		res.initial_state = index(initial_state, aut.initial_state);
@@ -56,6 +102,7 @@ struct deterministic_finite_automaton{
 	}
 	// Returns the smallest automaton corresponding to the union of two regular languages
 	DFA_t operator|(const DFA_t &aut) const{
+		ASSERT(valid() && aut.valid());
 		auto res = deterministic_finite_automaton(size() * aut.size());
 		auto index = [&](int u, int v)->int{ return aut.size() * u + v; };
 		res.initial_state = index(initial_state, aut.initial_state);
@@ -68,6 +115,7 @@ struct deterministic_finite_automaton{
 	}
 	// Returns the smallest automaton corresponding to the complementary regular language
 	DFA_t operator~() const{
+		ASSERT(valid());
 		auto dfa = *this;
 		for(auto &x: dfa.is_accepting_state) x = !x;
 		return dfa;
@@ -75,11 +123,13 @@ struct deterministic_finite_automaton{
 	// Returns the smallest automaton corresponding to the relative-complementary regular language
 	// i.e. the set of words in LHS not in RHS
 	DFA_t set_difference(const DFA_t &aut) const{
+		ASSERT(valid() && aut.valid());
 		return *this & ~aut;
 	}
 	// Returns the smallest automaton corresponding to the concatenation of two regular languages
 	DFA_t concat(const DFA_t &aut) const{
-		assert(aut.size() < 30 && (long long)size() << aut.size() < numeric_limits<int>::max());
+		ASSERT(valid() && aut.valid());
+		ASSERT(aut.size() < 30 && (long long)size() << aut.size() < numeric_limits<int>::max());
 		auto res = deterministic_finite_automaton(size() << aut.size());
 		auto index = [&](int u, int vmask)->int{ return u << aut.size() | vmask; };
 		res.initial_state = index(initial_state, is_accepting_state[initial_state] ? 1 << aut.initial_state : 0);
@@ -119,6 +169,7 @@ struct deterministic_finite_automaton{
 	// DFA_t homomorphism(const array<vector<int>, sigma> &to) const{
 
 	// }
+#undef ASSERT
 };
 ]]></content>
 	<!-- Optional: Set a tabTrigger to define how to trigger the snippet -->
