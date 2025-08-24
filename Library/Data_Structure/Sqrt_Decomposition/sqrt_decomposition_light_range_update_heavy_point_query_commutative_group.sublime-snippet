@@ -1,0 +1,102 @@
+<snippet>
+	<content><![CDATA[
+template<class T, class F1, class F2>
+struct sqrt_decomposition_light_range_update_heavy_point_query_commutative_group{
+#ifdef LOCAL
+	#define ASSERT(x) assert(x)
+#else
+	#define ASSERT(x) 42
+#endif
+	int n, B, nB;
+	vector<T> diff, diffB;
+	F1 TT;   // commutative group operation
+	F2 Tinv; // commutative group inverse
+	T T_id;  // commutative group identity
+	// O(1)
+	sqrt_decomposition_light_range_update_heavy_point_query_commutative_group(F1 TT, F2 Tinv, T T_id): n(0), B(1), nB(0), TT(TT), Tinv(Tinv), T_id(T_id) { }
+	// O(n)
+	void build(int n, int _B = -1){ build(vector<T>(n, T_id), _B); }
+	// O(n)
+	void build(int n, T x, int _B = -1){ build(vector<T>(n, x), _B); }
+	// O(n)
+	template<class U>
+	void build(const vector<U> &a, int _B = -1){
+		n = (int)a.size();
+		B = ~_B ? _B : max<int>(1, sqrt(max(1, n)));
+		nB = (n + B - 1) / B;
+		diff.assign(n, T_id);
+		if(n){
+			diff[0] = (T)a[0];
+			for(auto i = 1; i < n; ++ i) diff[i] = TT((T)a[i], Tinv((T)a[i - 1]));
+		}
+		diffB.assign(nB, T_id);
+		for(auto b = 0; b < nB; ++ b){
+			int L = b * B, R = min(n, (b + 1) * B);
+			T acc = T_id;
+			for(auto i = L; i < R; ++ i) acc = TT(acc, diff[i]);
+			diffB[b] = acc;
+		}
+	}
+	// O(n)
+	void build(int n, auto f, int _B = -1){
+		vector<T> a(n, T_id);
+		for(auto i = 0; i < n; ++ i) a[i] = f(i);
+		build(a, _B);
+	}
+	// O(1)
+	void update(int l, int r, T x){
+		ASSERT(0 <= l && l <= r && r <= n);
+		if(l == r) return;
+		diff[l] = TT(diff[l], x);
+		diffB[l / B] = TT(diffB[l / B], x);
+		if(r < n){
+			T invx = Tinv(x);
+			diff[r] = TT(diff[r], invx);
+			diffB[r / B] = TT(diffB[r / B], invx);
+		}
+	}
+	// O(sqrt(n)) = O(B + n/B)
+	T query(int p) const{
+		ASSERT(0 <= p && p < n);
+		int b = p / B;
+		T res = T_id;
+		for(auto iB = 0; iB < b; ++ iB) res = TT(res, diffB[iB]);
+		for(auto i = b * B; i <= p; ++ i) res = TT(res, diff[i]);
+		return res;
+	}
+	// O(sqrt(n)) = O(B + n/B)
+	void set(int p, T val){
+		ASSERT(0 <= p && p < n);
+		update(p, p + 1, TT(val, Tinv(query(p))));
+	}
+	vector<T> to_array() const{
+		vector<T> a(n, T_id);
+		T acc = T_id;
+		for(auto i = 0; i < n; ++ i){
+			acc = TT(acc, diff[i]);
+			a[i] = acc;
+		}
+		return a;
+	}
+	friend ostream &operator<<(ostream &out, const sqrt_decomposition_light_range_update_heavy_point_query_commutative_group &sd){
+		auto a = sd.to_array();
+		out << "{";
+		for(auto i = 0; i < (int)a.size(); ++ i){
+			out << a[i];
+			if(i + 1 < (int)a.size()) out << ", ";
+		}
+		return out << "}";
+	}
+#undef ASSERT
+};
+
+template<class T, class F1, class F2>
+auto make_sqrt_decomposition_lru_hpq(F1 TT, F2 Tinv, T T_id){
+	return sqrt_decomposition_light_range_update_heavy_point_query_commutative_group<T, F1, F2>(TT, Tinv, T_id);
+}
+]]></content>
+	<!-- Optional: Set a tabTrigger to define how to trigger the snippet -->
+	<tabTrigger>sqrt_decomposition_light_range_update_heavy_point_query_commutative_group</tabTrigger> -->
+	<!-- Optional: Set a scope to limit where the snippet will trigger -->
+	<scope>source.c++</scope> -->
+</snippet>
