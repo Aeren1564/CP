@@ -1,0 +1,241 @@
+// #include <bits/allocator.h> // Temp fix for gcc13 global pragma
+// #pragma GCC target("avx2,bmi2,popcnt,lzcnt")
+// #pragma GCC optimize("O3,unroll-loops")
+#include <bits/stdc++.h>
+// #include <x86intrin.h>
+using namespace std;
+#if __cplusplus >= 202002L
+using namespace numbers;
+#endif
+#ifdef LOCAL
+	#include "Debug.h"
+#else
+	#define debug_endl() 42
+	#define debug(...) 42
+	#define debug2(...) 42
+	#define debug_bin(...) 42
+#endif
+
+// Keeps track of piecewise linear function over real numbers x with left_boundary <= x < right_boundary
+// Each connected component must be left-closed and right-open
+template<class Key_t, class Value_t>
+struct piecewise_linear_function_container{
+#ifdef LOCAL
+	#define ASSERT(x) assert(x)
+#else
+	#define ASSERT(x) 42
+#endif
+	Key_t left_boundary, right_boundary;
+	map<Key_t, Value_t> first_derivative;
+	map<Key_t, Value_t> second_derivative;
+	void _update_1(Key_t x, Value_t value_dif){
+		ASSERT(left_boundary <= x && x < right_boundary);
+		if(value_dif && (first_derivative[x] += value_dif) == 0) first_derivative.erase(x);
+	}
+	void _update_2(Key_t x, Value_t slope_dif){
+		ASSERT(left_boundary <= x && x < right_boundary);
+		if(slope_dif && (second_derivative[x] += slope_dif) == 0) second_derivative.erase(x);
+	}
+	piecewise_linear_function_container(
+		Key_t left_boundary = numeric_limits<Key_t>::min(),
+		Key_t right_boundary = numeric_limits<Key_t>::max(),
+		Value_t initial_value = 0,
+		Value_t initial_slope = 0
+	): left_boundary(left_boundary), right_boundary(right_boundary){
+		ASSERT(left_boundary < right_boundary);
+		_update_1(left_boundary, initial_value);
+		_update_2(left_boundary, initial_slope);
+	}
+	void clear(
+		Key_t left_boundary = numeric_limits<Key_t>::min(),
+		Key_t right_boundary = numeric_limits<Key_t>::max(),
+		Value_t initial_value = 0,
+		Value_t initial_slope = 0
+	){
+		ASSERT(left_boundary < right_boundary);
+		this->left_boundary = left_boundary;
+		this->right_boundary = right_boundary;
+		first_derivative.clear();
+		second_derivative.clear();
+		_update_1(left_boundary, initial_value);
+		_update_2(left_boundary, initial_slope);
+	}
+	// Add value + slope * (x - l) at x for each l <= x < r
+	void add(Key_t l, Key_t r, Value_t value, Value_t slope){
+		ASSERT(l <= r);
+		r = clamp(r, left_boundary, right_boundary);
+		if(l < left_boundary){
+			value += slope * (left_boundary - l);
+			l = left_boundary;
+		}
+		l = min(l, right_boundary);
+		if(l == r) return;
+		_update_1(l, value);
+		_update_2(l, slope);
+		if(r < right_boundary){
+			_update_1(r, -value - slope * (r - l));
+			_update_2(r, -slope);
+		}
+	}
+	// Add value_reversed + slope_reversed * (r - x) at x for each l <= x < r
+	void add_reversed(Key_t l, Key_t r, Value_t value_reversed, Value_t slope_reversed){
+		add(l, r, value_reversed + slope_reversed * (r - l), -slope_reversed);
+	}
+	// Add connected piecewise line, left-closed and right-open, connecting the given points in order
+	void add_piecewise_line(vector<pair<Key_t, Value_t>> piecewise_line){
+		for(auto i = 0; i + 1 < (int)piecewise_line.size(); ++ i) ASSERT(piecewise_line[i].first < piecewise_line[i + 1].first);
+		if((int)piecewise_line.size() < 2 || piecewise_line.back().first <= left_boundary || right_boundary <= piecewise_line.front().first) return;
+		int head = 0;
+		while(head + 1 < (int)piecewise_line.size() && piecewise_line[head + 1].first <= left_boundary) ++ head;
+		piecewise_line.erase(piecewise_line.begin(), piecewise_line.begin() + head);
+		if(piecewise_line[0].first < left_boundary){
+			Value_t slope = (piecewise_line[1].second - piecewise_line[0].second) / (piecewise_line[1].first - piecewise_line[0].first);
+			piecewise_line[0] = {left_boundary, piecewise_line[0].second + slope * (left_boundary - piecewise_line[0].first)};
+		}
+		while((int)piecewise_line.size() >= 2 && piecewise_line.end()[-2].first >= right_boundary) piecewise_line.pop_back();
+		if(piecewise_line.end()[-1].first > right_boundary){
+			Value_t slope = (piecewise_line.end()[-2].second - piecewise_line.end()[-1].second) / (piecewise_line.end()[-2].first - piecewise_line.end()[-1].first);
+			piecewise_line.end()[-1] = {right_boundary, piecewise_line.end()[-1].second + slope * (right_boundary - piecewise_line.end()[-1].first)};
+		}
+		_update_1(piecewise_line.front().first, piecewise_line.front().second);
+		Value_t slope = 0;
+		for(auto i = 0; i + 1 < (int)piecewise_line.size(); ++ i){
+			Value_t next_slope = (piecewise_line[i + 1].second - piecewise_line[i].second) / (piecewise_line[i + 1].first - piecewise_line[i].first);
+			_update_2(piecewise_line[i].first, next_slope - slope);
+			slope = next_slope;
+		}
+		if(piecewise_line.back().first < right_boundary){
+			_update_1(piecewise_line.back().first, -piecewise_line.back().second);
+			_update_2(piecewise_line.back().first, -slope);
+		}
+	}
+	void add_piecewise_line(int n, auto f){
+		ASSERT(n >= 0);
+		vector<pair<Key_t, Value_t>> piecewise_line(n);
+		for(auto i = 0; i < n; ++ i) piecewise_line[i] = f(i);
+		add_piecewise_line(piecewise_line);
+	}
+	// Split [l, r) into maximal intervals [p_0=l, p_1), [p_1, p_2), ..., [p_{k-2}, p_{k-1}=r)
+	// such that p_i < p_{i+1} and [p_i, p_{i+1}) is a line segment
+	// Call process(p_i, p_{i+1}, value at p_i, slope) for each such intervals in increasing order of i
+	void iterate_all_line_segments(Key_t l, Key_t r, auto process) const{
+		ASSERT(left_boundary <= l && l <= r && r <= right_boundary);
+		if(l == r) return;
+		Key_t pos = left_boundary;
+		Value_t value = 0;
+		Value_t slope = 0;
+		auto it1 = first_derivative.begin();
+		auto it2 = second_derivative.begin();
+		if(it1 != first_derivative.end() && it1->first == left_boundary){
+			value += it1->second;
+			++ it1;
+		}
+		if(it2 != second_derivative.end() && it2->first == left_boundary){
+			slope += it2->second;
+			++ it2;
+		}
+		for(; it2 != second_derivative.end() && it2->first <= l; ++ it2){
+			for(; it1 != first_derivative.end() && it1->first <= it2->first; ++ it1) value += it1->second;
+			value += slope * (it2->first - pos);
+			slope += it2->second;
+			pos = it2->first;
+		}
+		for(; it1 != first_derivative.end() && it1->first <= l; ++ it1) value += it1->second;
+		value += slope * (l - pos);
+		pos = l;
+		for(; it2 != second_derivative.end() && it2->first < r; ++ it2){
+			for(; it1 != first_derivative.end() && it1->first <= it2->first; ++ it1){
+				process(pos, it1->first, value, slope);
+				value += it1->second + slope * (it1->first - pos);
+				pos = it1->first;
+			}
+			if(pos < it2->first) process(pos, it2->first, value, slope);
+			value += slope * (it2->first - pos);
+			slope += it2->second;
+			pos = it2->first;
+		}
+		for(; it1 != first_derivative.end() && it1->first < r; ++ it1){
+			process(pos, it1->first, value, slope);
+			value += it1->second + slope * (it1->first - pos);
+			pos = it1->first;
+		}
+		process(pos, r, value, slope);
+	}
+	friend ostream &operator<<(ostream &out, const piecewise_linear_function_container &plfc){
+		out << "\n";
+		bool from_found = false;
+		Key_t from = plfc.left_boundary;
+		Key_t to = plfc.left_boundary;
+		plfc.iterate_all_line_segments(plfc.left_boundary, plfc.right_boundary, [&](Key_t l, Key_t r, Value_t value, Value_t slope){
+			out << "[" << l << ", " << r << "]: " << value << " + " << slope << " * (x - " << l << ")\n";
+			if(value || slope){
+				if(!from_found){
+					from_found = true;
+					from = l;
+				}
+				to = r;
+			}
+		});
+		vector<Value_t> a(to - from + 1);
+		plfc.iterate_all_line_segments(plfc.left_boundary, plfc.right_boundary, [&](Key_t l, Key_t r, Value_t value, Value_t slope){
+			if(from <= l && r <= to) for(auto i = l; i <= r; ++ i) a[i - from] = value + slope * (i - l);
+		});
+		out << "A[" << from << "~" << to << "]: {";
+		for(auto i = 0; i <= to - from; ++ i){
+			out << a[i];
+			if(i + 1 <= to - from) out << ", ";
+		}
+		return out << "}";
+	}
+#undef ASSERT
+};
+
+int main(){
+	cin.tie(0)->sync_with_stdio(0);
+	cin.exceptions(ios::badbit | ios::failbit);
+	long long l, r, iv, is;
+	int qn;
+	cin >> l >> r >> iv >> is >> qn;
+	piecewise_linear_function_container<long long, long long> plfc(l, r, iv, is);
+	for(auto qi = 0; qi < qn; ++ qi){
+		int type;
+		cin >> type;
+		if(type == 0){
+			long long l, r, v, s;
+			cin >> l >> r >> v >> s;
+			plfc.add(l, r, v, s);
+		}
+		else if(type == 1){
+			long long l, r, v, s;
+			cin >> l >> r >> v >> s;
+			plfc.add_reversed(l, r, v, s);
+		}
+		else if(type == 2){
+			int n;
+			cin >> n;
+			vector<pair<long long, long long>> piecewise_line(n);
+			for(auto &[x, y]: piecewise_line){
+				cin >> x >> y;
+			}
+			plfc.add_piecewise_line(piecewise_line);
+		}
+		else{
+			long long l, r;
+			cin >> l >> r;
+			vector<array<long long, 4>> res;
+			plfc.iterate_all_line_segments(l, r, [&](long long l, long long r, long long v, long long s){
+				assert(l < r);
+				res.push_back({l, r, v, s});
+			});
+			cout << (int)res.size() << "\n";
+			for(auto [l, r, v, s]: res){
+				cout << l << " " << r << " " << v << " " << s << "\n";
+			}
+		}
+	}
+	return 0;
+}
+
+/*
+
+*/
