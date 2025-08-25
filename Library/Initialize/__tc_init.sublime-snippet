@@ -17,6 +17,18 @@ using namespace numbers;
 	#define debug2(...) 42
 	#define debug_bin(...) 42
 #endif
+// Returns the largest integer k with x >= k * y
+template<class T, class U>
+U floor_div(T x, U y){
+	assert(y > 0);
+	return x / y - (x % y < 0);
+}
+// Returns the smallest integer k with x <= k * y
+template<class T, class U>
+U ceil_div(T x, U y){
+	assert(y > 0);
+	return x / y + (x % y > 0);
+}
 
 
 
