@@ -20,8 +20,14 @@ struct fast_fourier_transform_multidimensional_wrapper_base{
 			for(auto len = 1; len < n; len *= _transform_1D::length)
 				for(auto i = 0; i < n; i += _transform_1D::length * len)
 					for(auto j = 0; j < len; ++ j) _transform_1D::inverse_transform(p + i + j, len);
-			T inv = 1 / _transform_1D::coefficient(n);
-			if(inv != T{1}) for(auto i = 0; i < n; ++ i) p[i] *= inv;
+			if constexpr(is_integral_v<T> || is_same_v<T, __int128_t> || is_same_v<T, __uint128_t>){
+				T det = _transform_1D::determinant_squared(n);
+				if(det != T{1}) for(auto i = 0; i < n; ++ i) p[i] /= det;
+			}
+			else{
+				T inv = 1 / _transform_1D::determinant_squared(n);
+				if(inv != T{1}) for(auto i = 0; i < n; ++ i) p[i] *= inv;
+			}
 		}
 	}
 	// O(n * log(n))
@@ -49,6 +55,16 @@ struct fast_fourier_transform_multidimensional_wrapper_base{
 		transform(n, p), transform(n, q);
 		for(auto i = 0; i < n; ++ i) p[i] *= q[i];
 		transform(n, p, true);
+	}
+	// O(n * log(n))
+	static vector<T> square(const vector<T> &p){
+		int n = (int)p.size();
+		buffer1.resize(n, 0);
+		copy(p.begin(), p.end(), buffer1.begin());
+		transform(buffer1);
+		for(auto i = 0; i < n; ++ i) buffer1[i] *= buffer1[i];
+		transform(buffer1, true);
+		return vector<T>(buffer1.begin(), buffer1.begin() + n);
 	}
 	// Destroy p and q
 	// Store the result on p
@@ -79,8 +95,7 @@ struct _transform_1D_bitwise_xor{
 			a[0] - a[len],
 		};
 	}
-	// inverse_transform(transform(p)) = coefficient(len(p)) * p
-	static T coefficient(int n){
+	static T determinant_squared(int n){
 		return n;
 	}
 };
@@ -93,8 +108,7 @@ struct _transform_1D_bitwise_and{
 	static void inverse_transform(T *a, int len){
 		a[0] -= a[len];
 	}
-	// inverse_transform(transform(p)) = coefficient(len(p)) * p
-	static T coefficient(int n){
+	static T determinant_squared(int n){
 		return 1;
 	}
 };
@@ -107,8 +121,7 @@ struct _transform_1D_bitwise_or{
 	static void inverse_transform(T *a, int len){
 		a[len] -= a[0];
 	}
-	// inverse_transform(transform(p)) = coefficient(len(p)) * p
-	static T coefficient(int n){
+	static T determinant_squared(int n){
 		return 1;
 	}
 };
@@ -132,8 +145,7 @@ struct _transform_1D_tritwise_addition_modular{
 			a[0] + root * a[len] + root_sq * a[len << 1]
 		};
 	}
-	// inverse_transform(transform(p)) = coefficient(len(p)) * p
-	static T coefficient(int n){
+	static T determinant_squared(int n){
 		return n;
 	}
 };
