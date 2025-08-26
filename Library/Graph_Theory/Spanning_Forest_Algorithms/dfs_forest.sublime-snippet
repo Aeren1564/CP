@@ -164,6 +164,32 @@ struct dfs_forest{
 		ASSERT(pv[u] == exc || pv[exc] == u);
 		return pv[u] == exc ? size[u] : size[root_of[u]] - size[exc];
 	}
+	vector<pair<array<int, 3>, array<int, 2>>> dp;	
+	vector<int> get_diameter(int root = 0){
+		ASSERT(visited(root));
+		while(~pv[root]) root = pv[root];
+		dp.resize(n);
+		for(auto i = end[root] - 1; i >= pos[root]; -- i){
+			int u = order[i];
+			dp[u] = {{0, u, u}, {0, u}};
+			for(auto j = pos[u] + 1; j < end[u]; ){
+				int v = order[j];
+				dp[u] = {
+					max({
+						dp[u].first,
+						dp[v].first,
+						array{dp[u].second[0] + 1 + dp[v].second[0], dp[u].second[1], dp[v].second[1]}
+					}),
+					max(
+						dp[u].second,
+						array{1 + dp[v].second[0], dp[v].second[1]}
+					)
+				};
+				j += size[v];
+			}
+		}
+		return get_path(dp[root].first[1], dp[root].first[2]);
+	}
 	// Check if any cycle is found during the last dfs-like call.
 	// If must_contain_root = true, the sought cycle is forced to contain one of the root of the trees.
 	template<class U>
