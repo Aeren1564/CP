@@ -7,72 +7,71 @@ struct combinatorics{
 #else
 	#define ASSERT(c) 42
 #endif
-	// O(n)
-	static vector<T> precalc_fact(int n){
-		vector<T> f(n + 1, T{1});
-		for(auto i = 1; i <= n; ++ i) f[i] = f[i - 1] * i;
-		return f;
-	}
 	// O(n * m)
-	static vector<vector<T>> precalc_C(int n, int m){
-		vector<vector<T>> c(n + 1, vector<T>(m + 1));
-		for(auto i = 0; i <= n; ++ i) for(auto j = 0; j <= min(i, m); ++ j) c[i][j] = i && j ? c[i - 1][j - 1] + c[i - 1][j] : T{1};
-		return c;
+	void precalc_C(int n, int m){
+		_c.assign(n + 1, vector<T>(m + 1));
+		for(auto i = 0; i <= n; ++ i) for(auto j = 0; j <= min(i, m); ++ j) _c[i][j] = i && j ? _c[i - 1][j - 1] + _c[i - 1][j] : T{1};
 	}
-	int SZ = 0;
-	vector<T> inv, fact, invfact;
-	combinatorics(){ }
-	// O(SZ)
-	combinatorics(int SZ): SZ(SZ), inv(SZ + 1, T{1}), fact(SZ + 1, T{1}), invfact(SZ + 1, T{1}){
-		for(auto i = 1; i <= SZ; ++ i) fact[i] = fact[i - 1] * i;
-		invfact[SZ] = T{1} / fact[SZ];
-		for(auto i = SZ - 1; i >= 0; -- i){
-			invfact[i] = invfact[i + 1] * (i + 1);
-			inv[i + 1] = invfact[i + 1] * fact[i];
-		}
+	vector<T> _inv, _fact, _invfact;
+	vector<vector<T>> _c;
+	combinatorics(): _inv({T{0}, T{1}}), _fact({T{1}, T{1}}), _invfact({T{1}, T{1}}){}
+	T inv(int i){
+		ASSERT(i >= 1);
+		while((int)_inv.size() <= i) _inv.push_back(-_inv[T::mod() % _inv.size()] * (T::mod() / _inv.size()));
+		return _inv[i];
 	}
-	// O(1)
-	T C(int n, int k) const{
-		ASSERT(0 <= min(n, k) && max(n, k) <= SZ);
-		return n >= k ? fact[n] * invfact[k] * invfact[n - k] : T{0};
+	T fact(int i){
+		ASSERT(i >= 0);
+		while((int)_fact.size() <= i) _fact.push_back(_fact.back() * (int)_fact.size());
+		return _fact[i];
 	}
-	// O(1)
-	T P(int n, int k) const{
-		ASSERT(0 <= min(n, k) && max(n, k) <= SZ);
-		return n >= k ? fact[n] * invfact[n - k] : T{0};
+	T invfact(int i){
+		ASSERT(i >= 0);
+		while((int)_invfact.size() <= i) _invfact.push_back(_invfact.back() * inv((int)_invfact.size()));
+		return _invfact[i];
 	}
 	// O(1)
-	T H(int n, int k) const{
+	T C(int n, int k){
+		ASSERT(0 <= min(n, k));
+		if(n < (int)_c.size() && k < (int)_c[0].size()) return _c[n][k];
+		return n >= k ? fact(n) * invfact(k) * invfact(n - k) : T{0};
+	}
+	// O(1)
+	T P(int n, int k){
+		ASSERT(0 <= min(n, k));
+		return n >= k ? fact(n) * invfact(n - k) : T{0};
+	}
+	// O(1)
+	T H(int n, int k){
 		ASSERT(0 <= min(n, k));
 		if(n == 0) return T{0};
 		return C(n + k - 1, k);
 	}
 	// Multinomial Coefficient
-	T mC(int n, const vector<int> &a) const{
+	T mC(int n, const vector<int> &a){
 		ASSERT((int)a.size() >= 2 && accumulate(a.begin(), a.end(), 0) == n);
-		ASSERT(0 <= min(n, *min_element(a.begin(), a.end())) && max(n, *max_element(a.begin(), a.end())) <= SZ);
-		T res = fact[n];
-		for(auto x: a) res *= invfact[x];
+		ASSERT(0 <= min(n, *min_element(a.begin(), a.end())));
+		T res = fact(n);
+		for(auto x: a) res *= invfact(x);
 		return res;
 	}
 	// Multinomial Coefficient
 	template<class... U, typename enable_if<(is_integral_v<U> && ...)>::type* = nullptr>
 	T mC(int n, U... pack){
 		ASSERT(sizeof...(pack) >= 2 && (... + pack) == n);
-		return (fact[n] * ... * invfact[pack]);
+		return (fact(n) * ... * invfact(pack));
 	}
 	// O(min(k, n - k))
-	T naive_C(long long n, long long k) const{
+	T naive_C(long long n, long long k){
 		ASSERT(0 <= min(n, k));
 		if(n < k) return 0;
 		T res = T{1};
 		k = min(k, n - k);
-		ASSERT(k <= SZ);
 		for(auto i = n; i > n - k; -- i) res *= i;
-		return res * invfact[k];
+		return res * invfact(k);
 	}
 	// O(k)
-	T naive_P(long long n, int k) const{
+	T naive_P(long long n, int k){
 		ASSERT(0 <= min<long long>(n, k));
 		if(n < k) return 0;
 		T res = T{1};
@@ -80,12 +79,12 @@ struct combinatorics{
 		return res;
 	}
 	// O(k)
-	T naive_H(long long n, int k) const{
+	T naive_H(long long n, int k){
 		ASSERT(0 <= min<long long>(n, k));
 		return naive_C(n + k - 1, k);
 	}
 	// O(1)
-	bool parity_C(long long n, long long k) const{
+	bool parity_C(long long n, long long k){
 		ASSERT(0 <= min(n, k));
 		return n >= k ? (n & k) == k : false;
 	}
@@ -93,13 +92,13 @@ struct combinatorics{
 	// Catalan(n, n, 0): n-th catalan number
 	// Catalan(s, s+k-1, k-1): sum of products of k catalan numbers where the index of product sums up to s
 	// O(1)
-	T Catalan(int n, int k, int s = 0) const{
+	T Catalan(int n, int k, int s = 0){
 		ASSERT(0 <= min({n, k, s}));
 		return k <= s ? C(n + k, k) : k <= n + s ? C(n + k, k) - C(n + k, k - s - 1) : T{0};
 	}
 	// Number of ways to place n '('s and k ')'s starting with s copies of '(' and ending with e copies of '(' such that in each prefix and suffix, number of '(' is equal or greater than ')'
 	// O((n + k) / (n - k + s + e + 2))
-	T bidirectional_Catalan(int n, int k, int s = 0, int e = 0) const{
+	T bidirectional_Catalan(int n, int k, int s = 0, int e = 0){
 		ASSERT(0 <= min({n, k, s, e}));
 		if(n - k + s < 0 || n - k + e < 0) return T{0};
 		if(n - k + s + e == 0) return T{n == 0 && k == 0};
@@ -120,7 +119,7 @@ struct combinatorics{
 	}
 	// Number of ways to place n of either '(' or ')' starting with s copies of '(' such that in each prefix, number of '(' is equal or greater than ')'
 	// Up to s+1 C() calls
-	T ballot_sequence_count(int n, int s = 0) const{
+	T ballot_sequence_count(int n, int s = 0){
 		ASSERT(0 <= min(n, s));
 		T res = 0;
 		for(auto k = max(0, min(n - s, (n + s + 1) / 2 - s)); k < min(n + 1, (n + s + 1) / 2 + 1); ++ k) res += C(n, k);
@@ -128,7 +127,7 @@ struct combinatorics{
 	}
 	// Number of ways to place n of either '(' or ')' starting with s copies of '(' and ending with e copies of '(' such that in each prefix and suffix, number of '(' is equal or greater than ')'
 	// O(n * log(n))
-	T bidirectional_ballot_sequence_count(int n, int s = 0, int e = 0) const{
+	T bidirectional_ballot_sequence_count(int n, int s = 0, int e = 0){
 		ASSERT(0 <= min({n, s, e}));
 		T res = 0;
 		for(auto k = 0; k <= n; ++ k) res += bidirectional_Catalan(k, n - k, s, e);
