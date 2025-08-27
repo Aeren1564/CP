@@ -64,21 +64,15 @@ struct graph{
 		adj[u].push_back(id), edge.push_back({u, v, w});
 		return id;
 	}
-	vector<int> neighbor(int u, int exclude = -1) const{
-		vector<int> res;
-		for(auto id: adj[u]){
-			if(id == exclude || ignore && ignore(id)) continue;
-			res.push_back(operator()(u, id));
-		}
-		return res;
+	auto neighbor(int u, int exclude = -1) const{
+		return adj[u]
+			| views::filter([&](int id){ return id != exclude && !(ignore && ignore(id)); })
+			| views::transform([&](int id){ return (*this)(u, id); });
 	}
-	vector<pair<int, T>> weighted_neighbor(int u, int exclude = -1) const{
-		vector<pair<int, T>> res;
-		for(auto id: adj[u]){
-			if(id == exclude || ignore && ignore(id)) continue;
-			res.push_back({operator()(u, id), edge[id].cost});
-		}
-		return res;
+	auto weighted_neighbor(int u, int exclude = -1) const{
+		return adj[u]
+			| views::filter([&](int id){ return id != exclude && !(ignore && ignore(id)); })
+			| views::transform([&](int id){ return pair{(*this)(u, id), edge[id].cost}; });
 	}
 	void clear(){
 		for(auto [u, v, w]: edge){
