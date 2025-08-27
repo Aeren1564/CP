@@ -2,6 +2,11 @@
 	<content><![CDATA[
 template<class T>
 struct graph{
+#ifdef LOCAL
+	#define ASSERT(x) assert(x)
+#else
+	#define ASSERT(x) 42
+#endif
 	using Weight_t = T;
 	struct Edge_t{
 		int from, to;
@@ -19,28 +24,28 @@ struct graph{
 	vector<vector<int>> adj;
 	function<bool(int)> ignore;
 	graph(int n = 1): n(n), adj(n){
-		assert(n >= 1);
+		ASSERT(n >= 1);
 	}
 	graph(const vector<vector<int>> &adj, bool undirected = true): n((int)adj.size()), adj(n){
-		assert(n >= 1);
+		ASSERT(n >= 1);
 		if(undirected){
 			for(auto u = 0; u < n; ++ u) for(auto v: adj[u]) if(u < v) link(u, v);
 		}
 		else for(auto u = 0; u < n; ++ u) for(auto v: adj[u]) orient(u, v);
 	}
 	graph(const vector<vector<pair<int, T>>> &adj, bool undirected = true): n((int)adj.size()), adj(n){
-		assert(n >= 1);
+		ASSERT(n >= 1);
 		if(undirected){
 			for(auto u = 0; u < n; ++ u) for(auto [v, w]: adj[u]) if(u < v) link(u, v, w);
 		}
 		else for(auto u = 0; u < n; ++ u) for(auto [v, w]: adj[u]) orient(u, v, w);
 	}
 	graph(int n, const vector<array<int, 2>> &edge, bool undirected = true): n(n), adj(n){
-		assert(n >= 1);
+		ASSERT(n >= 1);
 		for(auto [u, v]: edge) undirected ? link(u, v) : orient(u, v);
 	}
 	graph(int n, const vector<tuple<int, int, T>> &edge, bool undirected = true): n(n), adj(n){
-		assert(n >= 1);
+		ASSERT(n >= 1);
 		for(auto [u, v, w]: edge) undirected ? link(u, v, w) : orient(u, v, w);
 	}
 	int add_vertex(){
@@ -48,10 +53,8 @@ struct graph{
 		return n ++;
 	}
 	int operator()(int u, int id) const{
-		#ifdef LOCAL
-		assert(0 <= id && id < (int)edge.size());
-		assert(edge[id].from == u || edge[id].to == u);
-		#endif
+		ASSERT(0 <= id && id < (int)edge.size());
+		ASSERT(edge[id].from == u || edge[id].to == u);
 		return u ^ edge[id].from ^ edge[id].to;
 	}
 	int link(int u, int v, T w = {}){ // insert an undirected edge
@@ -66,13 +69,13 @@ struct graph{
 	}
 	auto neighbor(int u, int exclude = -1) const{
 		return adj[u]
-			| views::filter([&](int id){ return id != exclude && !(ignore && ignore(id)); })
-			| views::transform([&](int id){ return (*this)(u, id); });
+			| views::filter([this, u, exclude](int id){ return id != exclude && !(ignore && ignore(id)); })
+			| views::transform([this, u](int id){ return (*this)(u, id); });
 	}
 	auto weighted_neighbor(int u, int exclude = -1) const{
 		return adj[u]
-			| views::filter([&](int id){ return id != exclude && !(ignore && ignore(id)); })
-			| views::transform([&](int id){ return pair{(*this)(u, id), edge[id].cost}; });
+			| views::filter([this, u, exclude](int id){ return id != exclude && !(ignore && ignore(id)); })
+			| views::transform([this, u](int id){ return pair{(*this)(u, id), edge[id].cost}; });
 	}
 	void clear(){
 		for(auto [u, v, w]: edge){
@@ -120,9 +123,9 @@ struct graph{
 	}
 	template<bool directed = false, bool has_weight = false>
 	static graph read(int n, int m = -1, int offset = 1){
-		assert(n >= 1);
+		ASSERT(n >= 1);
 		if(m == -1) m = n - 1;
-		assert(m >= 0);
+		ASSERT(m >= 0);
 		graph<T> g(n);
 		for(auto id = 0; id < m; ++ id){
 			int u, v;
@@ -133,6 +136,7 @@ struct graph{
 		}
 		return move(g);
 	}
+#undef ASSERT
 };
 ]]></content>
 	<!-- Optional: Set a tabTrigger to define how to trigger the snippet -->
