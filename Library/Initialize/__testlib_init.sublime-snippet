@@ -17,17 +17,19 @@ using namespace numbers;
 	#define debug_bin(...) 42
 #endif
 // Returns the largest integer k with x >= k * y
-template<class T, class U>
-U floor_div(T x, U y){
+template<class T, class U> U floor_div(T x, U y){
 	assert(y > 0);
 	return x / y - (x % y < 0);
 }
 // Returns the smallest integer k with x <= k * y
-template<class T, class U>
-U ceil_div(T x, U y){
+template<class T, class U> U ceil_div(T x, U y){
 	assert(y > 0);
 	return x / y + (x % y > 0);
 }
+template<class T> T &ctmin(T &x){ return x; }
+template<class T, class Head, class ...Tail> T &ctmin(T &x, const Head &h, const Tail &... t){ return ctmin(x = min<T>(x, h), t...); }
+template<class T> T &ctmax(T &x){ return x; }
+template<class T, class Head, class ...Tail> T &ctmax(T &x, const Head &h, const Tail &... t){ return ctmax(x = max<T>(x, h), t...); }
 
 
 
