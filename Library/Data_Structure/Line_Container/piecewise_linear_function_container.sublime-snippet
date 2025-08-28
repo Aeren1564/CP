@@ -10,25 +10,28 @@ struct piecewise_linear_function_container{
 	#define ASSERT(x) 42
 #endif
 	Key_t left_boundary, right_boundary;
+	Value_t initial_value, initial_slope;
 	map<Key_t, Value_t> first_derivative;
 	map<Key_t, Value_t> second_derivative;
 	void _update_1(Key_t x, Value_t value_dif){
 		ASSERT(left_boundary <= x && x < right_boundary);
-		if(value_dif && (first_derivative[x] += value_dif) == 0) first_derivative.erase(x);
+		if(value_dif == Value_t{0}) return;
+		if(x == left_boundary) initial_value += value_dif;
+		else if((first_derivative[x] += value_dif) == 0) first_derivative.erase(x);
 	}
 	void _update_2(Key_t x, Value_t slope_dif){
 		ASSERT(left_boundary <= x && x < right_boundary);
-		if(slope_dif && (second_derivative[x] += slope_dif) == 0) second_derivative.erase(x);
+		if(slope_dif == Value_t{0}) return;
+		if(x == left_boundary) initial_slope += slope_dif;
+		else if((second_derivative[x] += slope_dif) == 0) second_derivative.erase(x);
 	}
 	piecewise_linear_function_container(
 		Key_t left_boundary = numeric_limits<Key_t>::min(),
 		Key_t right_boundary = numeric_limits<Key_t>::max(),
 		Value_t initial_value = 0,
 		Value_t initial_slope = 0
-	): left_boundary(left_boundary), right_boundary(right_boundary){
+	): left_boundary(left_boundary), right_boundary(right_boundary), initial_value(initial_value), initial_slope(initial_slope){
 		ASSERT(left_boundary < right_boundary);
-		_update_1(left_boundary, initial_value);
-		_update_2(left_boundary, initial_slope);
 	}
 	void clear(
 		Key_t left_boundary = numeric_limits<Key_t>::min(),
@@ -39,10 +42,10 @@ struct piecewise_linear_function_container{
 		ASSERT(left_boundary < right_boundary);
 		this->left_boundary = left_boundary;
 		this->right_boundary = right_boundary;
+		this->initial_value = initial_value;
+		this->initial_slope = initial_slope;
 		first_derivative.clear();
 		second_derivative.clear();
-		_update_1(left_boundary, initial_value);
-		_update_2(left_boundary, initial_slope);
 	}
 	// Add value + slope * (x - l) at x for each l <= x < r
 	void add(Key_t l, Key_t r, Value_t value, Value_t slope){
@@ -99,25 +102,60 @@ struct piecewise_linear_function_container{
 		for(auto i = 0; i < n; ++ i) piecewise_line[i] = f(i);
 		add_piecewise_line(piecewise_line);
 	}
+	void set_left_boundary(Key_t new_left_boundary, auto process){
+		ASSERT(left_boundary <= new_left_boundary && new_left_boundary < right_boundary);
+		if(new_left_boundary == left_boundary) return;
+		Key_t pos = left_boundary;
+		Value_t value = initial_value;
+		Value_t slope = initial_slope;
+		auto it1 = first_derivative.begin();
+		auto it2 = second_derivative.begin();
+		for(; it2 != second_derivative.end() && it2->first <= new_left_boundary; it2 = second_derivative.erase(it2)){
+			for(; it1 != first_derivative.end() && it1->first <= it2->first; it1 = first_derivative.erase(it1)){
+				process(pos, it1->first, value, slope);
+				value += it1->second + slope * (it1->first - pos);
+				pos = it1->first;
+			}
+			if(pos < it2->first) process(pos, it2->first, value, slope);
+			value += slope * (it2->first - pos);
+			slope += it2->second;
+			pos = it2->first;
+		}
+		for(; it1 != first_derivative.end() && it1->first <= new_left_boundary; it1 = first_derivative.erase(it1)){
+			process(pos, it1->first, value, slope);
+			value += it1->second + slope * (it1->first - pos);
+			pos = it1->first;
+		}
+		if(pos < new_left_boundary){
+			process(pos, new_left_boundary, value, slope);
+			value += slope * (new_left_boundary - pos);
+			pos = new_left_boundary;
+		}
+		left_boundary = new_left_boundary;
+		initial_value = value;
+		initial_slope = slope;
+	}
+	void set_left_boundary(Key_t new_left_boundary){
+		set_left_boundary(new_left_boundary, [&](Key_t, Key_t, Value_t, Value_t){  });
+	}
+	// Return {left, right, value, slope} of the leftmost line segment
+	tuple<Key_t, Key_t, Value_t, Value_t> eval_left_line_segment() const{
+		Key_t right = right_boundary;
+		if(!first_derivative.empty() && (second_derivative.empty() || first_derivative.begin()->first <= second_derivative.begin()->first)) right = first_derivative.begin()->first;
+		else if(!second_derivative.empty()) right = second_derivative.begin()->first;
+		return {left_boundary, right, initial_value, initial_slope};
+	}
 	// Split [l, r) into maximal intervals [p_0=l, p_1), [p_1, p_2), ..., [p_{k-2}, p_{k-1}=r)
 	// such that p_i < p_{i+1} and [p_i, p_{i+1}) is a line segment
-	// Call process(p_i, p_{i+1}, value at p_i, slope) for each such intervals in increasing order of i
-	void iterate_all_line_segments(Key_t l, Key_t r, auto process) const{
+	// Call process_while(p_i, p_{i+1}, value at p_i, slope) for each such intervals in increasing order of i
+	void iterate_all_line_segments(Key_t l, Key_t r, auto process_while) const{
 		ASSERT(left_boundary <= l && l <= r && r <= right_boundary);
 		if(l == r) return;
 		Key_t pos = left_boundary;
-		Value_t value = 0;
-		Value_t slope = 0;
+		Value_t value = initial_value;
+		Value_t slope = initial_slope;
 		auto it1 = first_derivative.begin();
 		auto it2 = second_derivative.begin();
-		if(it1 != first_derivative.end() && it1->first == left_boundary){
-			value += it1->second;
-			++ it1;
-		}
-		if(it2 != second_derivative.end() && it2->first == left_boundary){
-			slope += it2->second;
-			++ it2;
-		}
 		for(; it2 != second_derivative.end() && it2->first <= l; ++ it2){
 			for(; it1 != first_derivative.end() && it1->first <= it2->first; ++ it1) value += it1->second;
 			value += slope * (it2->first - pos);
@@ -129,21 +167,21 @@ struct piecewise_linear_function_container{
 		pos = l;
 		for(; it2 != second_derivative.end() && it2->first < r; ++ it2){
 			for(; it1 != first_derivative.end() && it1->first <= it2->first; ++ it1){
-				process(pos, it1->first, value, slope);
+				if(!process_while(pos, it1->first, value, slope)) return;
 				value += it1->second + slope * (it1->first - pos);
 				pos = it1->first;
 			}
-			if(pos < it2->first) process(pos, it2->first, value, slope);
+			if(pos < it2->first) if(!process_while(pos, it2->first, value, slope)) return;
 			value += slope * (it2->first - pos);
 			slope += it2->second;
 			pos = it2->first;
 		}
 		for(; it1 != first_derivative.end() && it1->first < r; ++ it1){
-			process(pos, it1->first, value, slope);
+			if(!process_while(pos, it1->first, value, slope)) return;
 			value += it1->second + slope * (it1->first - pos);
 			pos = it1->first;
 		}
-		process(pos, r, value, slope);
+		process_while(pos, r, value, slope);
 	}
 	friend ostream &operator<<(ostream &out, const piecewise_linear_function_container &plfc){
 		out << "\n";
@@ -159,10 +197,12 @@ struct piecewise_linear_function_container{
 				}
 				to = r;
 			}
+			return true;
 		});
 		vector<Value_t> a(to - from + 1);
 		plfc.iterate_all_line_segments(plfc.left_boundary, plfc.right_boundary, [&](Key_t l, Key_t r, Value_t value, Value_t slope){
 			if(from <= l && r <= to) for(auto i = l; i <= r; ++ i) a[i - from] = value + slope * (i - l);
+			return true;
 		});
 		out << "A[" << from << "~" << to << "]: {";
 		for(auto i = 0; i <= to - from; ++ i){
