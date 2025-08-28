@@ -185,11 +185,13 @@ struct piecewise_linear_function_container{
 	}
 	friend ostream &operator<<(ostream &out, const piecewise_linear_function_container &plfc){
 		out << "\n";
+		bool first = true;
 		bool from_found = false;
 		Key_t from = plfc.left_boundary;
 		Key_t to = plfc.left_boundary;
 		plfc.iterate_all_line_segments(plfc.left_boundary, plfc.right_boundary, [&](Key_t l, Key_t r, Value_t value, Value_t slope){
-			out << "[" << l << ", " << r << "]: " << value << " + " << slope << " * (x - " << l << ")\n";
+			if(first) out << "(" << l << ", " << value << ")", first = false;
+			out << "<" << slope << ">(" << r << ", " << value + slope * (r - l) << ")";
 			if(value || slope){
 				if(!from_found){
 					from_found = true;
@@ -199,12 +201,13 @@ struct piecewise_linear_function_container{
 			}
 			return true;
 		});
+		out << "\n";
 		vector<Value_t> a(to - from + 1);
 		plfc.iterate_all_line_segments(plfc.left_boundary, plfc.right_boundary, [&](Key_t l, Key_t r, Value_t value, Value_t slope){
 			if(from <= l && r <= to) for(auto i = l; i <= r; ++ i) a[i - from] = value + slope * (i - l);
 			return true;
 		});
-		out << "A[" << from << "~" << to << "]: {";
+		out << "[" << from << " ~ " << to << "]: {";
 		for(auto i = 0; i <= to - from; ++ i){
 			out << a[i];
 			if(i + 1 <= to - from) out << ", ";
