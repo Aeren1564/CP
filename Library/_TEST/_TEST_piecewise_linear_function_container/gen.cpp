@@ -101,6 +101,11 @@ int main(){
 	auto gen = [&]()->long long{
 		return int(rng() % 21) - 10;
 	};
+	int qn = 100;
+	// auto gen = [&]()->long long{
+	// 	return int(rng() % 11) - 5;
+	// };
+	// int qn = 3;
 	long long l = gen();
 	long long r = gen();
 	long long v = gen();
@@ -112,10 +117,9 @@ int main(){
 		++ r;
 	}
 	cout << l << " " << r << " " << v << " " << s << "\n";
-	int qn = 100;
 	cout << qn << "\n\n";
 	for(auto qi = 0; qi < qn; ++ qi){
-		int type = rng() % 4;
+		int type = rng() % 6;
 		cout << type << " ";
 		if(type < 2){
 			long long l = gen();
@@ -150,6 +154,14 @@ int main(){
 			for(auto [x, y]: piecewise_line){
 				cout << x << " " << y << "\n";
 			}
+		}
+		else if(type == 3){
+			long long cl = rng() % (r - l) + l;
+			cout << cl << "\n";
+			l = cl;
+		}
+		else if(type == 4){
+			cout << "\n";
 		}
 		else{
 			long long cl = rng() % (r - l + 1) + l;

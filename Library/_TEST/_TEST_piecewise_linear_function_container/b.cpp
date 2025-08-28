@@ -71,6 +71,35 @@ int main(){
 				}
 			}
 		}
+		else if(type == 3){
+			long long new_l;
+			cin >> new_l;
+			long long cl = l, cr = new_l;
+			vector<array<long long, 4>> res;
+			for(auto ccl = cl; ccl < cr; ){
+				int ccr = ccl + 1;
+				while(ccr < cr && slope[ccl - l] == value[ccr - l] - value[ccr - 1 - l] && slope[ccr - l] == slope[ccl - l]){
+					++ ccr;
+				}
+				res.push_back({ccl, ccr, value[ccl - l], slope[ccl - l]});
+				ccl = ccr;
+			}
+			cout << (int)res.size() << "\n";
+			for(auto [l, r, v, s]: res){
+				cout << l << " " << r << " " << v << " " << s << "\n";
+			}
+			int dist = new_l - l;
+			l = new_l;
+			value.erase(value.begin(), value.begin() + dist);
+			slope.erase(slope.begin(), slope.begin() + dist);
+		}
+		else if(type == 4){
+			long long cl = l, cr = cl + 1;
+			while(cr < r && slope[cl - l] == value[cr - l] - value[cr - 1 - l] && slope[cr - l] == slope[cl - l]){
+				++ cr;
+			}
+			cout << cl << " " << cr << " " << value[0] << " " << slope[0] << "\n";
+		}
 		else{
 			long long cl, cr;
 			cin >> cl >> cr;
