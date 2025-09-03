@@ -604,7 +604,6 @@ optional<vector<array<int, 2>>> find_a_grid_path(int n, int m, int sx, int sy, i
 				assert(ex - info[i].ex >= 2);
 				delta = min(delta, ex - info[i].ex - 1);
 			}
-
 		}
 		else if(dy == 1){
 			if(min(info[i].sx, info[i].ex) < ex && ex < max(info[i].sx, info[i].ex) && info[i].ey > ey){
