@@ -1,0 +1,683 @@
+<snippet>
+	<content><![CDATA[
+// Returns the maximum length of simple grid path from (sx, sy) to (ex, ey)
+// O(1)
+int maximum_grid_path_length(int n, int m, int sx, int sy, int ex, int ey){
+	assert(1 <= min(n, m) && 0 <= min({sx, sy, ex, ey}) && max(sx, ex) < n && max(sy, ey) < m);
+	if(sx == ex && sy == ey) return 1;
+	if(n > m){
+		swap(n, m);
+		swap(sx, sy);
+		swap(ex, ey);
+	}
+	if(sx > ex){
+		sx = n - 1 - sx;
+		ex = n - 1 - ex;
+	}
+	if(sy > ey){
+		sy = m - 1 - sy;
+		ey = m - 1 - ey;
+	}
+	if(n == 1) return ey - sy + 1;
+	if(n == 2 && ex - sx == 1 && ey - sy <= 1) return max(sy + ey, n * m - 2 - sy - ey) + 2;
+	if(n == 3 && m % 2 == 0 && (sx + sy) % 2 && (ex + ey + 1) % 2 && sy < ey && (sx == 1 || sy + 1 != ey)) return n * m - 2;
+	if(n % 2 && m % 2) return n * m - ((sx + sy) % 2 != (ex + ey) % 2) - 2 * ((sx + sy) % 2 && (ex + ey) % 2);
+	else return n * m - ((sx + sy) % 2 == (ex + ey) % 2);
+}
+
+// Returns a simple grid path from (sx, sy) to (ex, ey) of the maximum length
+// O(n * m) but very large overhead for each call due to small bruteforce
+vector<array<int, 2>> find_a_maximal_grid_path(int n, int m, int sx, int sy, int ex, int ey){
+	assert(1 <= min(n, m) && 0 <= min({sx, sy, ex, ey}) && max(sx, ex) < n && max(sy, ey) < m);
+	if(sx == ex && sy == ey) return {{sx, sy}};
+	if(n > m){
+		auto res = find_a_maximal_grid_path(m, n, sy, sx, ey, ex);
+		for(auto &p: res) swap(p[0], p[1]);
+		return res;
+	}
+	if(sx > ex){
+		auto res = find_a_maximal_grid_path(n, m, n - 1 - sx, sy, n - 1 - ex, ey);
+		for(auto &p: res) p[0] = n - 1 - p[0];
+		return res;
+	}
+	if(sy > ey){
+		auto res = find_a_maximal_grid_path(n, m, sx, m - 1 - sy, ex, m - 1 - ey);
+		for(auto &p: res) p[1] = m - 1 - p[1];
+		return res;
+	}
+	vector<array<int, 2>> res{{sx, sy}};
+	auto extend_path = [&](auto &path, int tx, int ty)->void{
+		assert(!path.empty() && (path.back()[0] == tx || path.back()[1] == ty));
+		if(path.back()[0] == tx){
+			if(path.back()[1] <= ty) for(auto y = path.back()[1] + 1; y <= ty; ++ y) path.push_back({tx, y});
+			else for(auto y = path.back()[1] - 1; y >= ty; -- y) path.push_back({tx, y});
+		}
+		else{
+			if(path.back()[0] <= tx) for(auto x = path.back()[0] + 1; x <= tx; ++ x) path.push_back({x, ty});
+			else for(auto x = path.back()[0] - 1; x >= tx; -- x) path.push_back({x, ty});
+		}
+	};
+	if(n == 1){
+		extend_path(res, ex, ey);
+		return res;
+	}
+	if(n == 2){
+		if(ex - sx == 1 && ey - sy <= 1){
+			int left = sy + ey, right = 2 * m - 2 - left;
+			if(left >= right){
+				extend_path(res, sx, 0);
+				extend_path(res, ex, 0);
+				extend_path(res, ex, ey);
+			}
+			else{
+				extend_path(res, sx, m - 1);
+				extend_path(res, ex, m - 1);
+				extend_path(res, ex, ey);
+			}
+		}
+		else{
+			if(sx == ex){
+				extend_path(res, sx, 0);
+				extend_path(res, !sx, 0);
+				extend_path(res, !sx, sy);
+				for(auto cy = sy; cy + 2 < ey; cy += 2){
+					extend_path(res, !sx, cy + 1);
+					extend_path(res, sx, cy + 1);
+					extend_path(res, sx, cy + 2);
+					extend_path(res, !sx, cy + 2);
+				}
+				extend_path(res, !sx, m - 1);
+				extend_path(res, sx, m - 1);
+				extend_path(res, sx, ey);
+			}
+			else{
+				extend_path(res, sx, 0);
+				extend_path(res, !sx, 0);
+				extend_path(res, !sx, sy + 1);
+				extend_path(res, sx, sy + 1);
+				for(auto cy = sy + 1; cy + 2 < ey; cy += 2){
+					extend_path(res, sx, cy + 1);
+					extend_path(res, !sx, cy + 1);
+					extend_path(res, !sx, cy + 2);
+					extend_path(res, sx, cy + 2);
+				}
+				extend_path(res, sx, m - 1);
+				extend_path(res, !sx, m - 1);
+				extend_path(res, !sx, ey);
+			}
+		}
+		return res;
+	}
+	const int goal = maximum_grid_path_length(n, m, sx, sy, ex, ey);
+	if(n == 3 && m <= 6 || m <= 5){
+		vector<array<int, 2>> dr{{1, 0}, {0, 1}, {-1, 0}, {0, -1}};
+		auto dist_to_end = [&](int x, int y){ return abs(x - ex) + abs(y - ey); };
+		vector used(n, string(m, '\0'));
+		vector was(n, vector<int>(m, -1));
+		vector<array<int, 3>> q(n * m); // cx, cy, pos
+		int attempt = -1;
+		auto check = [&](int sx, int sy, int rem)->bool{
+			++ attempt;
+			q[0] = {sx, sy, 0};
+			was[sx][sy] = attempt;
+			int qend = 1, d = sx == ex && sy == ey ? 0 : -1;
+			for(auto qbeg = 0; qbeg < qend; ++ qbeg){
+				auto [cx, cy, pos] = q[qbeg];
+				for(auto [dx, dy]: dr){
+					int xn = cx + dx, yn = cy + dy;
+					if(0 <= min(xn, yn) && xn < n && yn < m && !used[xn][yn] && was[xn][yn] != attempt){
+						was[xn][yn] = attempt;
+						q[qend ++] = {xn, yn, pos + 1};
+						if(xn == ex && yn == ey && !~d && (d = pos + 1) > rem) return false;
+						if(qend > rem && ~d) break;
+					}
+				}
+				if(qend > rem && ~d) break;
+			}
+			return ~d && d <= rem && qend > rem;
+		};
+		res.resize(goal);
+		vector hconnected(n - 1, vector<int>(m)), vconnected(n, vector<int>(m - 1));
+		res[0] = {sx, sy};
+		used[sx][sy] = true;
+		assert(([&](this auto self, int cx, int cy, int depth)->bool{
+			if(depth == goal - 1){
+				array<bool, 4> found{};
+				for(auto i = 0; i < (int)res.size() - 1; ++ i){
+					auto [x, y] = res[i];
+					auto [z, w] = res[i + 1];
+					if(x == 0 && z == 0) found[0] = true;
+					else if(y == m - 1 && w == m - 1) found[1] = true;
+					else if(x == n - 1 && z == n - 1) found[2] = true;
+					else if(y == 0 && w == 0) found[3] = true;
+				}
+				return found[0] && found[1] && found[2] && found[3];
+			}
+			for(auto [dx, dy]: dr){
+				int xn = cx + dx, yn = cy + dy;
+				if(0 <= min(xn, yn) && xn < n && yn < m && !used[xn][yn]){
+					int rem = goal - depth - 2;
+					int ndist = dist_to_end(xn, yn);
+					if(ndist > rem || rem + ndist & 1) continue;
+					if(!check(xn, yn, rem)) continue;
+					res[depth + 1] = {xn, yn};
+					used[xn][yn] = true;
+					if(self(xn, yn, depth + 1)) return true;
+					used[xn][yn] = false;
+				}
+			}
+			return false;
+		}(sx, sy, 0)));
+		return res;
+	}
+	if(n <= 5){
+		array<int, 3> yext{0};
+		while(m - yext[0] > (5 + (n == 3)) && yext[0] + 2 <= sy) yext[0] += 2;
+		while(m - yext[0] - yext[1] > (5 + (n == 3)) && sy + yext[1] + 2 + (n == 3) < ey) yext[1] += 2;
+		while(m - yext[0] - yext[1] - yext[2] > (5 + (n == 3))) yext[2] += 2;
+		res = find_a_maximal_grid_path(
+			n, m - yext[0] - yext[1] - yext[2],
+			sx, sy - yext[0],
+			ex, ey - yext[0] - yext[1]
+		);
+		vector delta(n, vector(m - yext[0] - yext[1] - yext[2], array{-2, -2}));
+		for(auto i = 0; i < (int)res.size() - 1; ++ i) delta[res[i][0]][res[i][1]] = {res[i + 1][0] - res[i][0], res[i + 1][1] - res[i][1]};
+		vector delta_next(n, vector(m, array{-2, -2}));
+		for(auto x = 0; x < n; ++ x){
+			for(auto y = 0; y < m - yext[0] - yext[1] - yext[2]; ++ y){
+				int yn = y + yext[0] + (y > sy - yext[0] ? yext[1] : 0);
+				delta_next[x][yn] = delta[x][y];
+			}
+		}
+		if(yext[0] > 0){
+			int from = -1, to = -1;
+			for(auto x = 0; x < n - 1; ++ x){
+				if(delta_next[x][yext[0]][0] == 1){
+					from = x, to = x + 1;
+					break;
+				}
+				if(delta_next[x + 1][yext[0]][0] == -1){
+					from = x + 1, to = x;
+					break;
+				}
+			}
+			assert(~from && ~to);
+			vector<array<int, 2>> extra{{from, yext[0]}};
+			for(auto y = yext[0] - 2; y >= 0; y -= 2){
+				extend_path(extra, from, y + 1);
+				extend_path(extra, from < to ? 0 : n - 1, y + 1);
+				extend_path(extra, from < to ? 0 : n - 1, y);
+				extend_path(extra, from, y);
+			}
+			for(auto y = 0; y < yext[0]; y += 2){
+				extend_path(extra, to, y);
+				extend_path(extra, from < to ? n - 1 : 0, y);
+				extend_path(extra, from < to ? n - 1 : 0, y + 1);
+				extend_path(extra, to, y + 1);
+			}
+			extend_path(extra, to, yext[0]);
+			for(auto i = 0; i < (int)extra.size() - 1; ++ i) delta_next[extra[i][0]][extra[i][1]] = {extra[i + 1][0] - extra[i][0], extra[i + 1][1] - extra[i][1]};
+		}
+		if(yext[1] > 0){
+			vector<int> crossing_rows;
+			for(auto x = 0, found = 0; x < n; ++ x){
+				if(delta_next[x][sy][1] == 1){
+					crossing_rows.push_back(x);
+					for(auto y = sy + 1; y <= sy + yext[1]; ++ y) delta_next[x][y] = {0, 1};
+				}
+				else if(delta_next[x][sy + yext[1] + 1][1] == -1){
+					crossing_rows.push_back(x);
+					for(auto y = sy + yext[1]; y >= sy + 1; -- y) delta_next[x][y] = {0, -1};
+				}
+				else if(!found){
+					found = true;
+					if(delta_next[x][sy][0] == 1 && delta_next[x + 1][sy][1] != 1){
+						crossing_rows.push_back(x);
+						crossing_rows.push_back(x + 1);
+						for(auto y = sy; y < sy + yext[1]; ++ y) delta_next[x][y] = {0, 1};
+						delta_next[x][sy + yext[1]] = {1, 0};
+						for(auto y = sy + yext[1]; y > sy; -- y) delta_next[x + 1][y] = {0, -1};
+						++ x;
+					}
+					else if(delta_next[x][sy][0] == -1 && delta_next[x - 1][sy][1] != 1){
+						crossing_rows.push_back(x - 1);
+						crossing_rows.push_back(x);
+						for(auto y = sy; y < sy + yext[1]; ++ y) delta_next[x][y] = {0, 1};
+						delta_next[x][sy + yext[1]] = {-1, 0};
+						for(auto y = sy + yext[1]; y > sy; -- y) delta_next[x - 1][y] = {0, -1};
+					}
+					else if(delta_next[x][sy + yext[1] + 1][0] == 1 && delta_next[x + 1][sy + yext[1] + 1][1] != -1){
+						crossing_rows.push_back(x);
+						crossing_rows.push_back(x + 1);
+						for(auto y = sy + yext[1] + 1; y > sy + 1; -- y) delta_next[x][y] = {0, -1};
+						delta_next[x][sy + 1] = {1, 0};
+						for(auto y = sy + 1; y <= sy + yext[1]; ++ y) delta_next[x + 1][y] = {0, 1};
+						++ x;
+					}
+					else if(delta_next[x][sy + yext[1] + 1][0] == -1 && delta_next[x - 1][sy + yext[1] + 1][1] != -1){
+						crossing_rows.push_back(x - 1);
+						crossing_rows.push_back(x);
+						for(auto y = sy + yext[1] + 1; y > sy + 1; -- y) delta_next[x][y] = {0, -1};
+						delta_next[x][sy + 1] = {-1, 0};
+						for(auto y = sy + 1; y <= sy + yext[1]; ++ y) delta_next[x - 1][y] = {0, 1};
+					}
+					else found = false;
+				}
+			}
+			assert(!crossing_rows.empty());
+			int cut = 0;
+			while(cut <= (int)crossing_rows.size() && !(cut == 0 && crossing_rows[cut] == 0 || cut == (int)crossing_rows.size() && crossing_rows[cut - 1] == n - 1 || 0 < cut && cut < (int)crossing_rows.size() && crossing_rows[cut - 1] + 1 == crossing_rows[cut])) ++ cut;
+			assert(cut <= (int)crossing_rows.size());
+			for(auto i = cut - 1; i >= 0; -- i){
+				int fx = crossing_rows[i], tx = i - 1 >= 0 ? crossing_rows[i - 1] + 1 : 0;
+				if(fx > tx){
+					if(delta_next[fx][sy + 1][1] == 1){
+						for(auto y = sy + 1; y <= sy + yext[1]; y += 2){
+							for(auto x = fx; x > tx; -- x) delta_next[x][y] = {-1, 0};
+							delta_next[tx][y] = {0, 1};
+							for(auto x = tx; x < fx; ++ x) delta_next[x][y + 1] = {1, 0};
+						}
+					}
+					else if(delta_next[fx][sy + yext[1]][1] == -1){
+						for(auto y = sy + yext[1] - 1; y >= sy + 1; y -= 2){
+							for(auto x = fx; x > tx; -- x) delta_next[x][y + 1] = {-1, 0};
+							delta_next[tx][y + 1] = {0, -1};
+							for(auto x = tx; x < fx; ++ x) delta_next[x][y] = {1, 0};
+						}
+					}
+					else assert(false);
+				}
+			}
+			for(auto i = cut; i < (int)crossing_rows.size(); ++ i){
+				int fx = crossing_rows[i], tx = i + 1 < (int)crossing_rows.size() ? crossing_rows[i + 1] - 1 : n - 1;
+				if(fx < tx){
+					if(delta_next[fx][sy + 1][1] == 1){
+						for(auto y = sy + 1; y <= sy + yext[1]; y += 2){
+							for(auto x = fx; x < tx; ++ x) delta_next[x][y] = {1, 0};
+							delta_next[tx][y] = {0, 1};
+							for(auto x = tx; x > fx; -- x) delta_next[x][y + 1] = {-1, 0};
+						}
+					}
+					else if(delta_next[fx][sy + yext[1]][1] == -1){
+						for(auto y = sy + yext[1] - 1; y >= sy + 1; y -= 2){
+							for(auto x = fx; x < tx; ++ x) delta_next[x][y + 1] = {1, 0};
+							delta_next[tx][y + 1] = {0, -1};
+							for(auto x = tx; x > fx; -- x) delta_next[x][y] = {-1, 0};
+						}
+					}
+					else assert(false);
+				}
+			}
+		}
+		if(yext[2] > 0){
+			int from = -1, to = -1;
+			for(auto x = 0; x < n - 1; ++ x){
+				if(delta_next[x][m - yext[2] - 1][0] == 1){
+					from = x, to = x + 1;
+					break;
+				}
+				if(delta_next[x + 1][m - yext[2] - 1][0] == -1){
+					from = x + 1, to = x;
+					break;
+				}
+			}
+			assert(~from && ~to);
+			vector<array<int, 2>> extra{{from, m - yext[2] - 1}};
+			for(auto y = m - yext[2]; y < m; y += 2){
+				extend_path(extra, from, y);
+				extend_path(extra, from < to ? 0 : n - 1, y);
+				extend_path(extra, from < to ? 0 : n - 1, y + 1);
+				extend_path(extra, from, y + 1);
+			}
+			for(auto y = m - 2; y >= m - yext[2]; y -= 2){
+				extend_path(extra, to, y + 1);
+				extend_path(extra, from < to ? n - 1 : 0, y + 1);
+				extend_path(extra, from < to ? n - 1 : 0, y);
+				extend_path(extra, to, y);
+			}
+			extend_path(extra, to, m - yext[2] - 1);
+			for(auto i = 0; i < (int)extra.size() - 1; ++ i) delta_next[extra[i][0]][extra[i][1]] = {extra[i + 1][0] - extra[i][0], extra[i + 1][1] - extra[i][1]};
+		}
+		res = {{sx, sy}};
+		for(auto cx = sx, cy = sy; delta_next[cx][cy][0] != -2; ){
+			auto [dx, dy] = delta_next[cx][cy];
+			cx += dx, cy += dy;
+			res.push_back({cx, cy});
+		}
+		assert((int)res.size() == goal);
+		return res;
+	}
+	array<int, 3> xext{};
+	while(n - xext[0] > 5 && xext[0] + 2 <= sx) xext[0] += 2;
+	while(n - xext[0] - xext[1] > 5 && sx + xext[1] + 2 < ex) xext[1] += 2;
+	while(n - xext[0] - xext[1] - xext[2] > 5) xext[2] += 2;
+	res = find_a_maximal_grid_path(
+		n - xext[0] - xext[1] - xext[2], m,
+		sx - xext[0], sy,
+		ex - xext[0] - xext[1], ey
+	);
+	vector delta(n - xext[0] - xext[1] - xext[2], vector(m, array{-2, -2}));
+	for(auto i = 0; i < (int)res.size() - 1; ++ i) delta[res[i][0]][res[i][1]] = {res[i + 1][0] - res[i][0], res[i + 1][1] - res[i][1]};
+	vector delta_next(n, vector(m, array{-2, -2}));
+	for(auto x = 0; x < n - xext[0] - xext[1] - xext[2]; ++ x){
+		for(auto y = 0; y < m; ++ y){
+			int xn = x + xext[0] + (x > sx - xext[0] ? xext[1] : 0);
+			delta_next[xn][y] = delta[x][y];
+		}
+	}
+	if(xext[0] > 0){
+		int from = -1, to = -1;
+		for(auto y = 0; y < m - 1; ++ y){
+			if(delta_next[xext[0]][y][1] == 1){
+				from = y, to = y + 1;
+				break;
+			}
+			if(delta_next[xext[0]][y + 1][1] == -1){
+				from = y + 1, to = y;
+				break;
+			}
+		}
+		assert(~from && ~to);
+		vector<array<int, 2>> extra{{xext[0], from}};
+		for(auto x = xext[0] - 2; x >= 0; x -= 2){
+			extend_path(extra, x + 1, from);
+			extend_path(extra, x + 1, from < to ? 0 : m - 1);
+			extend_path(extra, x, from < to ? 0 : m - 1);
+			extend_path(extra, x, from);
+		}
+		for(auto x = 0; x < xext[0]; x += 2){
+			extend_path(extra, x, to);
+			extend_path(extra, x, from < to ? m - 1 : 0);
+			extend_path(extra, x + 1, from < to ? m - 1 : 0);
+			extend_path(extra, x + 1, to);
+		}
+		extend_path(extra, xext[0], to);
+		for(auto i = 0; i < (int)extra.size() - 1; ++ i) delta_next[extra[i][0]][extra[i][1]] = {extra[i + 1][0] - extra[i][0], extra[i + 1][1] - extra[i][1]};
+	}
+	if(xext[1] > 0){
+		vector<int> crossing_cols;
+		for(auto y = 0, found = 0; y < m; ++ y){
+			if(delta_next[sx][y][0] == 1){
+				crossing_cols.push_back(y);
+				for(auto x = sx + 1; x <= sx + xext[1]; ++ x) delta_next[x][y] = {1, 0};
+			}
+			else if(delta_next[sx + xext[1] + 1][y][0] == -1){
+				crossing_cols.push_back(y);
+				for(auto x = sx + xext[1]; x >= sx + 1; -- x) delta_next[x][y] = {-1, 0};
+			}
+			else if(!found){
+				found = true;
+				if(delta_next[sx][y][1] == 1 && delta_next[sx][y + 1][0] != 1){
+					crossing_cols.push_back(y);
+					crossing_cols.push_back(y + 1);
+					for(auto x = sx; x < sx + xext[1]; ++ x) delta_next[x][y] = {1, 0};
+					delta_next[sx + xext[1]][y] = {0, 1};
+					for(auto x = sx + xext[1]; x > sx; -- x) delta_next[x][y + 1] = {-1, 0};
+					++ y;
+				}
+				else if(delta_next[sx][y][1] == -1 && delta_next[sx][y - 1][0] != 1){
+					crossing_cols.push_back(y - 1);
+					crossing_cols.push_back(y);
+					for(auto x = sx; x < sx + xext[1]; ++ x) delta_next[x][y] = {1, 0};
+					delta_next[sx + xext[1]][y] = {0, -1};
+					for(auto x = sx + xext[1]; x > sx; -- x) delta_next[x][y - 1] = {-1, 0};
+				}
+				else if(delta_next[sx + xext[1] + 1][y][1] == 1 && delta_next[sx + xext[1] + 1][y + 1][0] != -1){
+					crossing_cols.push_back(y);
+					crossing_cols.push_back(y + 1);
+					for(auto x = sx + xext[1] + 1; x > sx + 1; -- x) delta_next[x][y] = {-1, 0};
+					delta_next[sx + 1][y] = {0, 1};
+					for(auto x = sx + 1; x <= sx + xext[1]; ++ x) delta_next[x][y + 1] = {1, 0};
+					++ y;
+				}
+				else if(delta_next[sx + xext[1] + 1][y][1] == -1 && delta_next[sx + xext[1] + 1][y - 1][0] != -1){
+					crossing_cols.push_back(y - 1);
+					crossing_cols.push_back(y);
+					for(auto x = sx + xext[1] + 1; x > sx + 1; -- x) delta_next[x][y] = {-1, 0};
+					delta_next[sx + 1][y] = {0, -1};
+					for(auto x = sx + 1; x <= sx + xext[1]; ++ x) delta_next[x][y - 1] = {1, 0};
+				}
+				else found = false;
+			}
+		}
+		assert(!crossing_cols.empty());
+		int cut = 0;
+		while(cut <= (int)crossing_cols.size() && !(cut == 0 && crossing_cols[cut] == 0 || cut == (int)crossing_cols.size() && crossing_cols[cut - 1] == m - 1 || 0 < cut && cut < (int)crossing_cols.size() && crossing_cols[cut - 1] + 1 == crossing_cols[cut])) ++ cut;
+		assert(cut <= (int)crossing_cols.size());
+		for(auto i = cut - 1; i >= 0; -- i){
+			int fy = crossing_cols[i], ty = i - 1 >= 0 ? crossing_cols[i - 1] + 1 : 0;
+			if(fy > ty){
+				if(delta_next[sx + 1][fy][0] == 1){
+					for(auto x = sx + 1; x <= sx + xext[1]; x += 2){
+						for(auto y = fy; y > ty; -- y) delta_next[x][y] = {0, -1};
+						delta_next[x][ty] = {1, 0};
+						for(auto y = ty; y < fy; ++ y) delta_next[x + 1][y] = {0, 1};
+					}
+				}
+				else if(delta_next[sx + xext[1]][fy][0] == -1){
+					for(auto x = sx + xext[1] - 1; x >= sx + 1; x -= 2){
+						for(auto y = fy; y > ty; -- y) delta_next[x + 1][y] = {0, -1};
+						delta_next[x + 1][ty] = {-1, 0};
+						for(auto y = ty; y < fy; ++ y) delta_next[x][y] = {0, 1};
+					}
+				}
+				else assert(false);
+			}
+		}
+		for(auto i = cut; i < (int)crossing_cols.size(); ++ i){
+			int fy = crossing_cols[i], ty = i + 1 < (int)crossing_cols.size() ? crossing_cols[i + 1] - 1 : m - 1;
+			if(fy < ty){
+				if(delta_next[sx + 1][fy][0] == 1){
+					for(auto x = sx + 1; x <= sx + xext[1]; x += 2){
+						for(auto y = fy; y < ty; ++ y) delta_next[x][y] = {0, 1};
+						delta_next[x][ty] = {1, 0};
+						for(auto y = ty; y > fy; -- y) delta_next[x + 1][y] = {0, -1};
+					}
+				}
+				else if(delta_next[sx + xext[1]][fy][0] == -1){
+					for(auto x = sx + xext[1] - 1; x >= sx + 1; x -= 2){
+						for(auto y = fy; y < ty; ++ y) delta_next[x + 1][y] = {0, 1};
+						delta_next[x + 1][ty] = {-1, 0};
+						for(auto y = ty; y > fy; -- y) delta_next[x][y] = {0, -1};
+					}
+				}
+				else assert(false);
+			}
+		}
+	}
+	if(xext[2] > 0){
+		int from = -1, to = -1;
+		for(auto y = 0; y < m - 1; ++ y){
+			if(delta[n - xext[0] - xext[1] - xext[2] - 1][y][1] == 1){
+				from = y, to = y + 1;
+				break;
+			}
+			if(delta[n - xext[0] - xext[1] - xext[2] - 1][y + 1][1] == -1){
+				from = y + 1, to = y;
+				break;
+			}
+		}
+		assert(~from && ~to);
+		vector<array<int, 2>> extra{{n - xext[2] - 1, from}};
+		for(auto x = n - xext[2]; x < n; x += 2){
+			extend_path(extra, x, from);
+			extend_path(extra, x, from < to ? 0 : m - 1);
+			extend_path(extra, x + 1, from < to ? 0 : m - 1);
+			extend_path(extra, x + 1, from);
+		}
+		for(auto x = n - 2; x >= n - xext[2]; x -= 2){
+			extend_path(extra, x + 1, to);
+			extend_path(extra, x + 1, from < to ? m - 1 : 0);
+			extend_path(extra, x, from < to ? m - 1 : 0);
+			extend_path(extra, x, to);
+		}
+		extend_path(extra, n - xext[2] - 1, to);
+		for(auto i = 0; i < (int)extra.size() - 1; ++ i) delta_next[extra[i][0]][extra[i][1]] = {extra[i + 1][0] - extra[i][0], extra[i + 1][1] - extra[i][1]};
+	}
+	res = {{sx, sy}};
+	for(auto cx = sx, cy = sy; delta_next[cx][cy][0] != -2; ){
+		auto [dx, dy] = delta_next[cx][cy];
+		cx += dx, cy += dy;
+		res.push_back({cx, cy});
+	}
+	assert((int)res.size() == goal);
+	return res;
+}
+
+// Returns a simple grid path from (sx, sy) to (ex, ey) of length len
+optional<vector<array<int, 2>>> find_a_grid_path(int n, int m, int sx, int sy, int ex, int ey, int len){
+	assert(1 <= min(n, m) && 0 <= min({sx, sy, ex, ey}) && max(sx, ex) < n && max(sy, ey) < m && 1 <= len && len <= n * m);
+	if((len == 1) != (sx == ex && sy == ey)) return {};
+	auto dist = [&](int x0, int y0, int x1, int y1)->int{
+		return abs(x0 - x1) + abs(y0 - y1);
+	};
+	int d = dist(sx, sy, ex, ey);
+	if(len % 2 == d % 2 || len <= d) return {};
+	auto max_path = find_a_maximal_grid_path(n, m, sx, sy, ex, ey);
+	if(len > (int)max_path.size() || len % 2 != (int)max_path.size() % 2) return {};
+	if(len == (int)max_path.size()) return max_path;
+	struct segment_info_t{
+		int sx, sy, ex, ey;
+		list<int>::iterator pos;
+		int length() const{
+			return abs(sx - ex) + abs(sy - ey);
+		}
+		pair<int, int> dir() const{
+			if(sx != ex) return pair{sx < ex ? 1 : -1, 0};
+			else return pair{0, sy < ey ? 1 : -1};
+		}
+		bool contains(int x, int y) const{
+			if(sx != ex) return sy == y && min(sx, ex) < x && x < max(sx, ex);
+			else return sx == x && min(sy, ey) < y && y < max(sy, ey);
+		}
+		void print() const{
+			cerr << "(" << sx << ", " << sy << ")---(" << ex << ", " << ey << ") length " << length() << "\n";
+		}
+	};
+	vector<segment_info_t> info;
+	list<int> path;
+	for(auto i = 0; i + 1 < (int)max_path.size(); ){
+		int j = i + 1;
+		int dx = max_path[i + 1][0] - max_path[i][0];
+		int dy = max_path[i + 1][1] - max_path[i][1];
+		while(j + 1 < (int)max_path.size() && max_path[j + 1][0] - max_path[j][0] == dx && max_path[j + 1][1] - max_path[j][1] == dy) ++ j;
+		int id = (int)info.size();
+		path.push_back(id);
+		info.push_back({max_path[i][0], max_path[i][1], max_path[j][0], max_path[j][1], prev(path.end())});
+		i = j;
+	}
+	auto cmp = [&](int i, int j)->bool{
+		auto [dxi, dyi] = info[*prev(info[i].pos)].dir();
+		auto [dxj, dyj] = info[*prev(info[j].pos)].dir();
+		bool si = info[i].contains(sx + dxi, sy + dyi) || info[i].contains(ex + dxi, ey + dyi);
+		bool sj = info[j].contains(sx + dxj, sy + dyj) || info[j].contains(ex + dxj, ey + dyj);
+		if(si && sj) return i < j;
+		if(si) return false;
+		if(sj) return true;
+		return array{info[i].length(), i} < array{info[j].length(), j};
+	};
+	set<int, decltype(cmp)> concaves{cmp};
+	auto is_concave = [&](int i)->bool{
+		if(info[i].pos == path.begin() || next(info[i].pos) == path.end()) return false;
+		int l = *prev(info[i].pos), r = *next(info[i].pos);
+		if(info[l].sx == info[l].ex) return info[l].sy < info[l].ey ^ info[r].sy < info[r].ey;
+		else return info[l].sx < info[l].ex ^ info[r].sx < info[r].ex;
+	};
+	for(auto i: path) if(is_concave(i)) concaves.insert(i);
+	for(auto cur_len = (int)max_path.size(); cur_len > len; ){
+		assert(!concaves.empty());
+		int i = *concaves.begin();
+		concaves.erase(concaves.begin());
+		int l = *prev(info[i].pos), r = *next(info[i].pos);
+		if(is_concave(l)) concaves.erase(l);
+		if(is_concave(r)) concaves.erase(r);
+		int delta = max(1, min({info[l].length() - 1, info[r].length() - 1, cur_len - len >> 1}));
+		auto [dx, dy] = info[l].dir();
+		if(dx == 1){
+			if(min(info[i].sy, info[i].ey) < ey && ey < max(info[i].sy, info[i].ey) && info[i].ex > ex){
+				assert(info[i].ex - ex >= 2);
+				delta = min(delta, info[i].ex - ex - 1);
+			}
+		}
+		else if(dx == -1){
+			if(min(info[i].sy, info[i].ey) < ey && ey < max(info[i].sy, info[i].ey) && info[i].ex < ex){
+				assert(ex - info[i].ex >= 2);
+				delta = min(delta, ex - info[i].ex - 1);
+			}
+
+		}
+		else if(dy == 1){
+			if(min(info[i].sx, info[i].ex) < ex && ex < max(info[i].sx, info[i].ex) && info[i].ey > ey){
+				assert(info[i].ey - ey >= 2);
+				delta = min(delta, info[i].ey - ey - 1);
+			}
+		}
+		else if(dy == -1){
+			if(min(info[i].sx, info[i].ex) < ex && ex < max(info[i].sx, info[i].ex) && info[i].ey < ey){
+				assert(ey - info[i].ey >= 2);
+				delta = min(delta, ey - info[i].ey - 1);
+			}
+		}
+		else assert(false);
+		assert(1 <= delta);
+		cur_len -= 2 * delta;
+		if(info[l].length() == delta && info[l].pos != path.begin()){
+			int ll = *prev(info[l].pos);
+			if(is_concave(ll)) concaves.erase(ll);
+		}
+		if(info[r].length() == delta && next(info[r].pos) != path.end()){
+			int rr = *next(info[r].pos);
+			if(is_concave(rr)) concaves.erase(rr);
+		}
+		info[l].ex -= delta * dx;
+		info[l].ey -= delta * dy;
+		info[i].sx -= delta * dx;
+		info[i].sy -= delta * dy;
+		info[i].ex -= delta * dx;
+		info[i].ey -= delta * dy;
+		info[r].sx -= delta * dx;
+		info[r].sy -= delta * dy;
+		if(info[l].length() == 0){
+			path.erase(info[l].pos);
+			if(info[i].pos != path.begin()){
+				l = *prev(info[i].pos);
+				info[i].sx = info[l].sx;
+				info[i].sy = info[l].sy;
+				path.erase(info[l].pos);
+			}
+		}
+		else if(is_concave(l)) concaves.insert(l);
+		if(info[r].length() == 0){
+			path.erase(info[r].pos);
+			if(next(info[i].pos) != path.end()){
+				r = *next(info[i].pos);
+				info[i].ex = info[r].ex;
+				info[i].ey = info[r].ey;
+				path.erase(info[r].pos);
+			}
+		}
+		else if(is_concave(r)) concaves.insert(r);
+		if(is_concave(i)) concaves.insert(i);
+	}
+	vector<array<int, 2>> res{{sx, sy}};
+	auto extend_path = [&](auto &path, int tx, int ty)->void{
+		assert(!path.empty() && (path.back()[0] == tx || path.back()[1] == ty));
+		if(path.back()[0] == tx){
+			if(path.back()[1] <= ty) for(auto y = path.back()[1] + 1; y <= ty; ++ y) path.push_back({tx, y});
+			else for(auto y = path.back()[1] - 1; y >= ty; -- y) path.push_back({tx, y});
+		}
+		else{
+			if(path.back()[0] <= tx) for(auto x = path.back()[0] + 1; x <= tx; ++ x) path.push_back({x, ty});
+			else for(auto x = path.back()[0] - 1; x >= tx; -- x) path.push_back({x, ty});
+		}
+	};
+	for(auto i: path) extend_path(res, info[i].ex, info[i].ey);
+	assert((int)res.size() == len);
+	return res;
+}
+]]></content>
+	<!-- Optional: Set a tabTrigger to define how to trigger the snippet -->
+	<tabTrigger>grid_path</tabTrigger> -->
+	<!-- Optional: Set a scope to limit where the snippet will trigger -->
+	<scope>source.c++</scope> -->
+</snippet>
