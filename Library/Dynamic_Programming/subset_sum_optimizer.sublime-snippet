@@ -60,7 +60,7 @@ struct subset_sum_optimizer{
 		subset.clear();
 		for(auto i = 0; i < n; ++ i) if(in_subset[i]) subset.push_back(i);
 	}
-	// O(n * log(\sum{w}) + SZ * sqrt(\sum{w}) / bit_width)
+	// O(n * log(\sum{w}) + SZ * sqrt(\sum{w}) / word_size)
 	template<size_t SZ>
 	void run_for_small_total_weight(const vector<int> &w, int threshold){
 		assert(threshold >= 0 && threshold < SZ);
