@@ -1,0 +1,79 @@
+<snippet>
+	<content><![CDATA[
+template<size_t SZ>
+struct subset_sum_processor{
+	int offset;
+	bitset<SZ> dp; // dp[x] is true iff there exists a set of items with sum of weight x - offset
+	vector<array<int, 3>> prev; // previous weight, item index, choice index
+	vector<int> was;
+	int attempt = -1;
+	subset_sum_processor(int offset = 0): offset(offset), prev(SZ), was(SZ, -2){ assert(0 <= offset && offset < SZ); }
+	bitset<SZ> dp_next_i, dp_next_j, dif;
+	// build from the subsets of items where i-th item can have one of choices[i] weights
+	// O(sum(len(choices[i])) * SZ / word_size)
+	void build_from_choices(const vector<vector<int>> &choices){
+		++ attempt;
+		dp.reset();
+		dp.set(offset);
+		was[offset] = attempt;
+		for(auto i = 0; i < (int)choices.size(); ++ i){
+			dp_next_i = dp;
+			for(auto j = 0; j < (int)choices[i].size(); ++ j){
+				dp_next_j = dp_next_i | (choices[i][j] >= 0 ? dp << choices[i][j] : dp >> -choices[i][j]);
+				dif = dp_next_j ^ dp_next_i;
+				for(auto x = (int)dif._Find_first(); x < SZ; x = dif._Find_next(x)){
+					was[x] = attempt;
+					prev[x] = {x - choices[i][j], i, j};
+				}
+				dp_next_i = dp_next_j;
+			}
+			dp = dp_next_i;
+		}
+	}
+	// build from the subsets of items where i-th item has weights[i] weight
+	// O(len(weights) * SZ / word_size)
+	void build_from_subsets(const vector<int> &weights){
+		vector<vector<int>> choices((int)weights.size());
+		for(auto i = 0; i < (int)weights.size(); ++ i) choices[i] = {weights[i]};
+		build_from_choices(choices);
+	}
+	// weight must be in range [-offset, SZ - offset)
+	// O(1)
+	bool is_feasible(int weight) const{
+		assert(0 <= offset + weight && offset + weight < SZ);
+		return was[offset + weight] == attempt;
+	}
+	// weight must be in range [-offset, SZ - offset)
+	// O(len(subset))
+	optional<vector<array<int, 2>>> find_a_choice(int weight) const{
+		assert(0 <= offset + weight && offset + weight < SZ);
+		weight += offset;
+		if(was[weight] != attempt) return {};
+		vector<array<int, 2>> choice;
+		while(weight){
+			auto [pweight, i, j] = prev[weight];
+			weight = pweight;
+			choice.push_back({i, j});
+		}
+		reverse(choice.begin(), choice.end());
+		return choice;
+	}
+	// weight must be in range [-offset, SZ - offset)
+	// O(len(subset))
+	optional<vector<int>> find_a_subset(int weight) const{
+		auto choice_ptr = find_a_choice(weight);
+		if(!choice_ptr) return {};
+		vector<int> subset;
+		for(auto [i, j]: *choice_ptr){
+			assert(j == 0);
+			subset.push_back(i);
+		}
+		return subset;
+	}
+};
+]]></content>
+	<!-- Optional: Set a tabTrigger to define how to trigger the snippet -->
+	<tabTrigger>subset_sum_processor</tabTrigger> -->
+	<!-- Optional: Set a scope to limit where the snippet will trigger -->
+	<scope>source.c++</scope> -->
+</snippet>
