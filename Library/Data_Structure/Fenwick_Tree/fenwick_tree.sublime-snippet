@@ -124,8 +124,8 @@ auto make_fenwick_tree(F TT, T T_id, I Tinv){
 	return fenwick_tree<true, T, F, I>(TT, T_id, Tinv);
 }
 template<class T>
-auto make_fenwick_tree_sum(){
-	return fenwick_tree<true, T, plus<>, negate<>>(plus<>(), T{0}, negate<>());
+auto make_fenwick_tree_sum(T T_id = T{0}){
+	return fenwick_tree<true, T, plus<>, negate<>>(plus<>(), T_id, negate<>());
 }
 template<class T>
 auto make_fenwick_tree_product(){
