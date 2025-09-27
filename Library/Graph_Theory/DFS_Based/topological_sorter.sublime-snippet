@@ -6,21 +6,20 @@ struct topological_sorter{
 	vector<int> indeg;
 	vector<int> q;
 	vector<int> was;
-	int attempt;
-	void init(int n){
+	void _init(int n){
 		assert(n >= 1);
 		this->n = n;
 		order.clear();
-		indeg.assign(n, 0);
+		indeg.resize(n, 0);
 		q.resize(n);
-		was.assign(n, -1);
-		attempt = -2;
+		was.resize(n, -2);
 	}
+	int attempt = -1;
 	template<class T>
 	optional<vector<int>> run(const graph<T> &g, const vector<int> &subset){
-		assert(g.n <= n);
+		_init(g.n);
 		order.clear();
-		q.clear();
+		++ attempt;
 		for(auto u: subset){
 			assert(0 <= u && u < g.n && was[u] != attempt);
 			indeg[u] = 0;
@@ -56,8 +55,9 @@ struct topological_sorter{
 	}
 	template<class T, class Compare = less<>>
 	optional<vector<int>> run_lexicographically(const graph<T> &g, const vector<int> &subset, Compare cmp){
-		assert(g.n <= n);
+		_init(g.n);
 		order.clear();
+		++ attempt;
 		for(auto u: subset){
 			assert(0 <= u && u < g.n && was[u] != attempt);
 			indeg[u] = 0;
