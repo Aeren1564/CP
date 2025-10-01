@@ -93,8 +93,14 @@ struct graph{
 		}
 		return res;
 	}
-	int degree(int u) const{ // the degree (outdegree if directed) of u (without the ignoration rule)
-		return (int)adj[u].size();
+	int degree(int u, bool include_ignored_edges = true) const{
+		ASSERT(0 <= u && u < n);
+		if(include_ignored_edges || !ignore) return (int)adj[u].size();
+		else{
+			int deg = 0;
+			for(auto id: adj[u]) deg += !ignore(id);
+			return deg;
+		}
 	}
 	// The adjacency list is sorted for each vertex.
 	vector<vector<int>> get_adjacency_list() const{
