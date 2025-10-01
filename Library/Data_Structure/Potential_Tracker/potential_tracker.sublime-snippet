@@ -1,53 +1,96 @@
 <snippet>
 	<content><![CDATA[
-// Requires disjoint_set
-template<class T>
-struct potential_tracker{
-	disjoint_set<true> dsu;
-	bool globally_valid;
-	vector<int> valid;
+// Given n unknown values, keep track of their difference relations
+template<class T, class F1, class F2>
+struct potential_tracker_base{
+#ifdef LOCAL
+	#define ASSERT(x) assert(x)
+#else
+	#define ASSERT(x) 42
+#endif
+	F1 TT; // commutative group operation
+	T T_id; // commutative group identity
+	F2 Tinv; // commutative group inverse
+	bool globally_valid; // indicates whether difference relations in any group is consistent
+	vector<int> valid; // only meaning for dsu parent, indicates whether difference relations in the group is consistent
 	vector<T> potential;
-	vector<list<int>> has;
-	potential_tracker(int n): dsu(n), potential(n), globally_valid(true), valid(n, true), has(n){
-		for(auto u = 0; u < n; ++ u) has[u].push_back(u);
+	vector<int> p; // dsu parent
+	vector<list<int>> group; // group[u]: list of elements whose dsu root is u
+	potential_tracker_base(F1 TT, T T_id, F2 Tinv): TT(TT), T_id(T_id), Tinv(Tinv){ }
+	void init(int n){
+		globally_valid = true;
+		valid.assign(n, true);
+		potential.assign(n, T_id);
+		p.assign(n, -1);
+		group.assign(n, {});
+		for(auto u = 0; u < n; ++ u) group[u] = {u};
 	}
 	void add_variable(){
-		dsu.make_set();
 		valid.push_back(true);
-		potential.push_back({});
-		has.push_back({(int)has.size()});
+		potential.push_back(T_id);
+		p.push_back(-1);
+		group.push_back({(int)group.size()});
+	}
+	// dsu root of u
+	int root(int u){
+		ASSERT(0 <= u && u < (int)valid.size());
+		return p[u] < 0 ? u : p[u] = root(p[u]);
+	}
+	// u and v are related iff their difference is uniquely determined from the difference relations given so far
+	bool related(int u, int v){
+		ASSERT(0 <= min(u, v) && max(u, v) < (int)valid.size());
+		return root(u) == root(v);
+	}
+	const list<int> &group_of(int u){
+		ASSERT(0 <= u && u < (int)valid.size());
+		return group[root(u)];
 	}
 	// Declare that value[v] - value[u] = delta
-	void set_difference(int u, int v, T delta){
-		assert(0 <= min(u, v) && max(u, v) < (int)valid.size());
-		if(!dsu.merge(u, v, [&](int x, int y, bool swapped){
-			if(!valid[x] || !valid[y]){
-				valid[x] = false;
-				has[x].splice(has[x].end(), has[y]);
-				return;
-			}
-			delta = swapped ? potential[v] - delta - potential[u] : potential[u] + delta - potential[v];
-			for(auto z: has[y]) potential[z] += delta;
-			has[x].splice(has[x].end(), has[y]);
-		}) && potential[u] + delta != potential[v]) globally_valid = valid[dsu.root(u)] = false;
-	}
-	// u and v is related iff a path
-	bool related(int u, int v){
-		assert(0 <= min(u, v) && max(u, v) < (int)valid.size());
-		return dsu.share(u, v);
+	// Returns whether their component is consistent
+	bool set_difference(int u, int v, T delta){
+		ASSERT(0 <= min(u, v) && max(u, v) < (int)valid.size());
+		int ru = root(u), rv = root(v);
+		if(ru == rv){
+			if(TT(potential[u], delta) != potential[v]) globally_valid = valid[ru] = false;
+			return valid[ru];
+		}
+		bool swapped = false;
+		if(p[ru] > p[rv]) swap(ru, rv), swapped = true;
+		p[ru] += p[rv], p[rv] = ru;
+		if(!valid[ru] || !valid[rv]) valid[ru] = false;
+		else{
+			delta = swapped ? TT(potential[v], Tinv(TT(delta, potential[u]))) : TT(TT(potential[u], delta), Tinv(potential[v]));
+			for(auto w: group[rv]) potential[w] = TT(potential[w], delta);
+		}
+		group[ru].splice(group[ru].end(), group[rv]);
+		return valid[ru];
 	}
 	// If u = -1, returns whether a valid assignment to all variables exists.
 	// Else, returns whether a valid assignment to all variables related to u exists.
 	bool is_valid(int u = -1){
-		assert(-1 <= u && u < (int)valid.size());
-		return ~u ? valid[dsu.root(u)] : globally_valid;
+		ASSERT(-1 <= u && u < (int)valid.size());
+		return ~u ? valid[root(u)] : globally_valid;
 	}
-	// Assume that u and v are related.
-	optional<T> dist(int u, int v){
-		assert(0 <= min(u, v) && max(u, v) < (int)valid.size() && dsu.share(u, v));
-		return valid[dsu.root(u)] ? potential[v] - potential[u] : optional<T>();
+	// Returns value[v] - value[u] assuming it's uniquely determined
+	T difference(int u, int v){
+		ASSERT(related(u, v) && valid[root(u)]);
+		return TT(potential[v], Tinv(potential[u]));
 	}
+#undef ASSERT
 };
+
+template<class T, class F1, class F2>
+auto make_potential_tracker(F1 TT, T T_id, F2 Tinv){
+	return potential_tracker_base<T, F1, F2>(TT, T_id, Tinv);
+}
+template<class T>
+auto make_potential_tracker_sum(T T_id = T{0}){
+	return potential_tracker_base<T, plus<>, negate<>>(plus{}, T_id, negate{});
+}
+template<class T>
+auto make_potential_tracker_xor(T T_id = T{0}){
+	return potential_tracker_base<T, bit_xor<>, identity>(bit_xor{}, T_id, identity{});
+}
 ]]></content>
 	<!-- Optional: Set a tabTrigger to define how to trigger the snippet -->
 	<tabTrigger>potential_tracker</tabTrigger> -->
