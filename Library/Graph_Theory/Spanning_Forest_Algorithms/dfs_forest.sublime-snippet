@@ -136,23 +136,39 @@ struct dfs_forest{
 		ASSERT(visited(u) && visited(v));
 		return pos[u] <= pos[v] && end[v] <= end[u];
 	}
-	vector<int> get_path(int u, int v) const{
+	vector<int> get_vertex_path(int u, int v) const{
 		ASSERT(visited(u) && visited(v));
 		vector<int> left, right;
 		while(u != v){
 			ASSERT(~u && ~v);
-			if(depth[u] >= depth[v]){
-				left.push_back(u);
-				u = pv[u];
-			}
-			else{
-				right.push_back(v);
-				v = pv[v];
-			}
+			if(depth[u] >= depth[v]) left.push_back(u), u = pv[u];
+			else right.push_back(v), v = pv[v];
 		}
-		left.push_back(u);
+		left.push_back(u), left.insert(left.end(), right.rbegin(), right.rend());
+		return left;
+	}
+	vector<int> get_undirected_edge_path(int u, int v) const{
+		ASSERT(visited(u) && visited(v));
+		vector<int> left, right;
+		while(u != v){
+			ASSERT(~u && ~v);
+			if(depth[u] >= depth[v]) left.push_back(pe[u]), u = pv[u];
+			else right.push_back(pe[v]), v = pv[v];
+		}
 		left.insert(left.end(), right.rbegin(), right.rend());
 		return left;
+	}
+	// returns {LCA->u, LCA->v}
+	array<vector<int>, 2> get_directed_edge_path(int u, int v) const{
+		ASSERT(visited(u) && visited(v));
+		vector<int> left, right;
+		while(u != v){
+			ASSERT(~u && ~v);
+			if(depth[u] >= depth[v]) left.push_back(pe[u]), u = pv[u];
+			else right.push_back(pe[v]), v = pv[v];
+		}
+		reverse(left.begin(), left.end()), reverse(right.begin(), right.end());
+		return {left, right};
 	}
 	// if exc = -1, returns the subtree size of u on current root
 	// otherwise, returns the size of tree containing u assuming the edge u-exc has been cut
@@ -164,7 +180,7 @@ struct dfs_forest{
 		ASSERT(pv[u] == exc || pv[exc] == u);
 		return pv[u] == exc ? size[u] : size[root_of[u]] - size[exc];
 	}
-	vector<pair<array<int, 3>, array<int, 2>>> dp;	
+	vector<pair<array<int, 3>, array<int, 2>>> dp;
 	vector<int> get_diameter(int root = 0){
 		ASSERT(visited(root));
 		while(~pv[root]) root = pv[root];
@@ -188,7 +204,7 @@ struct dfs_forest{
 				j += size[v];
 			}
 		}
-		return get_path(dp[root].first[1], dp[root].first[2]);
+		return get_vertex_path(dp[root].first[1], dp[root].first[2]);
 	}
 	// Check if any cycle is found during the last dfs-like call.
 	// If must_contain_root = true, the sought cycle is forced to contain one of the root of the trees.
