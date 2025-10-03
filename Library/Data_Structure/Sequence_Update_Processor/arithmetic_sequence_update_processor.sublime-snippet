@@ -42,7 +42,7 @@ struct arithmetic_sequence_update_processor{
 		data[r] -= start + (r - l) * step;
 		data[r + 1] += start + (r - l - 1) * step;
 	}
-	// Add rev_start + (r - l - 1) * rev_step, rev_start + (r - l - 2) * rev_step, ... on [l, r)
+	// Add ..., rev_start + rev_step * 2, rev_start + rev_step, rev_start on [l, r)
 	// l must be equal or greater than the largest index which query() has been called over if reverse = false
 	// Otherwise, r must be equal or less than the smallest index which query() has been called over plus one
 	// If ALLOW_OUT_OF_RANGE, every update outside of [ptr, n) range will be ignored.
