@@ -154,6 +154,7 @@ struct shallowest_decomposition{
 	vector<vector<int>> step; // step[u][i]: # of edges from u to its i-th decomposition parent, must call init_step() to initialize
 	template<class T>
 	void focus_subdecomposition(const graph<T> &g, int r){
+		assert(0 <= r && r < g.n);
 		spv[r] = spe[r] = -1;
 		sorder.clear();
 		sdepth[r] = 0;
