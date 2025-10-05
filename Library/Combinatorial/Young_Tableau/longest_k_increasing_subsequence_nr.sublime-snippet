@@ -5,14 +5,20 @@
 // Returns a 2d array representing a partition of k-increasing subsequence of maximum length into k increasing subsequences in the given array
 // p must be a permutation
 // O(n * (k * log(n) + r)) where r is the length of the answer
-vector<vector<int>> longest_k_increasing_subsequence_nr(const vector<int> &p, int k){
+template<class Compare = less<>>
+vector<vector<int>> longest_k_increasing_subsequence_nr(const vector<int> &p, int k, Compare cmp = less{}){
+	static_assert((is_same_v<less<>, decltype(cmp)> || is_same_v<greater<>, decltype(cmp)>));
+	assert(1 <= k && k <= (int)p.size());
+	if constexpr(is_same_v<greater<>, decltype(cmp)>){
+		vector<int> p2((int)p.size());
+		for(auto i = 0; i < (int)p.size(); ++ i) p2[i] = (int)p.size() - 1 - p[i];
+		return longest_k_increasing_subsequence_nr(p2, k, less{});
+	}
 	int n = (int)p.size();
-	{ // Check if p is a permutation
-		vector<int> flag(n);
-		for(auto x: p){
-			assert(0 <= x && x < n && !flag[x]);
-			flag[x] = true;
-		}
+	vector<int> pos(n, -1);
+	for(auto i = 0; i < n; ++ i){
+		assert(0 <= p[i] && p[i] < n && !~pos[p[i]]);
+		pos[p[i]] = i;
 	}
 	vector<array<int, 3>> swaps;
 	vector<vector<int>> s;
@@ -52,13 +58,47 @@ vector<vector<int>> longest_k_increasing_subsequence_nr(const vector<int> &p, in
 			next[y] = z, prev[z] = y;
 		}
 	}
-	vector<vector<int>> res(k);
+	vector<vector<int>> partition(k);
 	vector<int> seq(n, -1);
 	for(auto x = 0, it = 0; x < n; ++ x) if(~prev[x]){
 		seq[x] = prev[x] == n ? it ++ : seq[prev[x]];
-		res[seq[x]].push_back(x);
+		partition[seq[x]].push_back(pos[x]);
 	}
-	return res;
+	return partition;
+}
+
+// Returns the indices of a subsequence of p of length subseq_len whose longest increasing subsequence has length exactly k
+template<class Compare = less<>>
+optional<vector<int>> find_a_subsequence_with_LIS_length_k(const vector<int> &p, int subseq_len, int k, Compare cmp = less{}){
+	static_assert((is_same_v<less<>, decltype(cmp)> || is_same_v<greater<>, decltype(cmp)>));
+	assert(1 <= k && k <= subseq_len);
+	vector<vector<int>> partition;
+	if constexpr(is_same_v<less<>, decltype(cmp)>) partition = longest_k_increasing_subsequence_nr(p, k, greater{});
+	else partition = longest_k_increasing_subsequence_nr(p, k, less{});
+	if(partition.back().empty()) return {};
+	vector<int> ind;
+	for(auto part: partition) ind.insert(ind.end(), part.begin(), part.end());
+	int cur_len = (int)ind.size();
+	if(cur_len < subseq_len) return {};
+	ranges::sort(ind);
+	if(cur_len > subseq_len){
+		vector<int> prev((int)ind.size()), active;
+		for(auto i = 0; i < (int)ind.size(); ++ i){
+			auto it = partition_point(active.begin(), active.end(), [&](int j){ return cmp(p[ind[j]], p[ind[i]]); });
+			if(it == active.end()) active.emplace_back(), it = std::prev(active.end());
+			*it = i;
+			prev[i] = it == active.begin() ? -1 : *std::prev(it);
+		}
+		vector<int> in_lis((int)p.size()), res;
+		for(auto len = (int)active.size(), cur = active.back(); len --; ) in_lis[ind[cur]] = true, cur = prev[cur];
+		for(auto i: ind){
+			if(in_lis[i] || cur_len == subseq_len) res.push_back(i);
+			else -- cur_len;
+		}
+		ind = res;
+	}
+	assert((int)ind.size() == subseq_len);
+	return ind;
 }
 ]]></content>
 	<!-- Optional: Set a tabTrigger to define how to trigger the snippet -->
