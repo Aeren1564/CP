@@ -8,6 +8,7 @@ struct centroid_decomposition{
 		assert(n >= 1);
 		this->n = n;
 		root.clear();
+		abr.clear();
 		abr.n = n;
 		abr.adj.resize(n);
 		pv.resize(n, -1);
@@ -29,9 +30,9 @@ struct centroid_decomposition{
 	// g must be a tree
 	// O(n * log(n))
 	template<class T>
-	void _build(const graph<T> &g, const vector<int> &src){
-		assert(g.n <= n);
-		abr.edge.clear();
+	void build(const graph<T> &g, const vector<int> &src){
+		_init(g.n);
+		++ attempt;
 		auto centroid = [&](int s){
 			int u = s, pe = -1;
 			while(true){
@@ -62,7 +63,6 @@ struct centroid_decomposition{
 		auto construct = [&](auto self, int u, int p)->void{
 			dfs_size(dfs_size, u, p);
 			was[u = centroid(u)] = attempt;
-			abr.adj[u].clear();
 			if(~p) abr.orient(p, u);
 			else root.push_back(u);
 			for(auto id: g.adj[u]){
@@ -94,18 +94,10 @@ struct centroid_decomposition{
 		}
 	}
 	template<class T>
-	void build(const graph<T> &g, const vector<int> &src){
-		_init(g.n);
-		++ attempt;
-		_build(g, src);
-	}
-	template<class T>
 	void build_all(const graph<T> &g){
-		_init(g.n);
-		++ attempt;
 		vector<int> src(n);
 		iota(src.begin(), src.end(), 0);
-		_build(g, src);
+		build(g, src);
 	}
 	template<class T>
 	void init_step(const graph<T> &g){
