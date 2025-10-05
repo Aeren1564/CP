@@ -1,6 +1,6 @@
 <snippet>
 	<content><![CDATA[
-template<bool Enable_small_to_large = true, bool Track_group = true>
+template<bool Enable_small_to_large = true, bool Track_group = false>
 struct disjoint_set{
 #ifdef LOCAL
 	#define ASSERT(x) assert(x)
