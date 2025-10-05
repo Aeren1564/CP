@@ -27,7 +27,7 @@ struct centroid_decomposition{
 		ssize.resize(n, -1);
 		sdepth.resize(n, -1);
 	}
-	// g must be a tree
+	// g must be a forest
 	// O(n * log(n))
 	template<class T>
 	void build(const graph<T> &g, const vector<int> &src){
