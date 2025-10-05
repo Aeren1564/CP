@@ -1,0 +1,101 @@
+<snippet>
+	<content><![CDATA[
+template<bool IS_INVERTIBLE, class T, class F, class I>
+struct static_range_query_processor_base{
+#ifdef LOCAL
+	#define ASSERT(x) assert(x);
+#else
+	#define ASSERT(x) 42
+#endif
+	int n;
+	vector<T> prefix_data;
+	vector<T> suffix_data;
+	F TT;
+	T T_id;
+	I Tinv;
+	static_range_query_processor_base(F TT, T T_id, I Tinv): TT(TT), T_id(T_id), Tinv(Tinv){ }
+	static_range_query_processor_base &operator=(const static_range_query_processor_base &srq){
+		n = srq.n;
+		prefix_data = srq.prefix_data;
+		suffix_data = srq.suffix_data;
+		return *this;
+	}
+	// O(n)
+	template<class U>
+	void build(const vector<U> &a){
+		n = (int)a.size();
+		prefix_data.assign(n + 1, T_id);
+		for(auto i = 0; i < n; ++ i) prefix_data[i + 1] = TT(prefix_data[i], a[i]);
+		if constexpr(!IS_INVERTIBLE){
+			suffix_data.assign(n + 1, T_id);
+			for(auto i = n - 1; i >= 0; -- i) suffix_data[i] = TT(a[i], suffix_data[i + 1]);
+		}
+	}
+	// O(n)
+	void build(int n, auto f){
+		ASSERT(0 <= n);
+		vector<T> a(n);
+		for(auto i = 0; i < n; ++ i) a[i] = f(i);
+		build(a);
+	}
+	// O(1)
+	T prefix(int xr) const{
+		ASSERT(0 <= xr && xr <= n);
+		return prefix_data[xr];
+	}
+	// O(1)
+	T suffix(int xl) const{
+		ASSERT(0 <= xl && xl <= n);
+		return IS_INVERTIBLE ? query(xl, n) : suffix_data[xl];
+	}
+	// O(1)
+	T query(int xl, int xr) const{
+		static_assert(IS_INVERTIBLE);
+		ASSERT(0 <= xl && xl <= xr && xr <= n);
+		return TT(Tinv(prefix_data[xl]), prefix_data[xr]);
+	}
+#undef ASSERT
+};
+
+// Can perform arbitrary range query
+template<class T, class F, class I>
+auto make_invertible_static_range_query_processor(F TT, T T_id, I Tinv){
+	return static_range_query_processor_base<true, T, F, I>(TT, T_id, Tinv);
+}
+template<class T>
+auto make_range_sum_query_processor(T T_id = T{0}){
+	return static_range_query_processor_base<true, T, plus<>, negate<>>(plus{}, T_id, negate{});
+}
+template<class T>
+auto make_range_product_query_processor(T T_id = T{1}){
+	auto mul_inv = [](const T &x){ return T{1} / x; };
+	return static_range_query_processor_base<true, T, multiplies<>, decltype(mul_inv)>(multiplies{}, T_id, mul_inv);
+}
+template<class T>
+auto make_range_xor_query_processor(T T_id = T{0}){
+	return static_range_query_processor_base<true, T, bit_xor<>, identity>(bit_xor{}, T_id, identity{});
+}
+// Can perform prefix and suffix query
+template<class T, class F>
+auto make_singular_static_range_query_processor(F TT, T T_id){
+	auto _inv = [&](){ assert(false); };
+	return static_range_query_processor_base<false, T, F, decltype(_inv)>(TT, T_id, _inv);
+}
+template<class T>
+auto make_range_min_query_processor(T T_id = numeric_limits<T>::max() / 2){
+	auto TT = [](const T &x, const T &y){ return min(x, y); };
+	auto _inv = [](){ assert(false); };
+	return static_range_query_processor_base<false, T, decltype(TT), decltype(_inv)>(TT, T_id, _inv);
+}
+template<class T>
+auto make_range_max_query_processor(T T_id = numeric_limits<T>::min() / 2){
+	auto TT = [](const T &x, const T &y){ return max(x, y); };
+	auto _inv = [](){ assert(false); };
+	return static_range_query_processor_base<false, T, decltype(TT), decltype(_inv)>(TT, T_id, _inv);
+}
+]]></content>
+	<!-- Optional: Set a tabTrigger to define how to trigger the snippet -->
+	<tabTrigger>static_range_query_processor</tabTrigger> -->
+	<!-- Optional: Set a scope to limit where the snippet will trigger -->
+	<scope>source.c++</scope> -->
+</snippet>

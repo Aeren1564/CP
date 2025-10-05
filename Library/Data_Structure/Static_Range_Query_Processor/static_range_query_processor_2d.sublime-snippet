@@ -1,0 +1,134 @@
+<snippet>
+	<content><![CDATA[
+template<bool IS_INVERTIBLE, class T, class F, class I>
+struct static_range_query_processor_2d_base{
+#ifdef LOCAL
+	#define ASSERT(x) assert(x);
+#else
+	#define ASSERT(x) 42
+#endif
+	int n, m;
+	array<vector<vector<T>>, 4> data;
+	F TT;   // must be commutative
+	T T_id;
+	I Tinv;
+	static_range_query_processor_2d_base(F TT, T T_id, I Tinv): TT(TT), T_id(T_id), Tinv(Tinv){ }
+	static_range_query_processor_2d_base &operator=(const static_range_query_processor_2d_base &srq){
+		n = srq.n;
+		m = srq.m;
+		data = srq.data;
+		return *this;
+	}
+	// O(n)
+	template<class U>
+	void build(int n, int m, const vector<vector<T>> &a){
+		ASSERT(0 <= n && 0 <= m);
+		this->n = n;
+		this->m = m;
+		ASSERT((int)a.size() == n);
+		for(const auto &row: a) ASSERT((int)row.size() == m);
+		for(auto mask = 0; mask < (IS_INVERTIBLE ? 4 : 1); ++ mask){
+			data[mask].assign(n + 1, vector<T>(m + 1, T_id));
+			int iv = mask >> 1 & 1;
+			int istart = !iv ? 0 : n - 1;
+			int iend = !iv ? n : -1;
+			int istep = !iv ? 1 : -1;
+			int jv = mask & 1;
+			int jstart = !jv ? 0 : m - 1;
+			int jend = !jv ? m : -1;
+			int jstep = !jv ? 1 : -1;
+			for(auto i = 0; i < n; ++ i)
+				for(auto j = 0; j < m; ++ j)
+					data[mask][i + !iv][j + !jv] = a[i][j];
+			for(auto j = 0; j <= m; ++ j)
+				for(auto i = istart; i != iend; i += istep)
+					data[mask][i + !iv][j] = TT(data[mask][i + !iv][j], data[mask][i + iv][j]);
+			for(auto i = 0; i <= n; ++ i)
+				for(auto j = jstart; j != jend; j += jstep)
+					data[mask][i][j + !jv] = TT(data[mask][i][j + !jv], data[mask][i][j + jv]);
+		}
+	}
+	// O(n)
+	void build(int n, int m, auto f){
+		ASSERT(0 <= n && 0 <= m);
+		vector a(n, vector<T>(m));
+		for(auto i = 0; i < n; ++ i) for(auto j = 0; j < m; ++ j) a[i][j] = f(i, j);
+		build(a);
+	}
+	// O(1)
+	T preprefix(int xr, int yr) const{
+		ASSERT(0 <= xr && xr <= n && 0 <= yr && yr <= m);
+		return data[0][xr][yr];
+	}
+	// O(1)
+	T presuffix(int xr, int yl) const{
+		ASSERT(0 <= xr && xr <= n && 0 <= yl && yl <= m);
+		if constexpr(IS_INVERTIBLE) return query(0, xr, yl, m);
+		else return data[1][xr][yl];
+	}
+	// O(1)
+	T sufprefix(int xl, int yr) const{
+		ASSERT(0 <= xl && xl <= n && 0 <= yr && yr <= m);
+		if constexpr(IS_INVERTIBLE) return query(xl, n, 0, yr);
+		else return data[2][xl][yr];
+	}
+	// O(1)
+	T sufsuffix(int xl, int yl) const{
+		ASSERT(0 <= xl && xl <= n && 0 <= yl && yl <= m);
+		if constexpr(IS_INVERTIBLE) return query(xl, n, yl, m);
+		return data[3][xl][yl];
+	}
+	// O(1)
+	T query(int xl, int xr, int yl, int yr) const{
+		static_assert(IS_INVERTIBLE);
+		ASSERT(0 <= xl && xl <= xr && xr <= n && 0 <= yl && yl <= yr && yr <= m);
+		return TT(
+			TT(data[0][xl][yl], Tinv(data[0][xl][yr])),
+			TT(Tinv(data[0][xr][yl]), data[0][xr][yr])
+		);
+	}
+#undef ASSERT
+};
+
+// Can perform arbitrary range query
+template<class T, class F, class I>
+auto make_invertible_static_range_query_processor_2d(F TT, T T_id, I Tinv){
+	return static_range_query_processor_2d_base<true, T, F, I>(TT, T_id, Tinv);
+}
+template<class T>
+auto make_range_sum_query_processor_2d(T T_id = T{0}){
+	return static_range_query_processor_2d_base<true, T, plus<>, negate<>>(plus{}, T_id, negate{});
+}
+template<class T>
+auto make_range_product_query_processor_2d(T T_id = T{1}){
+	auto mul_inv = [](const T &x){ return T{1} / x; };
+	return static_range_query_processor_2d_base<true, T, multiplies<>, decltype(mul_inv)>(multiplies{}, T_id, mul_inv);
+}
+template<class T>
+auto make_range_xor_query_processor_2d(T T_id = T{0}){
+	return static_range_query_processor_2d_base<true, T, bit_xor<>, identity>(bit_xor{}, T_id, identity{});
+}
+// Can perform prefix and suffix query
+template<class T, class F>
+auto make_singular_static_range_query_processor_2d(F TT, T T_id){
+	auto _inv = [&](){ assert(false); };
+	return static_range_query_processor_2d_base<false, T, F, decltype(_inv)>(TT, T_id, _inv);
+}
+template<class T>
+auto make_range_min_query_processor_2d(T T_id = numeric_limits<T>::max() / 2){
+	auto TT = [](const T &x, const T &y){ return min(x, y); };
+	auto _inv = [](){ assert(false); };
+	return static_range_query_processor_2d_base<false, T, decltype(TT), decltype(_inv)>(TT, T_id, _inv);
+}
+template<class T>
+auto make_range_max_query_processor_2d(T T_id = numeric_limits<T>::min() / 2){
+	auto TT = [](const T &x, const T &y){ return max(x, y); };
+	auto _inv = [](){ assert(false); };
+	return static_range_query_processor_2d_base<false, T, decltype(TT), decltype(_inv)>(TT, T_id, _inv);
+}
+]]></content>
+	<!-- Optional: Set a tabTrigger to define how to trigger the snippet -->
+	<tabTrigger>static_range_query_processor_2d</tabTrigger> -->
+	<!-- Optional: Set a scope to limit where the snippet will trigger -->
+	<scope>source.c++</scope> -->
+</snippet>
