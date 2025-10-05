@@ -8,7 +8,7 @@
 // O(repeat) f() calls
 template<class Compare = less<>>
 double golden_section_search(double low, double high, int repeat, auto f, Compare cmp = less<>()){
-	assert(low < high);
+	assert(low <= high);
 	double phi = (sqrt(5) - 1) / 2, mid1 = high - (high - low) * phi, mid2 = low + (high - low) * phi;
 	auto val1 = f(mid1), val2 = f(mid2);
 	while(repeat --){
