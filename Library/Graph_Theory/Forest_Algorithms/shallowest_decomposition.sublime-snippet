@@ -4,19 +4,41 @@
 // Requires graph
 struct shallowest_decomposition{
 	vector<int> was;
-	int attempt;
+	int attempt = -1;
 	vector<int> dp;
 	vector<vector<int>> stack;
+	void _init(int n){
+		assert(n >= 1);
+		this->n = n;
+		root.clear();
+		abr.clear();
+		abr.n = n;
+		abr.adj.resize(n);
+		pv.resize(n, -1);
+		pe.resize(n, -1);
+		order.clear();
+		pos.resize(n, -1);
+		end.resize(n, -1);
+		size.resize(n, -1);
+		depth.resize(n, -1);
+		was.resize(n, -2);
+		dp.resize(n, -1);
+		stack.resize(__lg(n) + 1, {});
+		spv.resize(n, -1);
+		spe.resize(n, -1);
+		sorder.clear();
+		spos.resize(n, -1);
+		send.resize(n, -1);
+		ssize.resize(n, -1);
+		sdepth.resize(n, -1);
+	}
 	// g must be a tree
 	// O(n)
 	template<class T>
 	void build(const graph<T> &g, const vector<int> &src){
-		assert(g.n <= n);
+		_init(g.n);
 		++ attempt;
-		root.clear();
-		order.clear();
 		for(auto &s: stack) s.clear();
-		abr.edge.clear();
 		auto create_chain = [&](int labels, int u)->void{
 			while(labels){
 				int label = __lg(labels);
@@ -30,7 +52,6 @@ struct shallowest_decomposition{
 		auto construct = [&](auto self, int u)->void{
 			was[u] = attempt;
 			dp[u] = 0;
-			abr.adj[u].clear();
 			int seen = 0, seen_twice = 0;
 			for(auto id: g.adj[u]){
 				if(g.ignore && g.ignore(id)) continue;
@@ -83,30 +104,6 @@ struct shallowest_decomposition{
 		iota(src.begin(), src.end(), 0);
 		build(g, src);
 	}
-	void init(int n){
-		assert(n >= 1);
-		this->n = n;
-		root.clear();
-		abr = graph<int>{n};
-		pv.assign(n, -1);
-		pe.assign(n, -1);
-		order.clear();
-		pos.assign(n, -1);
-		end.assign(n, -1);
-		size.assign(n, -1);
-		depth.assign(n, -1);
-		was.assign(n, -2);
-		attempt = -1;
-		dp.assign(n, -1);
-		stack.assign(__lg(n) + 1, {});
-		spv.assign(n, -1);
-		spe.assign(n, -1);
-		sorder.clear();
-		spos.assign(n, -1);
-		send.assign(n, -1);
-		ssize.assign(n, -1);
-		sdepth.assign(n, -1);
-	}
 	template<class T>
 	void init_step(const graph<T> &g){
 		step.assign(g.n, {});
@@ -138,12 +135,10 @@ struct shallowest_decomposition{
 	shallowest_decomposition(){ }
 	template<class T>
 	shallowest_decomposition(const graph<T> &g){
-		init(g.n);
 		build_all(g);
 	}
 	template<class T>
 	shallowest_decomposition(const graph<T> &g, const vector<int> &src){
-		init(g.n);
 		build(g, src);
 	}
 	int n;
