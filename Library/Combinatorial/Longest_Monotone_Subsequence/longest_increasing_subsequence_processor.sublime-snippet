@@ -2,7 +2,7 @@
 	<content><![CDATA[
 // Process the longest subsequence s0, ..., s(k-1) satisfying cmp(s0, s1) && ... && cmp(s(k-2), s(k-1))
 template<class T, class U = int, class Compare = less<>>
-struct longest_monotone_subsequence_processor{
+struct longest_increasing_subsequence_processor{
 	Compare cmp;
 	// less: longest increasing subsequence
 	// less_equal: longest non-decreasing subsequence
@@ -10,18 +10,18 @@ struct longest_monotone_subsequence_processor{
 	// greater_equal: longest non-increasing subsequence
 	int n = 0;
 	vector<T> sequence;
-	vector<int> active; // position of the optimal last element among monotone sequences of length i+1
-	vector<int> prev; // second-to-last element of the longest monotone sequence ending at i, -1 if non exists
-	vector<int> length; // length of the longest monotone subsequence ending at i
-	vector<U> count; // number of the longest monotone subsequences ending at i
+	vector<int> active; // position of the optimal last element among increasing sequences of length i+1
+	vector<int> prev; // second-to-last element of the longest increasing sequence ending at i, -1 if non exists
+	vector<int> length; // length of the longest increasing subsequence ending at i
+	vector<U> count; // number of the longest increasing subsequences ending at i
 	vector<vector<int>> classes = vector<vector<int>>(1); // classes[len]: set of indices i where length[i] = len (in increasing order)
 	vector<int> aux_it = vector<int>(1); // auxiliary position array for counting
 	vector<U> aux_sum = vector<U>{1}; // auxiliary sum array for counting
-	longest_monotone_subsequence_processor(Compare cmp = less<>()){ }
-	longest_monotone_subsequence_processor(const vector<T> &a, Compare cmp = less<>()){
+	longest_increasing_subsequence_processor(Compare cmp = less{}){ }
+	longest_increasing_subsequence_processor(const vector<T> &a, Compare cmp = less{}){
 		insert(a);
 	}
-	longest_monotone_subsequence_processor &operator=(const longest_monotone_subsequence_processor &lms){
+	longest_increasing_subsequence_processor &operator=(const longest_increasing_subsequence_processor &lms){
 		n = lms.n;
 		sequence = lms.sequence;
 		active = lms.active;
@@ -84,7 +84,7 @@ struct longest_monotone_subsequence_processor{
 };
 ]]></content>
 	<!-- Optional: Set a tabTrigger to define how to trigger the snippet -->
-	<tabTrigger>longest_monotone_subsequence_processor</tabTrigger> -->
+	<tabTrigger>longest_increasing_subsequence_processor</tabTrigger> -->
 	<!-- Optional: Set a scope to limit where the snippet will trigger -->
 	<scope>source.c++</scope> -->
 </snippet>

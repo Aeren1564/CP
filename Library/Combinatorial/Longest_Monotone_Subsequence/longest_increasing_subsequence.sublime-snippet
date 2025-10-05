@@ -1,9 +1,9 @@
 <snippet>
 	<content><![CDATA[
-// Returns the indices
+// Returns the indices of a longest increasing subsequence
 // O(n * log(n))
 template<class T, class Compare = less<>>
-vector<int> longest_monotone_subsequence(const vector<T> &a, Compare cmp = less<>()){
+vector<int> longest_increasing_subsequence(const vector<T> &a, Compare cmp = less{}){
 	// less: longest increasing subsequence
 	// less_equal: longest non-decreasing subsequence
 	// greater: longest decreasing subsequence
@@ -24,7 +24,7 @@ vector<int> longest_monotone_subsequence(const vector<T> &a, Compare cmp = less<
 }
 ]]></content>
 	<!-- Optional: Set a tabTrigger to define how to trigger the snippet -->
-	<tabTrigger>longest_monotone_subsequence</tabTrigger> -->
+	<tabTrigger>longest_increasing_subsequence</tabTrigger> -->
 	<!-- Optional: Set a scope to limit where the snippet will trigger -->
 	<scope>source.c++</scope> -->
 </snippet>
