@@ -1,11 +1,11 @@
 <snippet>
 	<content><![CDATA[
 // Returns the indices
-// O(n log^2 n)
+// O(n * log(n)^2)
 template<class T, class U, class CompareT = less<>, class CompareU = less<>>
-vector<int> longest_increasing_bisubsequence(const vector<T> &a, const vector<U> &b, CompareT cmpT = less<>(), CompareU cmpU = less<>()){
+vector<int> longest_increasing_bisubsequence(const vector<T> &a, const vector<U> &b, CompareT cmpT = less{}, CompareU cmpU = less{}){
+	assert((int)a.size() == (int)b.size());
 	int n = (int)a.size();
-	assert((int)b.size() == n);
 	auto cmp = [&](int i, int j)->bool{
 		return cmpT(a[i], a[j]) ? true : cmpT(a[j], a[i]) ? false : cmpU(b[i], b[j]);
 	};
