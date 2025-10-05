@@ -24,7 +24,7 @@ struct grid_bfs_forest{
 	template<class Container, class F = equal_to<>>
 	grid_bfs_forest(const vector<Container> &grid, F propagate = equal_to<>()){ init((int)grid.size(), (int)grid[0].size()); bfs_all(grid, propagate); }
 	template<class Container, class F = equal_to<>>
-	grid_bfs_forest(const vector<Container> &grid, const vector<array<int, 2>> &src, F propagate = equal_to<>()){ init((int)grid.size(), (int)grid[0].size()); bfs(grid, src, propagate); }
+	grid_bfs_forest(const vector<Container> &grid, const vector<array<int, 2>> &src, F propagate = equal_to<>()){ init((int)grid.size(), (int)grid[0].size()); build(grid, src, propagate); }
 	void init(int nr, int nc){
 		ASSERT(1 <= nr && 1 <= nc);
 		init(nr, vector(nr, nc));
@@ -68,7 +68,7 @@ struct grid_bfs_forest{
 	vector<int> q;
 	// O((# of cells reachable from src) * size(dr))
 	template<class Container, class F>
-	void _bfs(const vector<Container> &grid, const vector<int> &src, F propagate){
+	void _build(const vector<Container> &grid, const vector<int> &src, F propagate){
 		q = src;
 		for(auto u: src){
 			ASSERT(_was[u] != attempt);
@@ -99,7 +99,7 @@ struct grid_bfs_forest{
 	}
 	// O((# of cells reachable from src) * size(dr))
 	template<class Container, class F = equal_to<>>
-	void bfs(const vector<Container> &grid, const vector<array<int, 2>> &src, F propagate = equal_to<>()){
+	void build(const vector<Container> &grid, const vector<array<int, 2>> &src, F propagate = equal_to<>()){
 		ASSERT((int)grid.size() <= nr);
 		for(auto x = 0; x < nr; ++ x) ASSERT((int)grid[x].size() <= ncs[x]);
 		root.clear(), order.clear();
@@ -111,18 +111,18 @@ struct grid_bfs_forest{
 			ASSERT(0 <= y && y < (int)grid[x].size());
 			src_index[i] = index[x][y];
 		}
-		_bfs(grid, src_index, propagate);
+		_build(grid, src_index, propagate);
 	}
 	// O(nr * nc * size(dr))
 	template<class Container, class F = equal_to<>>
-	void bfs_all(const vector<Container> &grid, F propagate = equal_to<>()){
+	void build_all(const vector<Container> &grid, F propagate = equal_to<>()){
 		ASSERT((int)grid.size() <= nr);
 		for(auto x = 0; x < nr; ++ x) ASSERT((int)grid[x].size() <= ncs[x]);
 		root.clear(), order.clear();
 		++ attempt;
-		for(auto x = 0; x < (int)grid.size(); ++ x) for(auto y = 0; y < (int)grid[x].size(); ++ y) if(_was[index[x][y]] != attempt) _bfs(grid, {index[x][y]}, propagate);
+		for(auto x = 0; x < (int)grid.size(); ++ x) for(auto y = 0; y < (int)grid[x].size(); ++ y) if(_was[index[x][y]] != attempt) _build(grid, {index[x][y]}, propagate);
 	}
-	// Check if (x, y) is visited during the last bfs-like call.
+	// Check if (x, y) is visited during the last build-like call.
 	bool visited(int x, int y) const{
 		ASSERT(0 <= min(x, y) && x < (int)index.size() && y < (int)index[x].size());
 		return _was[index[x][y]] == attempt;

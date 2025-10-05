@@ -34,7 +34,7 @@ struct bfs_forest{
 	vector<int> q;
 	// O(# of nodes reachable from src)
 	template<class U, class F>
-	void _bfs(const graph<U> &g, const vector<int> &src, F UT, T base_dist){
+	void _build(const graph<U> &g, const vector<int> &src, F UT, T base_dist){
 		q = src;
 		for(auto u: src){
 			assert(was[u] != attempt);
@@ -77,20 +77,20 @@ struct bfs_forest{
 	}
 	// O(# of nodes reachable from src)
 	template<class U, class F = plus<>>
-	void bfs(const graph<U> &g, const vector<int> &src, F UT = plus<>(), T base_dist = T{}){
+	void build(const graph<U> &g, const vector<int> &src, F UT = plus<>(), T base_dist = T{}){
 		init(g.n);
 		for(auto u: src) assert(0 <= u && u < n);
 		++ attempt;
-		_bfs(g, src, UT, base_dist);
+		_build(g, src, UT, base_dist);
 	}
 	// O(n + m)
 	template<class U, class F = plus<>>
-	void bfs_all(const graph<U> &g, F UT = plus<>(), T base_dist = T{}){
+	void build_all(const graph<U> &g, F UT = plus<>(), T base_dist = T{}){
 		init(g.n);
 		++ attempt;
-		for(auto u = 0; u < n; ++ u) if(was[u] != attempt) _bfs(g, {u}, UT, base_dist);
+		for(auto u = 0; u < n; ++ u) if(was[u] != attempt) _build(g, {u}, UT, base_dist);
 	}
-	// Check if u is visited during the last bfs-like call.
+	// Check if u is visited during the last build-like call.
 	bool visited(int u) const{
 		assert(0 <= u && u < n);
 		return was[u] == attempt;

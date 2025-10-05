@@ -56,7 +56,7 @@ struct dfs_forest{
 	int attempt = -1;
 	// O(# of nodes reachable from u)
 	template<class U, class F>
-	void _dfs(const graph<U> &g, int u, F UT, T base_dist){
+	void _build(const graph<U> &g, int u, F UT, T base_dist){
 		depth[u] = 0;
 		pv[u] = pe[u] = -1;
 		if constexpr(level >= 1){
@@ -111,20 +111,20 @@ struct dfs_forest{
 	}
 	// O(# of nodes reachable from src)
 	template<class U, class F = plus<>>
-	void dfs(const graph<U> &g, const vector<int> &src, F UT = plus<>(), T base_dist = T{}){
+	void build(const graph<U> &g, const vector<int> &src, F UT = plus<>(), T base_dist = T{}){
 		init(g.n);
 		++ attempt;
 		for(auto u: src){
 			ASSERT(0 <= u && u < n);
-			if(was[u] != attempt) _dfs(g, u, UT, base_dist);
+			if(was[u] != attempt) _build(g, u, UT, base_dist);
 		}
 	}
 	// O(n + m)
 	template<class U, class F = plus<>>
-	void dfs_all(const graph<U> &g, F UT = plus<>(), T base_dist = T{}){
+	void build_all(const graph<U> &g, F UT = plus<>(), T base_dist = T{}){
 		init(g.n);
 		++ attempt;
-		for(auto u = 0; u < n; ++ u) if(was[u] != attempt) _dfs(g, u, UT, base_dist);
+		for(auto u = 0; u < n; ++ u) if(was[u] != attempt) _build(g, u, UT, base_dist);
 	}
 	// Check if u is visited during the last dfs-like call.
 	bool visited(int u) const{
