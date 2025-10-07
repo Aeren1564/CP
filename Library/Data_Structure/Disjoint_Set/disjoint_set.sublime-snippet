@@ -11,8 +11,12 @@ struct disjoint_set{
 	vector<int> p;
 	vector<list<int>> group;
 	disjoint_set(){ }
-	disjoint_set(int n): n(n), _group_count(n), p(n, -1){
+	disjoint_set(int n){ init(n); }
+	void init(int n){
 		ASSERT(n >= 0);
+		this->n = n;
+		_group_count = n;
+		p.assign(n, -1);
 		if constexpr(Track_group){
 			group.resize(n);
 			for(auto i = 0; i < n; ++ i) group[i] = {i};
@@ -71,11 +75,6 @@ struct disjoint_set{
 		for(auto i = 0; i < n; ++ i) g[root(i)].push_back(i);
 		g.erase(remove_if(g.begin(), g.end(), [&](auto &s){ return s.empty(); }), g.end());
 		return g;
-	}
-	void clear(){
-		_group_count = n;
-		fill(p.begin(), p.end(), -1);
-		if constexpr(Track_group) for(auto i = 0; i < n; ++ i) group[i] = {i};
 	}
 	friend ostream &operator<<(ostream &out, disjoint_set dsu){
 		auto gs = dsu.group_up();
