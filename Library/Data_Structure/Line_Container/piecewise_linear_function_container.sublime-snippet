@@ -153,7 +153,7 @@ struct piecewise_linear_function_container{
 		ASSERT(n >= 0);
 		vector<pair<Key_t, Value_t>> piecewise_line(n);
 		for(auto i = 0; i < n; ++ i) piecewise_line[i] = f(i);
-		add_piecewise_line(piecewise_line);
+		add_piecewise_line(move(piecewise_line));
 	}
 	void add_piecewise_line(piecewise_linear_function_container &container){
 		vector<pair<Key_t, Value_t>> line;
@@ -340,15 +340,15 @@ struct piecewise_linear_function_container{
 		_derivative_recover();
 	}
 	// Split [l, r) into maximal connected piecewise lines
-	vector<vector<pair<Key_t, Value_t>>> to_connected_piecewise_lines(Key_t l, Key_t r) const{
+	vector<vector<pair<Key_t, Value_t>>> to_connected_piecewise_lines(Key_t l, Key_t r){
 		ASSERT(left_boundary <= l && l <= r && r <= right_boundary);
 		vector<vector<pair<Key_t, Value_t>>> connected_piecewise_lines;
 		iterate_all_line_segments(l, r, [&](Key_t l, Key_t r, Value_t value, Value_t slope){
-			if(connected_piecewise_lines.empty() || connected_piecewise_lines.back().back().first != value) connected_piecewise_lines.push_back({{l, value}});
+			if(connected_piecewise_lines.empty() || connected_piecewise_lines.back().back().second != value) connected_piecewise_lines.push_back({{l, value}});
 			connected_piecewise_lines.back().push_back({r, value + slope * (r - l)});
 			return true;
 		});
-		return connected_piecewise_lines;
+		return move(connected_piecewise_lines);
 	}
 	friend ostream &operator<<(ostream &out, const piecewise_linear_function_container &plfc){
 		out << "\n";
