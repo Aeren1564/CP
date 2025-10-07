@@ -1,0 +1,399 @@
+<snippet>
+	<content><![CDATA[
+// Requires skew_heap
+// Keeps track of piecewise linear function over real numbers x with left_boundary <= x < right_boundary
+// Each connected component must be left-closed and right-open
+template<class Key_t, class Value_t>
+struct piecewise_linear_function_container_with_skew_heap{
+#ifdef LOCAL
+	#define ASSERT(x) assert(x)
+#else
+	#define ASSERT(x) 42
+#endif
+	Key_t left_boundary, right_boundary;
+	Value_t initial_value, initial_slope;
+	Key_t offset;
+	skew_heap<pair<Key_t, Value_t>> &heap;
+	// first and second derivative's internal key x represents actual key offset + x
+	int first_derivative = -1, second_derivative = -1;
+	vector<pair<Key_t, Value_t>> first_derivative_log, second_derivative_log;
+	void _update_1(Key_t x, Value_t value_dif){
+		ASSERT(left_boundary <= x && x < right_boundary);
+		if(value_dif == Value_t{0}) return;
+		if(x == left_boundary) initial_value += value_dif;
+		else heap.push(first_derivative, {x - offset, value_dif});
+	}
+	void _update_2(Key_t x, Value_t slope_dif){
+		ASSERT(left_boundary <= x && x < right_boundary);
+		if(slope_dif == Value_t{0}) return;
+		if(x == left_boundary) initial_slope += slope_dif;
+		else heap.push(second_derivative, {x - offset, slope_dif});
+	}
+	template<bool recoverable = true>
+	optional<pair<Key_t, Value_t>> _first_derivative_pop(){
+		while(~first_derivative){
+			auto [k, v] = heap.pop(first_derivative);
+			k += offset;
+			if(k >= right_boundary){
+				heap.clear(first_derivative);
+				return {};
+			}
+			while(~first_derivative && heap.top(first_derivative).first + offset == k) v += heap.pop(first_derivative).second;
+			if(v != Value_t{0}){
+				if constexpr(recoverable) first_derivative_log.push_back({k - offset, v});
+				return pair<Key_t, Value_t>{k, v};
+			}
+		}
+		return {};
+	}
+	template<bool recoverable = true>
+	optional<pair<Key_t, Value_t>> _second_derivative_pop(){
+		while(~second_derivative){
+			auto [k, v] = heap.pop(second_derivative);
+			k += offset;
+			if(k >= right_boundary){
+				heap.clear(second_derivative);
+				return {};
+			}
+			while(~second_derivative && heap.top(second_derivative).first + offset == k) v += heap.pop(second_derivative).second;
+			if(v != Value_t{0}){
+				if constexpr(recoverable) second_derivative_log.push_back({k - offset, v});
+				return pair<Key_t, Value_t>{k, v};
+			}
+		}
+		return {};
+	}
+	void _derivative_recover(){
+		for(auto [k, v]: first_derivative_log) heap.push(first_derivative, {k, v});
+		first_derivative_log.clear();
+		for(auto [k, v]: second_derivative_log) heap.push(second_derivative, {k, v});
+		second_derivative_log.clear();
+	}
+	piecewise_linear_function_container_with_skew_heap(
+		skew_heap<pair<Key_t, Value_t>> &heap,
+		Key_t left_boundary = numeric_limits<Key_t>::min(),
+		Key_t right_boundary = numeric_limits<Key_t>::max(),
+		Value_t initial_value = 0,
+		Value_t initial_slope = 0
+	): heap(heap){ build(left_boundary, right_boundary, initial_value, initial_slope); }
+	void build(
+		Key_t left_boundary = numeric_limits<Key_t>::min(),
+		Key_t right_boundary = numeric_limits<Key_t>::max(),
+		Value_t initial_value = 0,
+		Value_t initial_slope = 0
+	){
+		ASSERT(left_boundary < right_boundary);
+		this->left_boundary = left_boundary;
+		this->right_boundary = right_boundary;
+		this->initial_value = initial_value;
+		this->initial_slope = initial_slope;
+		offset = 0;
+		heap.clear(first_derivative);
+		heap.clear(second_derivative);
+	}
+	// Add value + slope * (x - l) at x for each l <= x < r
+	// O(log(n))
+	void add(Key_t l, Key_t r, Value_t value, Value_t slope){
+		ASSERT(l <= r);
+		r = clamp(r, left_boundary, right_boundary);
+		if(l < left_boundary){
+			value += slope * (left_boundary - l);
+			l = left_boundary;
+		}
+		l = min(l, right_boundary);
+		if(l == r) return;
+		_update_1(l, value);
+		_update_2(l, slope);
+		if(r < right_boundary){
+			_update_1(r, -value - slope * (r - l));
+			_update_2(r, -slope);
+		}
+	}
+	// Add value_reversed + slope_reversed * (r - x) at x for each l <= x < r
+	// O(log(n))
+	void add_reversed(Key_t l, Key_t r, Value_t value_reversed, Value_t slope_reversed){
+		add(l, r, value_reversed + slope_reversed * (r - l), -slope_reversed);
+	}
+	// Add connected piecewise line, left-closed and right-open, connecting the given points in order
+	// O(size(piecewise_line) * log(n))
+	void add_piecewise_line(const vector<pair<Key_t, Value_t>> &line){
+		for(auto i = 0; i + 1 < (int)line.size(); ++ i) ASSERT(line[i].first < line[i + 1].first);
+		if((int)line.size() < 2 || line.back().first <= left_boundary || right_boundary <= line.front().first) return;
+		int head = 0, tail = (int)line.size();
+		while(head + 1 < (int)line.size() && line[head + 1].first <= left_boundary) ++ head;
+		auto fpoint = line[head];
+		if(line[head].first < left_boundary){
+			Value_t slope = (line[head + 1].second - line[head].second) / (line[head + 1].first - line[head].first);
+			fpoint = {left_boundary, line[head].second + slope * (left_boundary - line[head].first)};
+		}
+		while(tail - head >= 2 && line[tail - 2].first >= right_boundary) -- tail;
+		auto bpoint = line[tail - 1];
+		if(line[tail - 1].first > right_boundary){
+			Value_t slope = (line[tail - 2].second - line[tail - 1].second) / (line[tail - 2].first - line[tail - 1].first);
+			bpoint = {right_boundary, line[tail - 1].second + slope * (right_boundary - line[tail - 1].first)};
+		}
+		_update_1(fpoint.first, fpoint.second);
+		Value_t slope = 0;
+		for(auto i = head; i + 1 < tail; ++ i){
+			auto p = i == head ? fpoint : line[i];
+			auto q = i + 1 == tail - 1 ? bpoint : line[i + 1];
+			Value_t next_slope = (q.second - p.second) / (q.first - p.first);
+			_update_2(p.first, next_slope - slope);
+			slope = next_slope;
+		}
+		if(bpoint.first < right_boundary){
+			_update_1(bpoint.first, -bpoint.second);
+			_update_2(bpoint.first, -slope);
+		}
+	}
+	vector<pair<Key_t, Value_t>> _line;
+	// O(size(piecewise_line) * log(n))
+	void add_piecewise_line(int n, auto f){
+		ASSERT(n >= 0);
+		_line.resize(n);
+		for(auto i = 0; i < n; ++ i) _line[i] = f(i);
+		add_piecewise_line(_line);
+	}
+	// Destroys the other container
+	// O(log(n)) if offsets are the same, otherwise O(n)
+	void add_piecewise_line(piecewise_linear_function_container_with_skew_heap &container){
+		ASSERT(&heap == &container.heap);
+		ASSERT(left_boundary == container.left_boundary && right_boundary == container.right_boundary);
+		if(offset != container.offset){
+			// Note that this can be dealt in O(log(n)) with lazy propagation
+			heap.traverse(container.first_derivative, [&](int u){ return heap.node[u].data.first -= offset - container.offset; });
+			heap.traverse(container.first_derivative, [&](int u){ return heap.node[u].data.first -= offset - container.offset; });
+			container.offset = offset;
+		}
+		initial_value += container.initial_value;
+		initial_slope += container.initial_slope;
+		first_derivative = heap.merge(first_derivative, container.first_derivative);
+		second_derivative = heap.merge(second_derivative, container.second_derivative);
+	}
+	// Set left_boundary to new_left_boundary, where left_boundary <= new_left_boundary
+	// O((# of removed segments) * log(n))
+	void set_left_boundary(Key_t new_left_boundary, auto process){
+		ASSERT(left_boundary <= new_left_boundary && new_left_boundary < right_boundary);
+		if(new_left_boundary == left_boundary) return;
+		Key_t pos = left_boundary;
+		Value_t value = initial_value;
+		Value_t slope = initial_slope;
+		while(~second_derivative){
+			auto kv2_ptr = _second_derivative_pop<false>();
+			if(!kv2_ptr || new_left_boundary < kv2_ptr->first){
+				if(kv2_ptr) _update_2(kv2_ptr->first, kv2_ptr->second);
+				break;
+			}
+			while(~first_derivative){
+				auto kv1_ptr = _first_derivative_pop<false>();
+				if(!kv1_ptr || kv2_ptr->first < kv1_ptr->first){
+					if(kv1_ptr) _update_1(kv1_ptr->first, kv1_ptr->second);
+					break;
+				}
+				process(pos, kv1_ptr->first, value, slope);
+				value += kv1_ptr->second + slope * (kv1_ptr->first - pos);
+				pos = kv1_ptr->first;
+			}
+			if(pos < kv2_ptr->first) process(pos, kv2_ptr->first, value, slope);
+			value += slope * (kv2_ptr->first - pos);
+			slope += kv2_ptr->second;
+			pos = kv2_ptr->first;
+		}
+		while(~first_derivative){
+			auto kv1_ptr = _first_derivative_pop<false>();
+			if(!kv1_ptr || new_left_boundary < kv1_ptr->first){
+				if(kv1_ptr) _update_1(kv1_ptr->first, kv1_ptr->second);
+				break;
+			}
+			process(pos, kv1_ptr->first, value, slope);
+			value += kv1_ptr->second + slope * (kv1_ptr->first - pos);
+			pos = kv1_ptr->first;
+		}
+		if(pos < new_left_boundary){
+			process(pos, new_left_boundary, value, slope);
+			value += slope * (new_left_boundary - pos);
+			pos = new_left_boundary;
+		}
+		left_boundary = new_left_boundary;
+		initial_value = value;
+		initial_slope = slope;
+	}
+	// O((# of removed segments) * log(n))
+	void set_left_boundary(Key_t new_left_boundary){
+		set_left_boundary(new_left_boundary, [&](Key_t, Key_t, Value_t, Value_t){  });
+	}
+	// Translate the graph to right by shift_amount, and fill the left side with initial_value + initial_slope * (x - left_boundary)
+	// O(log(n))
+	void push_right(Key_t shift_amount, Value_t initial_value, Value_t initial_slope){
+		ASSERT(shift_amount >= Key_t{0});
+		if(shift_amount == Key_t{0}) return;
+		offset += shift_amount;
+		if(left_boundary + shift_amount < right_boundary){
+			_update_1(left_boundary + shift_amount, this->initial_value);
+			_update_2(left_boundary + shift_amount, this->initial_slope);
+		}
+		this->initial_value = initial_value;
+		this->initial_slope = initial_slope;
+	}
+	// Return {left, right, value, slope} of the leftmost line segment
+	// O(log(n))
+	tuple<Key_t, Key_t, Value_t, Value_t> eval_left_line_segment(){
+		Key_t right = right_boundary;
+		auto kv1_ptr = _first_derivative_pop<false>();
+		auto kv2_ptr = _second_derivative_pop<false>();
+		if(kv1_ptr && (!kv2_ptr || kv1_ptr->first <= kv2_ptr->first)) right = kv1_ptr->first;
+		else if(kv2_ptr) right = kv2_ptr->first;
+		if(kv1_ptr) _update_1(kv1_ptr->first, kv1_ptr->second);
+		if(kv2_ptr) _update_2(kv2_ptr->first, kv2_ptr->second);
+		return {left_boundary, right, initial_value, initial_slope};
+	}
+	// Split [l, r) into maximal intervals [p_0=l, p_1), [p_1, p_2), ..., [p_{k-2}, p_{k-1}=r)
+	// such that p_i < p_{i+1} and [p_i, p_{i+1}) is a line segment
+	// Call process_while(p_i, p_{i+1}, value at p_i, slope) for each such intervals in increasing order of i
+	// O((# of segments <= r) * log((# of segments <= r)))
+	void iterate_all_line_segments(Key_t l, Key_t r, auto process_while){
+		ASSERT(left_boundary <= l && l <= r && r <= right_boundary);
+		if(l == r) return;
+		Key_t pos = left_boundary;
+		Value_t value = initial_value;
+		Value_t slope = initial_slope;
+		while(~second_derivative){
+			auto kv2_ptr = _second_derivative_pop();
+			if(!kv2_ptr || l < kv2_ptr->first){
+				if(kv2_ptr){
+					_update_2(kv2_ptr->first, kv2_ptr->second);
+					second_derivative_log.pop_back();
+				}
+				break;
+			}
+			while(~first_derivative){
+				auto kv1_ptr = _first_derivative_pop();
+				if(!kv1_ptr || kv2_ptr->first < kv1_ptr->first){
+					if(kv1_ptr){
+						_update_1(kv1_ptr->first, kv1_ptr->second);
+						first_derivative_log.pop_back();
+					}
+					break;
+				}
+				value += kv1_ptr->second;
+			}
+			value += slope * (kv2_ptr->first - pos);
+			slope += kv2_ptr->second;
+			pos = kv2_ptr->first;
+		}
+		while(~first_derivative){
+			auto kv1_ptr = _first_derivative_pop();
+			if(!kv1_ptr || l < kv1_ptr->first){
+				if(kv1_ptr){
+					_update_1(kv1_ptr->first, kv1_ptr->second);
+					first_derivative_log.pop_back();
+				}
+				break;
+			}
+			value += kv1_ptr->second;
+		}
+		value += slope * (l - pos);
+		pos = l;
+		while(~second_derivative){
+			auto kv2_ptr = _second_derivative_pop();
+			if(!kv2_ptr || r <= kv2_ptr->first){
+				if(kv2_ptr){
+					_update_2(kv2_ptr->first, kv2_ptr->second);
+					second_derivative_log.pop_back();
+				}
+				break;
+			}
+			while(~first_derivative){
+				auto kv1_ptr = _first_derivative_pop();
+				if(!kv1_ptr || kv2_ptr->first < kv1_ptr->first){
+					if(kv1_ptr){
+						_update_1(kv1_ptr->first, kv1_ptr->second);
+						first_derivative_log.pop_back();
+					}
+					break;
+				}
+				if(!process_while(pos, kv1_ptr->first, value, slope)){
+					_derivative_recover();
+					return;
+				}
+				value += kv1_ptr->second + slope * (kv1_ptr->first - pos);
+				pos = kv1_ptr->first;
+			}
+			if(pos < kv2_ptr->first && !process_while(pos, kv2_ptr->first, value, slope)){
+				_derivative_recover();
+				return;
+			}
+			value += slope * (kv2_ptr->first - pos);
+			slope += kv2_ptr->second;
+			pos = kv2_ptr->first;
+		}
+		while(~first_derivative){
+			auto kv1_ptr = _first_derivative_pop();
+			if(!kv1_ptr || l < kv1_ptr->first){
+				if(kv1_ptr){
+					_update_1(kv1_ptr->first, kv1_ptr->second);
+					first_derivative_log.pop_back();
+				}
+				break;
+			}
+			if(!process_while(pos, kv1_ptr->first, value, slope)){
+				_derivative_recover();
+				return;
+			}
+			value += kv1_ptr->second + slope * (kv1_ptr->first - pos);
+			pos = kv1_ptr->first;
+		}
+		process_while(pos, r, value, slope);
+		_derivative_recover();
+	}
+	// Split [l, r) into maximal connected piecewise lines
+	// O((# of segments <= r) * log((# of segments <= r)))
+	vector<vector<pair<Key_t, Value_t>>> to_connected_piecewise_lines(Key_t l, Key_t r){
+		ASSERT(left_boundary <= l && l <= r && r <= right_boundary);
+		vector<vector<pair<Key_t, Value_t>>> connected_piecewise_lines;
+		iterate_all_line_segments(l, r, [&](Key_t l, Key_t r, Value_t value, Value_t slope){
+			if(connected_piecewise_lines.empty() || connected_piecewise_lines.back().back().second != value) connected_piecewise_lines.push_back({{l, value}});
+			connected_piecewise_lines.back().push_back({r, value + slope * (r - l)});
+			return true;
+		});
+		return connected_piecewise_lines;
+	}
+	friend ostream &operator<<(ostream &out, const piecewise_linear_function_container_with_skew_heap &plfc){
+		out << "\n";
+		bool first = true;
+		bool from_found = false;
+		Key_t from = plfc.left_boundary;
+		Key_t to = plfc.left_boundary;
+		plfc.iterate_all_line_segments(plfc.left_boundary, plfc.right_boundary, [&](Key_t l, Key_t r, Value_t value, Value_t slope){
+			if(first) out << "(" << l << ", " << value << ")", first = false;
+			out << "<" << slope << ">(" << r << ", " << value + slope * (r - l) << ")";
+			if(value || slope){
+				if(!from_found){
+					from_found = true;
+					from = l;
+				}
+				to = r;
+			}
+			return true;
+		});
+		out << "\n";
+		vector<Value_t> a(to - from + 1);
+		plfc.iterate_all_line_segments(plfc.left_boundary, plfc.right_boundary, [&](Key_t l, Key_t r, Value_t value, Value_t slope){
+			if(from <= l && r <= to) for(auto i = l; i <= r; ++ i) a[i - from] = value + slope * (i - l);
+			return true;
+		});
+		out << "[" << from << " ~ " << to << "]: {";
+		for(auto i = 0; i <= to - from; ++ i){
+			out << a[i];
+			if(i + 1 <= to - from) out << ", ";
+		}
+		return out << "}";
+	}
+#undef ASSERT
+};
+]]></content>
+	<!-- Optional: Set a tabTrigger to define how to trigger the snippet -->
+	<tabTrigger>piecewise_linear_function_container_with_skew_heap</tabTrigger> -->
+	<!-- Optional: Set a scope to limit where the snippet will trigger -->
+	<scope>source.c++</scope> -->
+</snippet>
