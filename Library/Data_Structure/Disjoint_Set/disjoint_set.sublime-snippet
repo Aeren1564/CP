@@ -11,8 +11,8 @@ struct disjoint_set{
 	vector<int> p;
 	vector<list<int>> group;
 	disjoint_set(){ }
-	disjoint_set(int n){ init(n); }
-	void init(int n){
+	disjoint_set(int n){ build(n); }
+	void build(int n){
 		ASSERT(n >= 0);
 		this->n = n;
 		_group_count = n;
