@@ -1,0 +1,107 @@
+<snippet>
+	<content><![CDATA[
+// https://en.wikipedia.org/wiki/Skew_heap
+template<class T, class Compare = less<>>
+struct skew_heap{
+#ifdef LOCAL
+	#define ASSERT(x) assert(x)
+#else
+	#define ASSERT(x) 42
+#endif
+	struct node_t{
+		T data;
+		int size, left, right;
+	};
+	vector<node_t> node;
+	Compare cmp;
+	skew_heap(Compare cmp = less{}): cmp(cmp){ }
+	vector<int> dead_node;
+	int new_node(T x){
+		if(!dead_node.empty()){
+			int u = dead_node.back();
+			dead_node.pop_back();
+			node[u] = {x, 1, -1, -1};
+			return u;
+		}
+		else{
+			node.push_back({x, 1, -1, -1});
+			return (int)node.size() - 1;
+		}
+	}
+	int size(int u) const{
+		ASSERT(-1 <= u && u < (int)node.size());
+		return ~u ? node[u].size : 0;
+	}
+	int merge(int u, int v){
+		ASSERT(-1 <= min(u, v) && max(u, v) < (int)node.size());
+		if(!~u || !~v) return ~u ? u : v;
+		if(cmp(node[v].data, node[u].data)) swap(u, v);
+		swap(node[u].left, node[u].right);
+		node[u].left = merge(node[u].left, v);
+		node[u].size = size(node[u].left) + size(node[u].right);
+		return u;
+	}
+	template<class V>
+	int build(const vector<V> &a){
+		int root = -1;
+		for(auto x: a) root = merge(root, new_node(x));
+		return root;
+	}
+	int build(int n, auto f){
+		ASSERT(n >= 0);
+		vector<T> a(n);
+		for(auto i = 0; i < n; ++ i) a[i] = f(i);
+		return build(a);
+	}
+	void push(int &u, T x){
+		ASSERT(-1 <= u && u < (int)node.size());
+		u = merge(u, new_node(x));
+	}
+	// Get the minimum value in u's subtree with respect to cmp
+	const T &top(int u) const{
+		ASSERT(0 <= u && u < (int)node.size());
+		return node[u].data;
+	}
+	// Pop the minimum value x in u's subtree, change u to new root, and returns x
+	T pop(int &u){
+		T x = node[u].data;
+		dead_node.push_back(u);
+		u = merge(node[u].left, node[u].right);
+		return x;
+	}
+	void traverse(int u, auto f){
+		ASSERT(-1 <= u && u < (int)node.size());
+		if(!~u) return;
+		debug("traversing", u, node[u].left, node[u].right);
+		f(u);
+		traverse(node[u].left, f);
+		traverse(node[u].right, f);
+	}
+	void clear(int &u){
+		ASSERT(-1 <= u && u < (int)node.size());
+		traverse(u, [&](int u){ dead_node.push_back(u); });
+		u = -1;
+	}
+	template<class ostream>
+	ostream &print(ostream &out, int u){
+		ASSERT(-1 <= u && u < (int)node.size());
+#ifdef LOCAL
+		vector<T> data;
+		traverse(u, [&](int u){ data.push_back(node[u].data); });
+		out << "{";
+		for(auto i = 0; i < (int)data.size(); ++ i){
+			out << data[i];
+			if(i + 1 < (int)data.size()) out << ", ";
+		}
+		out << "}\n";
+#endif
+		return out;
+	}
+#undef ASSERT
+};
+]]></content>
+	<!-- Optional: Set a tabTrigger to define how to trigger the snippet -->
+	<tabTrigger>skew_heap</tabTrigger> -->
+	<!-- Optional: Set a scope to limit where the snippet will trigger -->
+	<scope>source.c++</scope> -->
+</snippet>
