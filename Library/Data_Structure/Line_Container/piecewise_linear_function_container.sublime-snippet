@@ -161,6 +161,7 @@ struct piecewise_linear_function_container{
 	}
 	// O(size(container) * log(n))
 	void add_piecewise_line(piecewise_linear_function_container &container){
+		ASSERT(left_boundary == container.left_boundary && right_boundary == container.right_boundary);
 		_line.clear();
 		container.iterate_all_line_segments(left_boundary, right_boundary, [&](Key_t l, Key_t r, Value_t value, Value_t slope){
 			if(!_line.empty() && _line.back().second != value){
