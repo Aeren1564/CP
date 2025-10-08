@@ -136,11 +136,13 @@ T doubled_signed_area(const vector<point<T>> &a){
 	for(auto i = 1; i < (int)a.size(); ++ i) res += a[i - 1] ^ a[i];
 	return res;
 }
+// Returns the angle of p->O->q
 // [-pi, pi]
 template<class T>
 double angle(const point<T> &p, const point<T> &q){
 	return atan2(p ^ q, p * q);
 }
+// Returns the angle of p->O->q
 // [-pi, pi]
 template<class T>
 long double angle_l(const point<T> &p, const point<T> &q){
