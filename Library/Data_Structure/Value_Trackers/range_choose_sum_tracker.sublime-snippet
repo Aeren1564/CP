@@ -2,6 +2,11 @@
 	<content><![CDATA[
 template<class T, bool PRECALC_INVERSE, bool HAS_NONTRIVIAL_DEG, bool HAS_NONTRIVIAL_BASE>
 struct range_choose_sum_tracker{
+#ifdef LOCAL
+	#define ASSERT(x) assert(x)
+#else
+	#define ASSERT(x) 42
+#endif
 	int n, deg, th;
 	T base, inv_base;
 	vector<vector<T>> power;
@@ -9,7 +14,7 @@ struct range_choose_sum_tracker{
 	// Every number from 1 to n along with base + 1 must be invertible.
 	// O((n + deg) * deg)
 	range_choose_sum_tracker(int n, T base, int deg){
-		assert(n >= 0 && deg >= 0);
+		ASSERT(n >= 0 && deg >= 0);
 		this->n = n;
 		this->deg = deg;
 		this->base = base;
@@ -30,7 +35,7 @@ struct range_choose_sum_tracker{
 	}
 	vector<T> fact, invfact;
 	T _choose(int m, int i) const{
-		assert(0 <= m && m <= th);
+		ASSERT(0 <= m && m <= th);
 		if(i < 0 || m < i) return T{0};
 		if constexpr(PRECALC_INVERSE) return fact[m] * invfact[i] * invfact[m - i];
 		else return fact[m] / fact[i] / fact[m - i];
@@ -53,7 +58,7 @@ struct range_choose_sum_tracker{
 	}
 	// O((deg + 1)^2)
 	void _increase_m(){
-		assert(m < n);
+		ASSERT(m < n);
 		if(l < r){
 			if constexpr(HAS_NONTRIVIAL_DEG) for(auto i = deg; i >= 1; -- i){
 				T res = 0;
@@ -82,7 +87,7 @@ struct range_choose_sum_tracker{
 	}
 	// O((deg + 1)^2)
 	void _decrease_m(){
-		assert(m >= 1);
+		ASSERT(m >= 1);
 		if(l < r){
 			{
 				T res = value[0];
@@ -113,7 +118,7 @@ struct range_choose_sum_tracker{
 	}
 	// O(deg + 1)
 	void _increase_l(){
-		assert(l < r);
+		ASSERT(l < r);
 		if(0 <= l && l <= th){
 			UPDATE0(value[0], -=, l, m, l);
 			if constexpr(HAS_NONTRIVIAL_DEG) for(auto i = 1; i <= deg; ++ i){
@@ -144,7 +149,7 @@ struct range_choose_sum_tracker{
 	}
 	// O(deg + 1)
 	void _decrease_r(){
-		assert(l < r);
+		ASSERT(l < r);
 		-- r;
 		if(0 <= r && r <= th){
 			UPDATE0(value[0], -=, r, m, r);
@@ -155,8 +160,8 @@ struct range_choose_sum_tracker{
 	}
 	// O((deg + 1)^2 * abs(m - qm) + (deg + 1) * (abs(l - ql) + abs(r - qr)))
 	const vector<T> &query(int qm, int ql, int qr){
-		assert(0 <= qm && qm <= n);
-		assert(ql <= qr);
+		ASSERT(0 <= qm && qm <= n);
+		ASSERT(ql <= qr);
 		while(m < qm) _increase_m();
 		while(m > qm) _decrease_m();
 		while(ql < l) _decrease_l();
@@ -167,23 +172,24 @@ struct range_choose_sum_tracker{
 	}
 #undef UPDATE0
 #undef UPDATE
+#undef ASSERT
 };
-// query(qm, ql, qr) returns \sum_{ql <= i < qr} Choose(qm,i)
+// query(qm, ql, qr) returns \sum_{ql <= i < qr} Choose(qm,i), where qm <= n
 template<class T, bool PRECALC_INVERSE = true>
 auto make_simple_range_choose_sum_tracker(int n){
 	return range_choose_sum_tracker<T, PRECALC_INVERSE, false, false>(n, 1, 0);
 }
-// query(qm, ql, qr) returns \sum_{ql <= i < qr} base^i * Choose(qm,i)
+// query(qm, ql, qr) returns \sum_{ql <= i < qr} base^i * Choose(qm,i), where qm <= n
 template<class T, bool PRECALC_INVERSE = true>
 auto make_range_choose_sum_tracker_with_base(int n, T base){
 	return range_choose_sum_tracker<T, PRECALC_INVERSE, true, false>(n, base, 0);
 }
-// query(qm, ql, qr) returns \sum_{ql <= i < qr} i^j * Choose(qm,i) for all integer 0 <= j <= deg
+// query(qm, ql, qr) returns \sum_{ql <= i < qr} i^j * Choose(qm,i) for all integer 0 <= j <= deg, where qm <= n
 template<class T, bool PRECALC_INVERSE = true>
 auto make_range_choose_sum_tracker_with_power(int n, int deg){
 	return range_choose_sum_tracker<T, PRECALC_INVERSE, false, true>(n, 1, deg);
 }
-// query(qm, ql, qr) returns \sum_{ql <= i < qr} i^j * base^i * Choose(qm,i) for all integer 0 <= j <= deg
+// query(qm, ql, qr) returns \sum_{ql <= i < qr} i^j * base^i * Choose(qm,i) for all integer 0 <= j <= deg, where qm <= n
 template<class T, bool PRECALC_INVERSE = true>
 auto make_range_choose_sum_tracker(int n, T base, int deg){
 	return range_choose_sum_tracker<T, PRECALC_INVERSE, true, true>(n, base, deg);
