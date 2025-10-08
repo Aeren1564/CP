@@ -1,0 +1,112 @@
+<snippet>
+	<content><![CDATA[
+// Seems to be faster than spfa version?
+template<class T, class F1, class F2, class F3, class F4, class F5, class F6, class Compare>
+struct matroid_intersection_weighted_bellman_ford_base{
+	static_assert(is_same_v<Compare, less<>> || is_same_v<Compare, greater<>>);
+	int n; // # of items
+	vector<int> used; // boolean array of whether each item is in the current independent set I
+	vector<pair<T, int>> dist;
+	vector<tuple<int, int, T>> edge;
+	vector<int> pv;
+	// 1st matroid
+	F1 check1;  // check1(int i): check if (I U {i}) is still independent
+	F2 insert1; // insert1(int i): set I <- I U {i}, only gets called when the result is independent
+	F3 clear1;  // clear1(): set I <- \emptyset
+	// 2nd matroid
+	F4 check2;  // check1(int i): check if (I U {i}) is still independent
+	F5 insert2; // insert1(int i): set I <- I U {i}, only gets called when the result is independent
+	F6 clear2;  // clear1(): set I <- \emptyset
+	Compare cmp;
+	matroid_intersection_weighted_bellman_ford_base(F1 check1, F2 insert1, F3 clear1, F4 check2, F5 insert2, F6 clear2, Compare cmp): check1(check1), insert1(insert1), clear1(clear1), check2(check2), insert2(insert2), clear2(clear2), cmp(cmp){ }
+	// type 0: always augment if possible
+	// type 1: only augment when cost decreases
+	template<bool type>
+	bool augment(const vector<T> &cost){
+		if(is_same_v<Compare, less<>>) fill(dist.begin(), dist.end(), pair<T, int>{numeric_limits<T>::max() / 2, 0});
+		else fill(dist.begin(), dist.end(), pair<T, int>{numeric_limits<T>::min() / 2, 0});
+		edge.clear();
+		fill(pv.begin(), pv.end(), -1);
+		clear1(), clear2();
+		for(auto u = 0; u < n; ++ u) if(used[u]) insert1(u), insert2(u);
+		for(auto u = 0; u < n; ++ u) if(!used[u]){
+			if(check1(u)) dist[pv[u] = u] = {cost[u], 0};
+			if(check2(u)) edge.emplace_back(u, n, 0);
+		}
+		for(auto u = 0; u < n; ++ u) if(used[u]){
+			clear1(), clear2();
+			for(auto v = 0; v < n; ++ v) if(u != v && used[v]) insert1(v), insert2(v);
+			for(auto v = 0; v < n; ++ v) if(!used[v]){
+				if(check1(v)) edge.push_back({u, v, cost[v]});
+				if(check2(v)) edge.push_back({v, u, -cost[u]});
+			}
+		}
+		for(auto changed = true; changed; ){
+			changed = false;
+			for(auto [u, v, w]: edge){
+				pair<T, int> dist_next{dist[u].first + w, dist[u].second + 1};
+				if(~pv[u] && (cmp(dist_next.first, dist[v].first) || !cmp(dist[v].first, dist_next.first) && dist_next.second < dist[v].second)){
+					dist[v] = dist_next;
+					pv[v] = u;
+					changed = true;
+				}
+			}
+		}
+		if(!~pv[n] || type && !cmp(dist[n].first, 0)) return false;
+		for(auto u = pv[n]; ; u = pv[u]){
+			used[u] ^= 1;
+			if(pv[u] == u) break;
+		}
+		return true;
+	}
+	void _init(int n){
+		this->n = n;
+		used.resize(n);
+		dist.resize(n + 1);
+		pv.resize(n + 1);
+	}
+	/*
+	-----------------------------------------
+	| # of member function calls where      |
+	| r is the size of the answer and       |
+	| N is the size of the ground set       |
+	-----------------------------------------
+	| Function  | 1st Matroid | 2nd Matroid |
+	-----------------------------------------
+	| insert()  | O(r^3)      | O(r^2 * n)  |
+	| check()   | O(r^2 * n)  | O(r^2 * n)  |
+	| clear()   | O(r^2)      | O(r * n)    |
+	-----------------------------------------
+	*/
+	pair<vector<int>, T> minimum_cost_maximum_common_independent_set(const vector<T> &cost){
+		_init((int)cost.size());
+		fill(used.begin(), used.end(), false);
+		while(augment<0>(cost));
+		T min_cost = 0;
+		vector<int> res;
+		for(auto u = 0; u < n; ++ u) if(used[u]) res.push_back(u), min_cost += cost[u];
+		return {res, min_cost};
+	}
+	pair<vector<int>, T> minimum_cost_independent_set(const vector<T> &cost){
+		_init((int)cost.size());
+		fill(used.begin(), used.end(), false);
+		while(augment<1>(cost));
+		T min_cost = 0;
+		vector<int> res;
+		for(auto u = 0; u < n; ++ u) if(used[u]) res.push_back(u), min_cost += cost[u];
+		return {res, min_cost};
+	}
+};
+
+// Minimizes total cost by default
+// Set cmp = greater{} to maximize cost
+template<class T, class F1, class F2, class F3, class F4, class F5, class F6, class Compare = less<>>
+auto make_matroid_intersection_weighted_bellman_ford(F1 check1, F2 insert1, F3 clear1, F4 check2, F5 insert2, F6 clear2, Compare cmp = less{}){
+	return matroid_intersection_weighted_bellman_ford_base<T, F1, F2, F3, F4, F5, F6, Compare>(check1, insert1, clear1, check2, insert2, clear2, cmp);
+}
+]]></content>
+	<!-- Optional: Set a tabTrigger to define how to trigger the snippet -->
+	<tabTrigger>matroid_intersection_weighted_bellman_ford</tabTrigger> -->
+	<!-- Optional: Set a scope to limit where the snippet will trigger -->
+	<scope>source.c++</scope> -->
+</snippet>

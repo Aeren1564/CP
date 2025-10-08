@@ -1,0 +1,41 @@
+<snippet>
+	<content><![CDATA[
+// Set of elements S is independent if and only if the edges defined by ground_set[i] for i \in S does not contain a cycle over the graph on n vertices 0, 1, ..., n-1
+// p will act as the internal state, pass any vector
+auto make_graphic_matroid(const vector<array<int, 2>> &ground_set, int n, vector<int> &p){
+	assert(n >= 0);
+	p.resize(n);
+	for(auto [u, v]: ground_set) assert(0 <= min(u, v) && max(u, v) < n);
+	auto check = [&](int i)->bool{
+		auto [u, v] = ground_set[i];
+		int ru = u, pu;
+		while(p[ru] >= 0) ru = p[ru];
+		if(u != ru) while(p[u] != ru) pu = p[u], p[u] = ru, u = pu;
+		int rv = v, pv;
+		while(p[rv] >= 0) rv = p[rv];
+		if(v != rv) while(p[v] != rv) pv = p[v], p[v] = rv, v = pv;
+		return ru != rv;
+	};
+	auto insert = [&](int i)->void{
+		auto [u, v] = ground_set[i];
+		int ru = u, pu;
+		while(p[ru] >= 0) ru = p[ru];
+		if(u != ru) while(p[u] != ru) pu = p[u], p[u] = ru, u = pu;
+		int rv = v, pv;
+		while(p[rv] >= 0) rv = p[rv];
+		if(v != rv) while(p[v] != rv) pv = p[v], p[v] = rv, v = pv;
+		if(p[ru] > p[rv]) swap(ru, rv);
+		p[ru] += p[rv];
+		p[rv] = ru;
+	};
+	auto clear = [&]()->void{
+		fill(p.begin(), p.end(), -1);
+	};
+	return tuple{check, insert, clear};
+}
+]]></content>
+	<!-- Optional: Set a tabTrigger to define how to trigger the snippet -->
+	<tabTrigger>graphic_matroid</tabTrigger> -->
+	<!-- Optional: Set a scope to limit where the snippet will trigger -->
+	<scope>source.c++</scope> -->
+</snippet>

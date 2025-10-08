@@ -1,0 +1,23 @@
+<snippet>
+	<content><![CDATA[
+// Set of elements S is independent if and only if # of i \in S with ground_set[i] == x is <= limit[x] for each x
+// rem will act as the internal state, pass any vector
+auto make_partition_matroid(const vector<int> &ground_set, const vector<int> &limit, vector<int> &rem){
+	for(auto x: ground_set) assert(0 <= x && x < (int)limit.size());
+	auto check = [&](int i)->bool{
+		return rem[ground_set[i]] > 0;
+	};
+	auto insert = [&](int i)->void{
+		-- rem[ground_set[i]];
+	};
+	auto clear = [&]()->void{
+		rem = limit;
+	};
+	return tuple{check, insert, clear};
+}
+]]></content>
+	<!-- Optional: Set a tabTrigger to define how to trigger the snippet -->
+	<tabTrigger>partition_matroid</tabTrigger> -->
+	<!-- Optional: Set a scope to limit where the snippet will trigger -->
+	<scope>source.c++</scope> -->
+</snippet>

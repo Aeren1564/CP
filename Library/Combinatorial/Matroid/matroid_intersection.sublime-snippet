@@ -1,82 +1,93 @@
 <snippet>
 	<content><![CDATA[
-// Requires matroid
-struct matroid_intersection{
+template<class F1, class F2, class F3, class F4, class F5, class F6>
+struct matroid_intersection_base{
 	int n;
-	vector<int> state;
-	matroid_intersection(int n): n(n), state(n), pv(n), q(n + 1){ }
+	vector<int> used;
 	vector<int> pv, q;
-	template<class M1, class M2>
-	bool augment(M1 &m1, M2 &m2){
+	// 1st matroid
+	F1 check1;  // check1(int i): check if (I U {i}) is still independent
+	F2 insert1; // insert1(int i): set I <- I U {i}, only gets called when the result is independent
+	F3 clear1;  // clear1(): set I <- \emptyset
+	// 2nd matroid
+	F4 check2;  // check1(int i): check if (I U {i}) is still independent
+	F5 insert2; // insert1(int i): set I <- I U {i}, only gets called when the result is independent
+	F6 clear2;  // clear1(): set I <- \emptyset
+	matroid_intersection_base(F1 check1, F2 insert1, F3 clear1, F4 check2, F5 insert2, F6 clear2): check1(check1), insert1(insert1), clear1(clear1), check2(check2), insert2(insert2), clear2(clear2){ }
+	bool augment(){
 		fill(pv.begin(), pv.end(), -1);
-		int beg = 0, end = 0;
-		q[end ++] = n;
+		int qend = 0;
+		q[qend ++] = n;
 		auto forward_edge = [&](int u){
 			vector<int> res;
-			m1.clear();
-			for(auto v = 0; v < n; ++ v) if(state[v] && v != u) m1.insert(v);
-			for(auto v = 0; v < n; ++ v) if(!state[v] && !~pv[v] && m1.check(v)){
+			clear1();
+			for(auto v = 0; v < n; ++ v) if(used[v] && v != u) insert1(v);
+			for(auto v = 0; v < n; ++ v) if(!used[v] && !~pv[v] && check1(v)){
 				res.push_back(v);
 				pv[v] = u;
 			}
 			return res;
 		};
 		auto backward_edge = [&](int u){
-			m2.clear();
-			for(auto rep = 0; rep < 2; ++ rep) for(auto v = 0; v < n; ++ v) if((v == u || state[v]) && !~pv[v] == rep){
-				if(!m2.check(v)){
+			clear2();
+			for(auto rep = 0; rep < 2; ++ rep) for(auto v = 0; v < n; ++ v) if((v == u || used[v]) && !~pv[v] == rep){
+				if(!check2(v)){
 					if(rep){
-						q[end ++] = v;
+						q[qend ++] = v;
 						pv[v] = u;
 						return v;
 					}
 					else return -1;
 				}
-				m2.insert(v);
+				insert2(v);
 			}
 			return n;
 		};
-		while(beg < end){
-			int u = q[beg ++], v;
-			for(auto w: forward_edge(u)) while((v = backward_edge(w)) >= 0) if(v == n){
-				while(w != n){
-					state[w] ^= 1;
-					w = pv[w];
-				}
+		for(auto qbeg = 0; qbeg < qend; ++ qbeg){
+			int u = q[qbeg], v;
+			for(auto w: forward_edge(u)) while(~(v = backward_edge(w))) if(v == n){
+				for(; w != n; w = pv[w]) used[w] ^= 1;
 				return true;
 			}
 		}
 		return false;
 	}
+	void _init(int n){
+		this->n = n;
+		used.resize(n);
+		pv.resize(n);
+		q.resize(n + 1);
+	}
 	/*
-	---------------------------------------------
-	| # of member function calls where          |
-	| r is the size of the answer and           |
-	| n is the size of the ground set           |
-	---------------------------------------------
-	| Member Function | M1         | M2         |
-	---------------------------------------------
-	| insert()        | O(r^3)     | O(r^2 * n) |
-	| check()         | O(r^2 * n) | O(r^2 * n) |
-	| clear()         | O(r^2)     | O(r * n)   |
-	---------------------------------------------
+	-----------------------------------------
+	| # of member function calls where      |
+	| r is the size of the answer and       |
+	| N is the size of the ground set       |
+	-----------------------------------------
+	| Function  | 1st Matroid | 2nd Matroid |
+	-----------------------------------------
+	| insert()  | O(r^3)      | O(r^2 * n)  |
+	| check()   | O(r^2 * n)  | O(r^2 * n)  |
+	| clear()   | O(r^2)      | O(r * n)    |
+	-----------------------------------------
 	*/
-	template<class M1, class M2>
-	vector<int> maximum_common_independent_set(M1 m1, M2 m2){
-		fill(state.begin(), state.end(), false);
-		m1.clear();
-		m2.clear();
-		for(auto u = 0; u < n; ++ u) if(m1.check(u) && m2.check(u)){
-			state[u] = true;
-			m1.insert(u);
-			m2.insert(u);
-		}
-		while(augment<M1, M2>(m1, m2));
+	vector<int> maximum_common_independent_set(int n){
+		_init(n);
+		fill(used.begin(), used.end(), false);
+		clear1(), clear2();
+		for(auto u = 0; u < n; ++ u) if(check1(u) && check2(u)) used[u] = true, insert1(u), insert2(u);
+		while(augment());
 		vector<int> res;
-		for(auto u = 0; u < n; ++ u) if(state[u]) res.push_back(u);
+		for(auto u = 0; u < n; ++ u) if(used[u]) res.push_back(u);
 		return res;
 	}
 };
+
+template<class F1, class F2, class F3, class F4, class F5, class F6>
+auto make_matroid_intersection(F1 check1, F2 insert1, F3 clear1, F4 check2, F5 insert2, F6 clear2){
+	return matroid_intersection_base<F1, F2, F3, F4, F5, F6>(check1, insert1, clear1, check2, insert2, clear2);
+}
+// auto M = make_matroid_intersection(check1, insert1, clear1, check2, insert2, clear2);
 ]]></content>
 	<!-- Optional: Set a tabTrigger to define how to trigger the snippet -->
 	<tabTrigger>matroid_intersection</tabTrigger> -->
