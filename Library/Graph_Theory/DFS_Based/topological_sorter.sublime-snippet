@@ -16,7 +16,7 @@ struct topological_sorter{
 	}
 	int attempt = -1;
 	template<class T>
-	optional<vector<int>> run(const graph<T> &g, const vector<int> &subset){
+	optional<vector<int>> sort(const graph<T> &g, const vector<int> &subset){
 		_init(g.n);
 		order.clear();
 		++ attempt;
@@ -48,13 +48,13 @@ struct topological_sorter{
 		return (int)order.size() == (int)subset.size() ? order : optional<vector<int>>{};
 	}
 	template<class T>
-	optional<vector<int>> run_all(const graph<T> &g){
+	optional<vector<int>> sort_all(const graph<T> &g){
 		vector<int> subset(g.n);
 		iota(subset.begin(), subset.end(), 0);
-		return run(g, subset);
+		return sort(g, subset);
 	}
 	template<class T, class Compare = less<>>
-	optional<vector<int>> run_lexicographically(const graph<T> &g, const vector<int> &subset, Compare cmp){
+	optional<vector<int>> sort_lexicographically(const graph<T> &g, const vector<int> &subset, Compare cmp){
 		_init(g.n);
 		order.clear();
 		++ attempt;
@@ -85,11 +85,11 @@ struct topological_sorter{
 		return (int)order.size() == (int)subset.size() ? order : optional<vector<int>>{};
 	}
 	template<class T, class Compare = less<>>
-	optional<vector<int>> run_all_lexicographically(const graph<T> &g, Compare cmp = less<>()){
+	optional<vector<int>> sort_all_lexicographically(const graph<T> &g, Compare cmp = less<>()){
 		assert(g.n <= n);
 		vector<int> subset(g.n);
 		iota(subset.begin(), subset.end(), 0);
-		return run_lexicographically(g, subset, cmp);
+		return sort_lexicographically(g, subset, cmp);
 	}
 };
 ]]></content>
