@@ -142,6 +142,34 @@ struct segment_tree_base{
 		}
 		return TT(res_left, res_right);
 	}
+	vector<int> _decomposed_nodes;
+	// find at most 2 * log2(n) intervals whose disjoint union is [ql, qr), and access their aggregations
+	template<bool in_order = true>
+	void decompose_query(int ql, int qr, auto access){
+		static_assert(HAS_QUERY);
+		ASSERT(0 <= ql && ql <= qr && qr <= n);
+		if(ql == qr) return;
+		ql += size, qr += size;
+		ifU for(auto i = log; i >= 1; -- i){
+			if(ql >> i << i != ql) push(ql >> i);
+			if(qr >> i << i != qr) push(qr >> i);
+		}
+		if constexpr(in_order){
+			int di = 0;
+			_decomposed_nodes.resize(log + 1);
+			for(; ql < qr; ql >>= 1, qr >>= 1){
+				if(ql & 1) access(data[ql ++]);
+				if(qr & 1) _decomposed_nodes[di ++] = -- qr;
+			}
+			for(; di -- > 0; ) access(data[_decomposed_nodes[di]]);
+		}
+		else{
+			for(; ql < qr; ql >>= 1, qr >>= 1){
+				if(ql & 1) access(data[ql ++]);
+				if(qr & 1) access(data[-- qr]);
+			}
+		}
+	}
 	// O(1)
 	T query_all() const{
 		static_assert(HAS_QUERY);
