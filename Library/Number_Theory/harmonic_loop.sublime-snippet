@@ -1,23 +1,24 @@
 <snippet>
 	<content><![CDATA[
-// Iterate over all [l, r] such that 1 <= l <= r <= n and it is the maximal interval with equal q=n/x, and call f(l, r, q)
+// Iterate over all [l, r] such that 1 <= l <= r <= n and it is a maximal interval with equal value of (floor/ceil)(n/x), and call f(l, r, q)
 // O(sqrt(n)) f() calls
 // in_order = false: sqrt(n) divisions, traverses in arbitrary order
 // in_order = true: 4*sqrt(n) divisions, traverses in increasing order
-template<class T>
-void harmonic_loop(T n, auto f, bool in_order = false){
-	if(in_order) for(T l = 1, r, q; l <= n; l = r + 1){
-		q = n / l;
-		r = n / q;
-		f(l, r, q);
-	}
+// use_floor = false: uses ceil instead of floor
+template<class T, bool in_order = false, bool use_floor = true>
+void harmonic_loop(T n, auto f){
+	assert(n >= 0);
+	if(n == 0) return;
+	if constexpr(!use_floor) -- n;
+	if constexpr(in_order) for(T l = 1, r, q; l <= n; l = r + 1) q = n / l, r = n / q, f(l, r = n / q, q + !use_floor);
 	else for(T x = 1, y, py; x * x <= n; ++ x){
 		y = n / x;
-		f(x, x, y);
-		if(x >= 2) f(y + 1, py, x - 1);
-		if(x != y && x * x < n && (x + 1) * (x + 1) > n) f(x + 1, y, x);
+		f(x, x, y + !use_floor);
+		if(x >= 2) f(y + 1, py, x - use_floor);
+		if(x != y && x * x < n && (x + 1) * (x + 1) > n) f(x + 1, y, x + !use_floor);
 		py = y;
 	}
+	if constexpr(!use_floor) f(n + 1, n + 1, 1);
 }
 ]]></content>
 	<!-- Optional: Set a tabTrigger to define how to trigger the snippet -->
