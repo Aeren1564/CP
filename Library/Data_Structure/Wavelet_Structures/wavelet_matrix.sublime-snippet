@@ -1,9 +1,13 @@
 <snippet>
 	<content><![CDATA[
-// nor orz
 // Requires succinct_dictionary
 template<bool HAS_QUERY, class B, class T, class F, class I>
 struct wavelet_matrix_base{
+#ifdef LOCAL
+	#define ASSERT(x) assert(x)
+#else
+	#define ASSERT(x) 42
+#endif
 	int n, lg;
 	B sigma;
 	vector<succinct_dictionary> data;
@@ -22,8 +26,8 @@ struct wavelet_matrix_base{
 	// O(n * log(sigma)) time and O(n * log(sigma) / w) memory
 	void build(const vector<B> &key, B sigma){
 		static_assert(!HAS_QUERY);
-		assert(sigma > 0);
-		for(auto x: key) assert(0 <= x && x < sigma);
+		ASSERT(sigma > 0);
+		for(auto x: key) ASSERT(0 <= x && x < sigma);
 		n = (int)key.size();
 		this->sigma = sigma;
 		lg = __lg(sigma) + (B(1) << lg != sigma) + 1;
@@ -37,12 +41,20 @@ struct wavelet_matrix_base{
 			swap(cur, next);
 		}
 	}
+	// O(n * log(sigma)) time and O(n * log(sigma) / w) memory
+	void build(int n, auto f_key, B sigma){
+		static_assert(!HAS_QUERY);
+		ASSERT(sigma > 0);
+		vector<B> key(n);
+		for(auto i = 0; i < n; ++ i) key[i] = f_key(i);
+		build(key, sigma);
+	}
 	// O(n * log(sigma)) time and O(n * log(sigma)) memory
 	template<class U>
 	void build(const vector<B> &key, B sigma, const vector<U> &value){
 		static_assert(HAS_QUERY);
-		assert(sigma > 0);
-		for(auto x: key) assert(0 <= x && x < sigma);
+		ASSERT(sigma > 0);
+		for(auto x: key) ASSERT(0 <= x && x < sigma);
 		n = (int)key.size();
 		this->sigma = sigma;
 		lg = __lg(sigma) + (B(1) << lg != sigma) + 1;
@@ -62,11 +74,23 @@ struct wavelet_matrix_base{
 		}
 		for(auto i = 0; i < n; ++ i) aggregate[0][i + 1] = TT(aggregate[0][i], cur[i].second);
 	}
+	// O(n * log(sigma)) time and O(n * log(sigma)) memory
+	void build(int n, auto f_key, B sigma, auto f_value){
+		static_assert(HAS_QUERY);
+		ASSERT(sigma > 0);
+		vector<B> key(n);
+		vector<T> value(n);
+		for(auto i = 0; i < n; ++ i){
+			key[i] = f_key(i);
+			value[i] = f_value(i);
+		}
+		return build(key, sigma, value);
+	}
 	// Returns the frequency of x in the interval [ql, qr)
 	// O(log(sigma))
-	int freq(int ql, int qr, int x) const{
-		assert(0 <= ql && ql <= qr && qr <= n);
-		assert(0 <= x);
+	int freq(int ql, int qr, B x) const{
+		ASSERT(0 <= ql && ql <= qr && qr <= n);
+		ASSERT(0 <= x);
 		if(ql == qr || sigma <= x) return 0;
 		for(auto h = lg; h --; ){
 			auto lcnt = data[h].rank0(ql), rcnt = data[h].rank0(qr);
@@ -77,10 +101,10 @@ struct wavelet_matrix_base{
 	}
 	// Returns the frequency of x in the interval [ql, qr), along with the sum of their values
 	// O(log(sigma))
-	pair<int, T> freq_query(int ql, int qr, int x) const{
+	pair<int, T> freq_query(int ql, int qr, B x) const{
 		static_assert(HAS_QUERY);
-		assert(0 <= ql && ql <= qr && qr <= n);
-		assert(0 <= x);
+		ASSERT(0 <= ql && ql <= qr && qr <= n);
+		ASSERT(0 <= x);
 		if(ql == qr || sigma <= x) return {0, T_id};
 		for(auto h = lg; h --; ){
 			auto lcnt = data[h].rank0(ql), rcnt = data[h].rank0(qr);
@@ -92,8 +116,8 @@ struct wavelet_matrix_base{
 	// Returns the number of occurrences of numbers in [0, xr) in the interval [ql, qr)
 	// O(log(sigma))
 	int count(int ql, int qr, B xr) const{
-		assert(0 <= ql && ql <= qr && qr <= n);
-		assert(0 <= xr);
+		ASSERT(0 <= ql && ql <= qr && qr <= n);
+		ASSERT(0 <= xr);
 		if(sigma <= xr) return qr - ql;
 		if(xr == 0) return 0;
 		int cnt = 0;
@@ -111,8 +135,8 @@ struct wavelet_matrix_base{
 	// O(log(sigma))
 	pair<int, T> count_query(int ql, int qr, B xr) const{
 		static_assert(HAS_QUERY);
-		assert(0 <= ql && ql <= qr && qr <= n);
-		assert(0 <= xr);
+		ASSERT(0 <= ql && ql <= qr && qr <= n);
+		ASSERT(0 <= xr);
 		if(xr == 0) return {0, T_id};
 		xr = min(sigma, xr);
 		int cnt = 0;
@@ -131,7 +155,7 @@ struct wavelet_matrix_base{
 	// Returns the number of occurrences of numbers in [xl, xr) in the interval [ql, qr)
 	// O(log(sigma))
 	int count(int ql, int qr, B xl, B xr) const{
-		assert(xl <= xr);
+		ASSERT(xl <= xr);
 		if(xl == xr) return 0;
 		return count(ql, qr, xr) - count(ql, qr, xl);
 	}
@@ -139,7 +163,7 @@ struct wavelet_matrix_base{
 	// O(log(sigma))
 	pair<int, T> count_query(int ql, int qr, B xl, B xr) const{
 		static_assert(HAS_QUERY);
-		assert(xl <= xr);
+		ASSERT(xl <= xr);
 		if(xl == xr) return {0, T_id};
 		auto [lcnt, lsum] = count_query(ql, qr, xl);
 		auto [rcnt, rsum] = count_query(ql, qr, xr);
@@ -148,7 +172,7 @@ struct wavelet_matrix_base{
 	// Find the k-th smallest element in the interval [ql, qr), sigma if no such element
 	// O(log(sigma))
 	B find_by_order(int ql, int qr, int k) const{
-		assert(0 <= k);
+		ASSERT(0 <= k);
 		if(k >= qr - ql) return sigma;
 		B x = 0;
 		for(auto h = lg; h --; ){
@@ -166,7 +190,8 @@ struct wavelet_matrix_base{
 	// Find the k-th smallest element in the interval [ql, qr), sigma if no such element, along with the sum of values of the k smallest elements (prioritizing smaller index)
 	// O(log(sigma))
 	pair<B, T> find_by_order_query(int ql, int qr, int k) const{
-		assert(0 <= k);
+		static_assert(HAS_QUERY);
+		ASSERT(0 <= k);
 		k = min(k, qr - ql);
 		B x = 0;
 		T sum = T_id;
@@ -186,8 +211,8 @@ struct wavelet_matrix_base{
 	// Find the k-th smallest element in the interval [ql, qr) among elements >= xl, sigma if no such element
 	// O(log(sigma))
 	B find_by_order(int ql, int qr, B xl, int k) const{
-		assert(0 <= ql && ql <= qr && qr <= n);
-		assert(0 <= xl && 0 <= k);
+		ASSERT(0 <= ql && ql <= qr && qr <= n);
+		ASSERT(0 <= xl && 0 <= k);
 		if(xl >= sigma) return sigma;
 		k += count(ql, qr, 0, xl);
 		if(k >= qr - ql) return sigma;
@@ -196,40 +221,70 @@ struct wavelet_matrix_base{
 	// Find the k-th smallest element in the interval [ql, qr) among elements >= xl, sigma if no such element, along with the sum of values of the k smallest elements (prioritizing smaller index)
 	// O(log(sigma))
 	pair<B, T> find_by_order_query(int ql, int qr, B xl, int k) const{
-		assert(0 <= ql && ql <= qr && qr <= n);
-		assert(0 <= xl && 0 <= k);
+		ASSERT(0 <= ql && ql <= qr && qr <= n);
+		ASSERT(0 <= xl && 0 <= k);
 		if(xl >= sigma) return {sigma, T_id};
 		auto [cnt, sum] = count_query(ql, qr, 0, xl);
 		k += cnt;
 		auto [x, sum2] = find_by_order_query(ql, qr, k);
 		return {x, TT(sum2, Tinv(sum))};
 	}
+	// pred(sum of values of items with prefix of key) is T, T, ..., T, F, F, ..., F
+	// Returns {
+	//  max x where summing every item with key < x gives T, or sigma if unbounded,
+	//  how many more items with key x can it fit into sum while pred(sum) = T,
+	//  sum of values, including extra items with key x
+	// }
+	// O(log(sigma))
+	tuple<B, int, T> max_pref(int ql, int qr, auto pred) const{
+		static_assert(HAS_QUERY);
+		ASSERT(pred(T_id));
+		B x = 0;
+		T sum = T_id;
+		for(auto h = lg; h --; ){
+			auto lcnt = data[h].rank0(ql), rcnt = data[h].rank0(qr);
+			T sum_next = TT(sum, TT(aggregate[h + 1][qr], Tinv(aggregate[h + 1][ql])));
+			if(!pred(sum_next)) ql = lcnt, qr = rcnt;
+			else{
+				x |= (B)1 << h;
+				sum = sum_next;
+				ql += data[h].zeros - lcnt;
+				qr += data[h].zeros - rcnt;
+			}
+		}
+		sum = TT(sum, Tinv(aggregate[0][ql]));
+		int extra = *ranges::partition_point(views::iota(0, qr - ql + 1), [&](int extra){ return pred(TT(sum, aggregate[0][ql + extra])); }) - 1;
+		ASSERT(extra >= 0);
+		if(extra != qr - ql) return {x, extra, TT(sum, aggregate[0][ql + extra])};
+		else return {sigma, 0, TT(sum, aggregate[0][qr])};
+	}
 	// Find the smallest element >= x, sigma if no such element
 	// O(log(sigma))
 	B lower_bound(int ql, int qr, B x) const{
-		assert(0 <= x);
+		ASSERT(0 <= x);
 		return find_by_order(ql, qr, x, 0);
 	}
 	// Find the smallest element > x, sigma if no such element
 	// O(log(sigma))
 	B upper_bound(int ql, int qr, B x) const{
-		assert(0 <= x);
+		ASSERT(0 <= x);
 		return find_by_order(ql, qr, x + 1, 0);
 	}
 	// Find the largest element <= x, -1 if no such element
 	// O(log(sigma))
 	B reverse_lower_bound(int ql, int qr, B x) const{
-		assert(0 <= x);
+		ASSERT(0 <= x);
 		int cnt = count(ql, qr, x);
 		return cnt ? find_by_order(ql, qr, cnt - 1) : -1;
 	}
 	// Find the largest element < x, -1 if no such element
 	// O(log(sigma))
 	B reverse_upper_bound(int ql, int qr, B x) const{
-		assert(0 <= x);
+		ASSERT(0 <= x);
 		int cnt = count(ql, qr, x + 1);
 		return cnt ? find_by_order(ql, qr, cnt - 1) : -1;
 	}
+#undef ASSERT
 };
 
 template<class B>
