@@ -289,11 +289,14 @@ struct wavelet_matrix_base{
 
 template<class B>
 auto make_wavelet_matrix(){
-	return wavelet_matrix_base<false, B, int, plus<>, negate<>>(plus<>(), 0, negate<>());
+	using T = int;
+	auto _TT = [&](){ assert(false); };
+	auto _Tinv = [&](){ assert(false); };
+	return wavelet_matrix_base<false, B, T, decltype(_TT), decltype(_Tinv)>(_TT, T{}, _Tinv);
 }
 // Supports query
 template<class B, class T = long long, class F = plus<>, class I = negate<>>
-auto make_Q_wavelet_matrix(F TT = plus<>(), T T_id = 0, I Tinv = negate<>()){
+auto make_Q_wavelet_matrix(F TT = plus{}, T T_id = T{0}, I Tinv = negate{}){
 	return wavelet_matrix_base<true, B, T, F, I>(TT, T_id, Tinv);
 }
 ]]></content>
