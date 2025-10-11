@@ -1,0 +1,101 @@
+<snippet>
+	<content><![CDATA[
+template<bool RECOVERABLE, class T, class Compare>
+struct knapsack_optimizer{
+#ifdef LOCAL
+	#define ASSERT(x) assert(x)
+#else
+	#define ASSERT(x) 42
+#endif
+	Compare cmp;
+	T inf;
+	int weight_th; // We'll only keep track of item weight sums in range [0, weight_th)
+	vector<tuple<int, T, int>> item;
+	vector<vector<T>> dp; // dp.back()[x]: minimum sum of cost of items whose sum of weights is exactly x
+	vector<vector<int>> used; // only used for recovery
+	knapsack_optimizer(Compare cmp, T inf): cmp(cmp), inf(inf){ }
+	// O(weight_th)
+	void build(const vector<T> &dp_init){
+		weight_th = (int)dp_init.size();
+		item.clear();
+		dp = {dp_init};
+		used.clear();
+		q.resize(weight_th);
+		dp_next.resize(weight_th);
+	}
+	// O(weight_th)
+	void build(int weight_th, auto f){
+		vector<T> dp_init(weight_th);
+		for(auto i = 0; i < weight_th; ++ i) dp_init[i] = f(i);
+		build(dp_init);
+	}
+	vector<int> q;
+	vector<T> dp_next;
+	// Introduce a new item which can be used [0, count] times
+	// O(weight_th)
+	void add_item(int weight, T cost, int count = 1){
+		ASSERT(!dp.empty());
+		ASSERT(0 <= weight && 0 <= count);
+		item.push_back({weight, cost, count});
+		if constexpr(RECOVERABLE) used.push_back(vector<int>(weight_th, -1));
+		fill(dp_next.begin(), dp_next.end(), inf);
+		if(weight == 0){
+			if(cmp(cost, 0)) for(auto x = 0; x < weight_th; ++ x) if(dp.back()[x] != inf){
+				dp_next[x] = dp.back()[x] + count * cost;
+				if constexpr(RECOVERABLE) used.back()[x] = count;
+			}
+		}
+		else for(auto rem = 0; rem < min(weight_th, weight); ++ rem){
+			for(auto x = rem, quo = 0, qbeg = 0, qend = 0; x < weight_th; x += weight, ++ quo){
+				while(qbeg < qend && quo - q[qbeg] > count) ++ qbeg;
+				while(qbeg < qend && cmp(dp.back()[x], dp.back()[rem + weight * q[qend - 1]] + cost * (quo - q[qend - 1]))) -- qend;
+				if(dp.back()[x] != inf) q[qend ++] = quo;
+				if(qbeg < qend){
+					dp_next[x] = dp.back()[rem + weight * q[qbeg]] + cost * (quo - q[qbeg]);
+					if constexpr(RECOVERABLE) used.back()[x] = quo - q[qbeg];
+				}
+			}
+		}
+		if constexpr(RECOVERABLE) dp.push_back(dp_next);
+		else dp.back() = dp_next;
+	}
+	bool reachable(int weight) const{
+		ASSERT(!dp.empty() && 0 <= weight && weight < (int)dp.back().size());
+		return dp.back()[weight] != inf;
+	}
+	const vector<T> &get_dp() const{
+		return dp.back();
+	}
+	T optimal_cost(int weight) const{
+		ASSERT(!dp.empty() && 0 <= weight && weight < (int)dp.back().size());
+		return dp.back()[weight];
+	}
+	// Returns 
+	optional<vector<int>> recover(int weight) const{
+		static_assert(RECOVERABLE);
+		ASSERT(!dp.empty() && 0 <= weight && weight < (int)dp.back().size());
+		if(dp.back()[weight] == inf) return {};
+		vector<int> res((int)used.size());
+		for(auto i = (int)used.size() - 1; i >= 0; -- i){
+			ASSERT(used[i][weight] != -1);
+			res[i] = used[i][weight];
+			weight -= res[i] * get<0>(item[i]);
+		}
+		return res;
+	}
+#undef ASSERT
+};
+template<class T, bool RECOVERABLE = false>
+auto make_knapsack_minimizer(){
+	return knapsack_optimizer<RECOVERABLE, T, less<>>(less{}, numeric_limits<T>::max() / 2);
+}
+template<class T, bool RECOVERABLE = false>
+auto make_knapsack_maximizer(){
+	return knapsack_optimizer<RECOVERABLE, T, greater<>>(greater{}, numeric_limits<T>::min() / 2);
+}
+]]></content>
+	<!-- Optional: Set a tabTrigger to define how to trigger the snippet -->
+	<tabTrigger>knapsack_optimizer</tabTrigger> -->
+	<!-- Optional: Set a scope to limit where the snippet will trigger -->
+	<scope>source.c++</scope> -->
+</snippet>
