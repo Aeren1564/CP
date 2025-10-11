@@ -4,6 +4,11 @@
 template<class T, int level>
 struct bfs_forest{
 	static_assert(0 <= level && level <= 1);
+#ifdef LOCAL
+	#define ASSERT(x) assert(x)
+#else
+	#define ASSERT(x) 42
+#endif
 	int n;
 	vector<int> pv;
 	vector<int> pe;
@@ -15,7 +20,7 @@ struct bfs_forest{
 	vector<int> root;
 	vector<T> dist;
 	vector<int> was;
-	void init(int n){
+	void _init(int n){
 		this->n = n;
 		pv.resize(n, -1);
 		pe.resize(n, -1);
@@ -37,7 +42,7 @@ struct bfs_forest{
 	void _build(const graph<U> &g, const vector<int> &src, F UT, T base_dist){
 		q = src;
 		for(auto u: src){
-			assert(was[u] != attempt);
+			ASSERT(was[u] != attempt);
 			was[u] = attempt;
 			pv[u] = -1;
 			pe[u] = -1;
@@ -78,25 +83,25 @@ struct bfs_forest{
 	// O(# of nodes reachable from src)
 	template<class U, class F = plus<>>
 	void build(const graph<U> &g, const vector<int> &src, F UT = plus<>(), T base_dist = T{}){
-		init(g.n);
-		for(auto u: src) assert(0 <= u && u < n);
+		_init(g.n);
+		for(auto u: src) ASSERT(0 <= u && u < n);
 		++ attempt;
 		_build(g, src, UT, base_dist);
 	}
 	// O(n + m)
 	template<class U, class F = plus<>>
 	void build_all(const graph<U> &g, F UT = plus<>(), T base_dist = T{}){
-		init(g.n);
+		_init(g.n);
 		++ attempt;
 		for(auto u = 0; u < n; ++ u) if(was[u] != attempt) _build(g, {u}, UT, base_dist);
 	}
 	// Check if u is visited during the last build-like call.
 	bool visited(int u) const{
-		assert(0 <= u && u < n);
+		ASSERT(0 <= u && u < n);
 		return was[u] == attempt;
 	}
 	vector<int> get_path(int u, int v) const{
-		assert(visited(u) && visited(v));
+		ASSERT(visited(u) && visited(v));
 		vector<int> left, right;
 		while(u != v && ~pv[u] && ~pv[v]){
 			if(depth[u] >= depth[v]){
@@ -108,11 +113,12 @@ struct bfs_forest{
 				v = pv[v];
 			}
 		}
-		assert(u == v);
+		ASSERT(u == v);
 		left.push_back(u);
 		left.insert(left.end(), right.rbegin(), right.rend());
 		return left;
 	}
+#undef ASSERT
 };
 
 // pv, pe, order, pos, end, size, depth
