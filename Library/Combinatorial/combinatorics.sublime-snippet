@@ -135,6 +135,7 @@ struct combinatorics{
 	}
 #undef ASSERT
 };
+combinatorics<modular> C;
 ]]></content>
 	<!-- Optional: Set a tabTrigger to define how to trigger the snippet -->
 	<tabTrigger>combinatorics</tabTrigger> -->
