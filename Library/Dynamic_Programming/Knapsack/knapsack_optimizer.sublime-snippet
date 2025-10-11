@@ -60,20 +60,20 @@ struct knapsack_optimizer{
 		else dp.back() = dp_next;
 	}
 	bool reachable(int weight) const{
-		ASSERT(!dp.empty() && 0 <= weight && weight < (int)dp.back().size());
+		ASSERT(!dp.empty() && 0 <= weight && weight < weight_th);
 		return dp.back()[weight] != inf;
 	}
 	const vector<T> &get_dp() const{
 		return dp.back();
 	}
 	T optimal_cost(int weight) const{
-		ASSERT(!dp.empty() && 0 <= weight && weight < (int)dp.back().size());
+		ASSERT(!dp.empty() && 0 <= weight && weight < weight_th);
 		return dp.back()[weight];
 	}
 	// Returns 
 	optional<vector<int>> recover(int weight) const{
 		static_assert(RECOVERABLE);
-		ASSERT(!dp.empty() && 0 <= weight && weight < (int)dp.back().size());
+		ASSERT(!dp.empty() && 0 <= weight && weight < weight_th);
 		if(dp.back()[weight] == inf) return {};
 		vector<int> res((int)used.size());
 		for(auto i = (int)used.size() - 1; i >= 0; -- i){
