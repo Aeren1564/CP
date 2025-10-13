@@ -46,11 +46,11 @@ auto make_disjoint_sparse_table(F TT, T T_id){
 	return disjoint_sparse_table(TT, T_id);
 }
 template<class T>
-auto make_rminq(T inf = numeric_limits<T>::max()){
+auto make_rminq(T inf = numeric_limits<T>::max() / 2){
 	return disjoint_sparse_table([&](const T &x, const T &y){ return min(x, y); }, inf);
 }
 template<class T>
-auto make_rmaxq(T minf = numeric_limits<T>::min()){
+auto make_rmaxq(T minf = numeric_limits<T>::min() / 2){
 	return disjoint_sparse_table([&](const T &x, const T &y){ return max(x, y); }, minf);
 }
 ]]></content>
