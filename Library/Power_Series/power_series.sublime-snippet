@@ -43,14 +43,6 @@ struct power_series_base: vector<T>{
 		}
 		return seq;
 	}
-	static vector<T> _inv;
-	static void _precalc_inverse(int obj){
-		while((int)_inv.size() <= obj){
-			T x{(int)_inv.size()};
-			assert(x);
-			_inv.push_back(1 / x);
-		}
-	}
 	power_series_base &inplace_reduce(){
 		while(!self.empty() && !self.back()) self.pop_back();
 		return *this;
@@ -396,9 +388,8 @@ struct power_series_base: vector<T>{
 		return power_series_base(*this).inplace_derivative_shift();
 	}
 	power_series_base &inplace_antiderivative(){
-		_precalc_inverse((int)self.size() + 1);
 		self.push_back(0);
-		for(auto i = (int)self.size() - 1; i >= 1; -- i) self[i] = self[i - 1] * _inv[i];
+		for(auto i = (int)self.size() - 1; i >= 1; -- i) self[i] = self[i - 1] * *T{i}.small_inverse();
 		self[0] = 0;
 		return *this;
 	}
@@ -407,9 +398,8 @@ struct power_series_base: vector<T>{
 		return power_series_base(*this).inplace_antiderivative();
 	}
 	power_series_base &inplace_shifted_antiderivative(){
-		_precalc_inverse((int)self.size());
 		if(!self.empty()) self[0] = 0;
-		for(auto i = 1; i < self.size(); ++ i) self[i] *= _inv[i];
+		for(auto i = 1; i < self.size(); ++ i) self[i] *= *T{i}.small_inverse();
 		return *this;
 	}
 	// Integral(P/x)
@@ -498,6 +488,40 @@ struct power_series_base: vector<T>{
 	power_series_base power(U e, int n) const{
 		return power_series_base(*this).inplace_power(e, n);
 	}
+	// https://codeforces.com/blog/entry/73947?#comment-581173
+	// O(degree() * n)
+	template<class U, typename enable_if<IS_INTEGRAL(U)>::type* = nullptr>
+	power_series_base &inplace_power_with_differentiation(U e, int n){
+		assert(n >= 0);
+		if(n == 0){
+			self.clear();
+			return *this;
+		}
+		if(e == 0){
+			self.assign(n, T{0});
+			self[0] = T{1};
+			return *this;
+		}
+		if(e < 0) return inplace_inverse(n).inplace_power(-e, n);
+		assert(self[0] != T{0});
+		power_series_base res(n, T{0});
+		res[0] = self[0].power(e);
+		auto inv_ptr = self[0].inverse();
+		assert(inv_ptr);
+		auto inv = *inv_ptr;
+		for(auto i = 1; i < n; ++ i){
+			T x = e;
+			for(auto j = 1; j < min((int)this->size(), i + 1); ++ j, x += e) res[i] += self[j] * res[i - j] * (x - (i - j));
+			res[i] *= inv * *T{i}.small_inverse();
+		}
+		return *this = res;
+	}
+	// https://codeforces.com/blog/entry/73947?#comment-581173
+	// O(degree() * n)
+	template<class U, typename enable_if<IS_INTEGRAL(U)>::type* = nullptr>
+	power_series_base power_with_differentiation(U e, int n) const{
+		return power_series_base(*this).inplace_power_with_differentiation(e, n);
+	}
 	// O(n * log(n) * log(e))
 	template<class U, typename enable_if<IS_INTEGRAL(U)>::type* = nullptr>
 	power_series_base &inplace_power_mod(U e, power_series_base mod){
@@ -527,10 +551,9 @@ struct power_series_base: vector<T>{
 	// O(n * log(n))
 	power_series_base &inplace_set(int n){
 		assert(!self.empty() && self[0] == T{0});
-		_precalc_inverse(n);
 		self.resize(n);
 		for(auto i = n - 1; i >= 1; -- i) for(auto j = 2 * i; j < n; j += i) self[j] += self[i];
-		for(auto i = 1; i < n; ++ i) (self[i] *= _inv[i]) *= (i & 1 ? 1 : -1);
+		for(auto i = 1; i < n; ++ i) (self[i] *= *T{i}.small_inverse()) *= (i & 1 ? 1 : -1);
 		return inplace_exp(n);
 	}
 	power_series_base set(int n) const{
@@ -541,9 +564,8 @@ struct power_series_base: vector<T>{
 	// O(n * log(n))
 	power_series_base &inplace_multiset(int n){
 		assert(!self.empty() && self[0] == T{0});
-		_precalc_inverse(n);
 		self.resize(n);
-		for(auto i = n - 1; i >= 1; -- i) for(auto j = 2 * i; j < n; j += i) self[j] += self[i] * _inv[j / i];
+		for(auto i = n - 1; i >= 1; -- i) for(auto j = 2 * i; j < n; j += i) self[j] += self[i] * *T{j / i}.small_inverse();
 		return inplace_exp(n);
 	}
 	power_series_base multiset(int n) const{
@@ -569,8 +591,6 @@ struct power_series_base: vector<T>{
 #undef IS_INTEGRAL
 #undef self
 };
-template<class T, class FFT>
-vector<T> power_series_base<T, FFT>::_inv{T{1}};
 
 // Requires modular and number_theoric_transform
 using power_series = power_series_base<modular, ntt>;
