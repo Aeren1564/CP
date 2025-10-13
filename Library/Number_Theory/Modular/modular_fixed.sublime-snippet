@@ -22,11 +22,7 @@ struct modular_fixed_base{
 		for(auto i = 1; i <= SZ; ++ i) res[i] = res[i - 1] * base + base;
 		return res;
 	}
-	static vector<modular_fixed_base> _INV;
-	static constexpr void precalc_inverse(int SZ){
-		if(_INV.empty()) _INV.assign(2, 1);
-		for(auto x = _INV.size(); x <= SZ; ++ x) _INV.push_back(_mod / x * -_INV[_mod % x]);
-	}
+	static vector<modular_fixed_base> _inv;
 	// _mod must be a prime
 	static modular_fixed_base _primitive_root;
 	static constexpr modular_fixed_base primitive_root(){
@@ -131,9 +127,21 @@ struct modular_fixed_base{
 		if(gcd(mod(), e.data()) == gcd(mod(), data())) for(auto i = 2; i < n + 2; ++ i) if(A.count((e *= f).data())) return n * i - A[e.data()];
 		return {};
 	}
+	constexpr optional<modular_fixed_base> small_inverse() const{
+		if(_inv.empty()) _inv = {0, 1 % mod()};
+		auto obj = data();
+		for(auto x = _inv.size(); x <= obj; ++ x){
+			auto rem = _mod % x;
+			if(_inv[rem]) _inv.push_back(_mod / x * -_inv[rem]);
+			else{
+				auto inv_ptr = modular_fixed_base{x}.inverse();
+				_inv.push_back(inv_ptr ? *inv_ptr : modular_fixed_base{0});
+			}
+		}
+		return _inv[obj] ? _inv[obj] : optional<modular_fixed_base>{};
+	}
 	constexpr optional<modular_fixed_base> inverse() const{
 		make_signed_t<data_t> a = data(), m = _mod, u = 0, v = 1;
-		if(data() < _INV.size()) return _INV[data()];
 		while(a){
 			make_signed_t<data_t> t = m / a;
 			m -= t * a; swap(a, m);
@@ -142,7 +150,7 @@ struct modular_fixed_base{
 		if(m != 1) return {};
 		return modular_fixed_base{u};
 	}
-	modular_fixed_base &operator/=(const modular_fixed_base &otr){
+	constexpr modular_fixed_base &operator/=(const modular_fixed_base &otr){
 		auto inv_ptr = otr.inverse();
 		assert(inv_ptr);
 		return *this = *this * *inv_ptr;
@@ -194,7 +202,7 @@ constexpr friend bool operator op(const T &x, const modular_fixed_base &y){ retu
 #undef IS_INTEGRAL
 #undef IS_UNSIGNED
 };
-template<class data_t, data_t _mod> vector<modular_fixed_base<data_t, _mod>> modular_fixed_base<data_t, _mod>::_INV;
+template<class data_t, data_t _mod> vector<modular_fixed_base<data_t, _mod>> modular_fixed_base<data_t, _mod>::_inv;
 template<class data_t, data_t _mod> modular_fixed_base<data_t, _mod> modular_fixed_base<data_t, _mod>::_primitive_root;
 
 constexpr unsigned int mod = (119 << 23) + 1; // 998244353

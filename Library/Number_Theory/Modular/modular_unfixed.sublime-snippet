@@ -21,7 +21,7 @@ struct modular_unfixed_base{
 	}
 	static void setup(data_t mod = 0){
 		_primitive_root._data = 0;
-		_INV.clear();
+		_inv.clear();
 		if(!mod) cin >> mod;
 		_mod = mod;
 		ASSERT(1 <= _mod && _mod < data_t(1) << 8 * sizeof(data_t) - 1);
@@ -39,11 +39,7 @@ struct modular_unfixed_base{
 		for(auto i = 1; i <= SZ; ++ i) res[i] = res[i - 1] * base + base;
 		return res;
 	}
-	static vector<modular_unfixed_base> _INV;
-	static void precalc_inverse(int SZ){
-		if(_INV.empty()) _INV.assign(2, 1);
-		for(auto x = _INV.size(); x <= SZ; ++ x) _INV.push_back(_mod / x * -_INV[_mod % x]);
-	}
+	static vector<modular_unfixed_base> _inv;
 	// _mod must be a prime
 	static modular_unfixed_base _primitive_root;
 	static modular_unfixed_base primitive_root(){
@@ -159,9 +155,21 @@ struct modular_unfixed_base{
 		if(gcd(mod(), e.data()) == gcd(mod(), data())) for(auto i = 2; i < n + 2; ++ i) if(A.count((e *= f).data())) return n * i - A[e.data()];
 		return {};
 	}
+	optional<modular_unfixed_base> small_inverse() const{
+		if(_inv.empty()) _inv = {0, 1 % mod()};
+		auto obj = data();
+		for(auto x = _inv.size(); x <= obj; ++ x){
+			auto rem = _mod % x;
+			if(_inv[rem]) _inv.push_back(_mod / x * -_inv[rem]);
+			else{
+				auto inv_ptr = modular_unfixed_base{x}.inverse();
+				_inv.push_back(inv_ptr ? *inv_ptr : modular_unfixed_base{0});
+			}
+		}
+		return _inv[obj] ? _inv[obj] : optional<modular_unfixed_base>{};
+	}
 	optional<modular_unfixed_base> inverse() const{
 		make_signed_t<data_t> a = data(), m = _mod, u = 0, v = 1;
-		if(data() < _INV.size()) return _INV[data()];
 		while(a){
 			make_signed_t<data_t> t = m / a;
 			m -= t * a; swap(a, m);
@@ -225,31 +233,11 @@ friend bool operator op(const T &x, const modular_unfixed_base &y){ return modul
 };
 template<int id, class data_t, class wider_data_t> data_t modular_unfixed_base<id, data_t, wider_data_t>::_mod;
 template<int id, class data_t, class wider_data_t> wider_data_t modular_unfixed_base<id, data_t, wider_data_t>::_inverse_mod;
-template<int id, class data_t, class wider_data_t> vector<modular_unfixed_base<id, data_t, wider_data_t>> modular_unfixed_base<id, data_t, wider_data_t>::_INV;
+template<int id, class data_t, class wider_data_t> vector<modular_unfixed_base<id, data_t, wider_data_t>> modular_unfixed_base<id, data_t, wider_data_t>::_inv;
 template<int id, class data_t, class wider_data_t> modular_unfixed_base<id, data_t, wider_data_t> modular_unfixed_base<id, data_t, wider_data_t>::_primitive_root;
 
 using modular = modular_unfixed_base<0, unsigned int, unsigned long long>;
 // using modular = modular_unfixed_base<0, unsigned long long, __uint128_t>;
-
-modular operator""_m(const char *x){
-	modular res = 0;
-	long long buffer = 0;
-	long long buffer_width = 1;
-	constexpr long long buffer_th = 1'000'000'000'000'000'000LL;
-	while(*x){
-		#ifdef LOCAL
-		assert(isdigit(*x));
-		#endif
-		buffer = buffer * 10 + (*(x ++) - '0');
-		if((buffer_width *= 10) == buffer_th){
-			res = buffer_width * res + buffer;
-			buffer = 0;
-			buffer_width = 1;
-		}
-	}
-	res = buffer_width * res + buffer;
-	return res;
-}
 ]]></content>
 	<!-- Optional: Set a tabTrigger to define how to trigger the snippet -->
 	<tabTrigger>modular_unfixed</tabTrigger> -->
