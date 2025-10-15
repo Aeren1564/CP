@@ -1,0 +1,115 @@
+<snippet>
+	<content><![CDATA[
+// B: coordinate type
+template<class B>
+struct interval_set{
+	B _size;
+	set<pair<B, B>> data;
+	interval_set(): _size(0){ }
+	interval_set(const set<pair<B, B>> &data): _size(0), data(data){
+		assert(is_valid(data));
+		for(auto [l, r]: data) _size += r - l;
+	}
+	// is_valid(*this) holds after all operations
+	static bool is_valid(const set<pair<B, B>> &data){
+		for(auto [l, r]: data) assert(l < r);
+		for(auto it = data.begin(); it != data.end() && next(it) != data.end(); ++ it) if(it->second >= next(it)->first) return false;
+		return true;
+	}
+	B size() const{
+		return _size;
+	}
+	bool empty() const{
+		return data.empty();
+	}
+	bool contains(B x) const{
+		auto it = data.upper_bound({x, numeric_limits<B>::max()});
+		return it != data.begin() && x < prev(it)->second;
+	}
+	// For each ql <= x < qr, insert x into the set if it's not present
+	// Returns the number of inserted elements
+	B insert(B ql, B qr){
+		assert(ql <= qr);
+		if(ql == qr) return B{0};
+		auto it = data.lower_bound({ql, numeric_limits<B>::min()});
+		if(it != data.begin() && ql <= prev(it)->second) it = prev(it);
+		B cnt = 0;
+		for(; it != data.end() && max(ql, it->first) <= min(qr, it->second); it = data.erase(it)){
+			cnt += it->second - it->first;
+			ql = min(ql, it->first), qr = max(qr, it->second);
+		}
+		_size += qr - ql - cnt;
+		data.insert({ql, qr});
+		return cnt;
+	}
+	// For each x \in is, insert x into the set if it's not present
+	// Returns the number of inserted elements
+	B insert(const interval_set &is){
+		B cnt = 0;
+		for(auto [l, r]: is.data) cnt += insert(l, r);
+		return cnt;
+	}
+	// For each ql <= x < qr, erase x from the set if it's present
+	// Returns the number of deleted elements
+	B erase(B ql, B qr){
+		assert(ql <= qr);
+		if(ql == qr) return B{0};
+		auto it = data.lower_bound({ql, numeric_limits<B>::min()});
+		if(it != data.begin() && ql < prev(it)->second) it = prev(it);
+		B cnt = B{0};
+		for(; it != data.end() && max(ql, it->first) < min(qr, it->second); ){
+			auto [l, r] = *it;
+			if(ql <= l && r <= qr){
+				cnt += r - l;
+				it = data.erase(it); // ql <= l < r <= qr
+			}
+			else if(r <= qr){ // l < ql < r <= qr
+				cnt += r - ql;
+				it = data.erase(it);
+				it = data.insert(it, {l, ql});
+			}
+			else if(ql <= l){ // ql <= l < qr < r
+				cnt += qr - l;
+				it = data.erase(it);
+				it = data.insert(it, {qr, r});
+			}
+			else{ // l < ql < qr < r
+				cnt += qr - ql;
+				it = data.erase(it);
+				it = data.insert(it, {qr, r});
+				it = data.insert(it, {l, ql});
+			}
+		}
+		_size -= cnt;
+		return cnt;
+	}
+	// For each x \in is, erase x from the set if it's present
+	// Returns the number of deleted elements
+	B erase(const interval_set &is){
+		B cnt = 0;
+		for(auto [l, r]: is.data) cnt += erase(l, r);
+		return cnt;
+	}
+	B front() const{
+		assert(!data.empty());
+		return data.begin()->first;
+	}
+	B back() const{
+		assert(!data.empty());
+		return data.rbegin()->second - 1;
+	}
+	friend ostream &operator<<(ostream &out, const interval_set &is){
+		out << "{";
+		for(auto it = is.data.begin(); it != is.data.end(); ++ it){
+			out << "[" << it->first << ", " << it->second << ")";
+			if(next(it) != is.data.end()) out << ", ";
+		}
+		return out << "}";
+	}
+};
+]]></content>
+	<!-- Optional: Set a tabTrigger to define how to trigger the snippet -->
+	<tabTrigger>interval_set</tabTrigger> -->
+	<!-- Optional: Set a scope to limit where the snippet will trigger -->
+	<scope>source.c++</scope> -->
+</snippet>
