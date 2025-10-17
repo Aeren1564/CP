@@ -30,22 +30,6 @@ template<class T, class Head, class ...Tail> T &ctmin(T &x, const Head &h, const
 template<class T> T &ctmax(T &x){ return x; }
 template<class T, class Head, class ...Tail> T &ctmax(T &x, const Head &h, const Tail &... t){ return ctmax(x = max<T>(x, h), t...); }
 
-// std::chunk_by cuz AtCoder is stuck on 3 years old gcc
-vector<vector<int>> chunk_by(auto data, auto eq){
-	vector<vector<int>> chunks;
-	for(auto l = data.begin(); l != data.end(); ){
-		auto r = next(l);
-		vector<int> chunk{*l};
-		while(r != data.end() && eq(*prev(r), *r)){
-			chunk.push_back(*r);
-			r = next(r);
-		}
-		chunks.push_back(chunk);
-		l = r;
-	}
-	return chunks;
-}
-
 
 
 int main(){
