@@ -1,6 +1,5 @@
 <snippet>
 	<content><![CDATA[
-// #include <bits/allocator.h> // Temp fix for gcc13 global pragma
 // #pragma GCC target("avx2,bmi2,popcnt,lzcnt")
 // #pragma GCC optimize("O3,unroll-loops")
 #include <bits/stdc++.h>
