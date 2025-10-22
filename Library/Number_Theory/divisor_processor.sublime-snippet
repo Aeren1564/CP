@@ -1,0 +1,91 @@
+<snippet>
+	<content><![CDATA[
+// T: type of primes, U: type of exponents
+template<class Prime_t = long long, class Exponent_t = int>
+struct divisor_processor{
+#ifdef LOCAL
+	#define ASSERT(x) assert(x)
+#else
+	#define ASSERT(x) 42
+#endif
+	vector<pair<Prime_t, Exponent_t>> factor; // initialized with n=1
+	template<class T, class V>
+	static T _power(T base, V expo){
+		ASSERT(expo >= 0);
+		T res = T{1};
+		for(; expo; base *= base, expo >>= 1) if(expo & 1) res *= base;
+		return res;
+	}
+	divisor_processor(){ }
+	divisor_processor(Prime_t n){ build(n); }
+	// O(sqrt(n))
+	void build(Prime_t n){
+		ASSERT(n >= 1);
+		factor.clear();
+		for(Prime_t p = 2; p * p <= n; ++ p) if(n % p == 0){
+			factor.push_back({p, 0});
+			while(n % p == 0) ++ factor.back().second, n /= p;
+		}
+		if(n > 1) factor.push_back({n, 1});
+	}
+	void build_with_factor(const vector<pair<Prime_t, Exponent_t>> &_factor) const{
+		factor = _factor;
+		sort(factor.begin(), factor.end());
+		for(auto [p, e]: factor) ASSERT(p >= 2 && e >= 1);
+		for(auto i = 0; i + 1 < (int)factor.size(); ++ i) ASSERT(factor[i].first < factor[i + 1].first);
+	}
+	template<class Ret_t = Prime_t>
+	Ret_t evaluate_multiplicative_function(auto evaluate_at_prime_power, Ret_t mul_id = Ret_t{1}) const{
+		Ret_t res = mul_id;
+		for(auto [p, e]: factor) res *= evaluate_at_prime_power(p, e);
+		return res;
+	}
+	// Compute # of d with d | x
+	// O(log(log(n)))
+	template<class Ret_t = Prime_t>
+	Ret_t divisor_count() const{
+		return evaluate_multiplicative_function<Ret_t>([&](auto p, auto e){ return e + 1; });
+	}
+	// Compute \sum_{d | x} d^expo
+	// O(log(log(n))^2)
+	template<class Ret_t = Prime_t>
+	Ret_t divisor_power_sum(long long expo = 1) const{
+		ASSERT(expo >= 0);
+		return evaluate_multiplicative_function<Ret_t>([&](auto p, auto e){
+			Ret_t power = _power(Ret_t{p}, expo), res = Ret_t{0}, c = Ret_t{1};
+			for(++ e; e; c *= 1 + power, power *= power, e >>= 1) if(e & 1) res += c, c *= power;
+			return res;
+		});
+	}
+	void for_each_divisor_and_exponent(auto act_while) const{
+		Prime_t d = Prime_t{1};
+		vector<int> expo((int)factor.size());
+		auto recurse = [&](auto self, int i)->bool{
+			if(i == (int)factor.size()) return act_while(d, expo);
+			self(i + 1);
+			Prime_t pd = d;
+			for(auto e = 1; e <= factor[i].second; ++ e){
+				++ expo[i];
+				d *= factor[i].first;
+				if(!self(i + 1)) return false;
+			}
+			d = pd;
+			expo[i] = 0;
+			return true;
+		};
+		recurse(recurse, 0);
+	}
+	void for_each_divisor(auto act_while) const{
+		for_each_divisor_and_exponent([&](auto d, const auto &expo){ return act_while(d); });
+	}
+	void for_each_exponent(auto act_while) const{
+		for_each_divisor_and_exponent([&](auto d, const auto &expo){ return act_while(expo); });
+	}
+#undef ASSERT
+};
+]]></content>
+	<!-- Optional: Set a tabTrigger to define how to trigger the snippet -->
+	<tabTrigger>divisor_processor</tabTrigger> -->
+	<!-- Optional: Set a scope to limit where the snippet will trigger -->
+	<scope>source.c++</scope> -->
+</snippet>
