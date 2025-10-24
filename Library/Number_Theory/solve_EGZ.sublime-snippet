@@ -1,0 +1,102 @@
+<snippet>
+	<content><![CDATA[
+// Source: "Simple deterministic O(n log n) algorithm finding a solution of Erd˝os-Ginzburg-Ziv theorem." by Seokhwan Choi, Hanpil Kang, Dongjae Lim
+// Given a multiset of integers of size 2 * n - 1,
+// return the indices of a submultiset of size n whose sum is 0 modulo n
+// O(n * log(n))
+template<class T>
+vector<int> solve_EGZ(const vector<T> &_a){
+	assert((int)_a.size() % 2 == 1);
+	int n = (int)_a.size() / 2 + 1;
+	vector<int> a(2 * n - 1);
+	for(auto i = 0; i < 2 * n - 1; ++ i){
+		a[i] = _a[i] % n;
+		if(a[i] < 0) a[i] += n;
+	}
+	auto mod_add = [&](int x, int y)->int{
+		x += y;
+		if(x >= n) x -= n;
+		return x;
+	};
+	bool found = false;
+	vector<int> in_res(2 * n - 1);
+	for(auto x = (int)sqrt(n) + 1; x >= 2; -- x) if(x * x <= n && n % x == 0){
+		found = true;
+		int y = n / x; // composite n: n = x * y, min(x, y) >= 2
+		vector<int> cur, cur_next;
+		vector<int> cur_index, cur_index_next;
+		for(auto i = 0; i < y - 1; ++ i) cur.push_back(a[i]), cur_index.push_back(i);
+		vector<vector<int>> b(2 * x - 1);
+		vector<int> brem(2 * x - 1);
+		for(auto gi = 0; gi < 2 * x - 1; ++ gi){
+			for(auto i = y - 1 + y * gi; i < y - 1 + y * (gi + 1); ++ i) cur.push_back(a[i]), cur_index.push_back(i);
+			assert((int)cur.size() == 2 * y - 1 && (int)cur_index.size() == 2 * y - 1);
+			b[gi].reserve(y);
+			for(auto i: solve_EGZ(cur)) b[gi].push_back(cur_index[i]), brem[gi] = mod_add(brem[gi], cur[i]);
+			assert(brem[gi] % y == 0);
+			brem[gi] /= y;
+			cur_next.clear(), cur_index_next.clear();
+			for(auto p = 0, q = 0; p < (int)cur_index.size(); ++ p){
+				if(q < (int)b[gi].size() && cur_index[p] == b[gi][q]) ++ q;
+				else cur_next.push_back(cur[p]), cur_index_next.push_back(cur_index[p]);
+			}
+			swap(cur, cur_next);
+			swap(cur_index, cur_index_next);
+		}
+		for(auto gi: solve_EGZ(brem)) for(auto i: b[gi]) in_res[i] = true;
+		break;
+	}
+	if(!found){ // prime n
+		vector<int> order(2 * n - 1);
+		iota(order.begin(), order.end(), 0);
+		sort(order.begin(), order.end(), [&](int i, int j){ return a[i] < a[j]; });
+		for(auto i = 0; i < n; ++ i) if(a[order[i]] == a[order[n - 1 + i]]){
+			found = true;
+			for(auto j = i; j < n + i; ++ j) in_res[order[j]] = true;
+			break;
+		}
+		if(!found){
+			for(auto i = 0; i < n; ++ i) in_res[order[i]] = true;
+			vector<int> last(n, -1);
+			int base_sum = 0;
+			for(auto i = 0; i < n; ++ i) base_sum = mod_add(base_sum, a[order[i]]);
+			auto inv = [&](int x)->int{
+				assert(0 < x && x < n);
+				int res = 1;
+				for(auto e = n - 2, base = x; e; e >>= 1, base = 1LL * base * base % n) if(e & 1) res = 1LL * res * base % n;
+				return res;
+			};
+			last[base_sum] = -2;
+			for(auto i = 0; i < n; ++ i){
+				if(~last[0]){
+					found = true;
+					for(auto cur_sum = 0; cur_sum != base_sum; ){
+						int i = last[cur_sum];
+						assert(i >= 0);
+						in_res[order[i]] = false, in_res[order[n + i]] = true;
+						cur_sum = (cur_sum - (a[order[n + i]] - a[order[i]]) + n) % n;
+					}
+					break;
+				}
+				assert(i < n - 1);
+				int dif = a[order[n + i]] - a[order[i]], l = 1LL * base_sum * inv(dif) % n, r = n;
+				while(r - l >= 2){
+					int m = l + r >> 1;
+					(~last[1LL * m * dif % n] ? l : r) = m;
+				}
+				last[1LL * r * dif % n] = i;
+			}
+		}
+	}
+	assert(found);
+	vector<int> res;
+	for(auto i = 0; i < 2 * n - 1; ++ i) if(in_res[i]) res.push_back(i);
+	assert(accumulate(res.begin(), res.end(), 0, [&](int x, int i){ return mod_add(x, a[i]); }) == 0);
+	return res;
+}
+]]></content>
+	<!-- Optional: Set a tabTrigger to define how to trigger the snippet -->
+	<tabTrigger>solve_EGZ</tabTrigger> -->
+	<!-- Optional: Set a scope to limit where the snippet will trigger -->
+	<scope>source.c++</scope> -->
+</snippet>
