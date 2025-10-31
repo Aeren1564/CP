@@ -125,22 +125,22 @@ auto make_fenwick_tree(F TT, T T_id, I Tinv){
 }
 template<class T>
 auto make_fenwick_tree_sum(T T_id = T{0}){
-	return fenwick_tree<true, T, plus<>, negate<>>(plus<>(), T_id, negate<>());
+	return fenwick_tree<true, T, plus<>, negate<>>(plus{}, T_id, negate{});
 }
 template<class T>
 auto make_fenwick_tree_product(){
 	auto inverse = [](const T &x){ return 1 / x; };
-	return fenwick_tree<true, T, multiplies<>, decltype(inverse)>(multiplies<>(), T{1}, inverse);
+	return fenwick_tree<true, T, multiplies<>, decltype(inverse)>(multiplies{}, T{1}, inverse);
 }
 template<class T>
 auto make_fenwick_tree_min(){
 	auto TT = [&](const T &x, const T &y)->T{ return min(x, y); };
-	return fenwick_tree<false, T, decltype(TT), negate<>>(TT, numeric_limits<T>::max(), negate<>());
+	return fenwick_tree<false, T, decltype(TT), negate<>>(TT, numeric_limits<T>::max(), negate{});
 }
 template<class T>
 auto make_fenwick_tree_max(){
 	auto TT = [&](const T &x, const T &y)->T{ return max(x, y); };
-	return fenwick_tree<false, T, decltype(TT), negate<>>(TT, numeric_limits<T>::max(), negate<>());
+	return fenwick_tree<false, T, decltype(TT), negate<>>(TT, numeric_limits<T>::max(), negate{});
 }
 ]]></content>
 	<!-- Optional: Set a tabTrigger to define how to trigger the snippet -->

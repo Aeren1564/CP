@@ -111,7 +111,7 @@ struct dfs_forest{
 	}
 	// O(# of nodes reachable from src)
 	template<class U, class F = plus<>>
-	void build(const graph<U> &g, const vector<int> &src, F UT = plus<>(), T base_dist = T{}){
+	void build(const graph<U> &g, const vector<int> &src, F UT = plus{}, T base_dist = T{}){
 		init(g.n);
 		++ attempt;
 		for(auto u: src){
@@ -121,7 +121,7 @@ struct dfs_forest{
 	}
 	// O(n + m)
 	template<class U, class F = plus<>>
-	void build_all(const graph<U> &g, F UT = plus<>(), T base_dist = T{}){
+	void build_all(const graph<U> &g, F UT = plus{}, T base_dist = T{}){
 		init(g.n);
 		++ attempt;
 		for(auto u = 0; u < n; ++ u) if(was[u] != attempt) _build(g, u, UT, base_dist);

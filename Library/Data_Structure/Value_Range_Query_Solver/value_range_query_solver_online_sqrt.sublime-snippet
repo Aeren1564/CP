@@ -8,9 +8,9 @@ struct value_range_query_solver_online_sqrt{
 	vector<vector<vector<T>>> small;
 	F TT; // Commutative monoid operation
 	T T_id; // Commutative monoid identity
-	value_range_query_solver_online_sqrt(const vector<int> &a, int sigma, F TT = plus<>(), T T_id = {}): value_range_query_solver_online_sqrt(a, sigma, vector<T>((int)a.size(), 1), TT, T_id){ }
+	value_range_query_solver_online_sqrt(const vector<int> &a, int sigma, F TT = plus{}, T T_id = {}): value_range_query_solver_online_sqrt(a, sigma, vector<T>((int)a.size(), 1), TT, T_id){ }
 	// O(n / BX * sigma + n * BX + n * log(n))
-	value_range_query_solver_online_sqrt(const vector<int> &a, int sigma, const vector<T> &w, F TT = plus<>(), T T_id = {}): n((int)a.size()), sigma(sigma), large(n / BX + 2, vector<T>(sigma + 1, T_id)), small_mapping(n / BX + 1, vector<int>(sigma + 1)), small(n / BX + 1), TT(TT), T_id(T_id){
+	value_range_query_solver_online_sqrt(const vector<int> &a, int sigma, const vector<T> &w, F TT = plus{}, T T_id = {}): n((int)a.size()), sigma(sigma), large(n / BX + 2, vector<T>(sigma + 1, T_id)), small_mapping(n / BX + 1, vector<int>(sigma + 1)), small(n / BX + 1), TT(TT), T_id(T_id){
 		assert(sigma >= 0);
 		for(auto &x: a) assert(0 <= x && x < sigma);
 		assert((int)w.size() == n);

@@ -24,7 +24,7 @@ struct mo_sweepline_base{
 	F TT;
 	T T_id;
 	I Tinv;
-	mo_sweepline_base(int n, F TT = plus<>(), T T_id = 0, I Tinv = negate<>()): n(n), TT(TT), T_id(T_id), Tinv(Tinv){ }
+	mo_sweepline_base(int n, F TT = plus{}, T T_id = 0, I Tinv = negate{}): n(n), TT(TT), T_id(T_id), Tinv(Tinv){ }
 	void query(int qi, int ql, int qr){
 		assert(0 <= ql && ql <= qr && qr <= n);
 		q.push_back({ql, qr, qi});

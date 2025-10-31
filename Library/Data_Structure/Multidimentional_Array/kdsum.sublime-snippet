@@ -9,7 +9,7 @@ struct kdsum{
 	T id;
 	kdarray<T> val;
 	template<class U>
-	kdsum(const kdarray<U> &arr, BO bin_op = plus<>{}, IO inv_op = minus<>{}, T id = 0LL): val(arr), bin_op(bin_op), inv_op(inv_op), id(id){
+	kdsum(const kdarray<U> &arr, BO bin_op = plus{}, IO inv_op = minus<>{}, T id = 0LL): val(arr), bin_op(bin_op), inv_op(inv_op), id(id){
 		vector<int> cur, from;
 		for(int t = 0, ncnt; t < val.K; ++ t){
 			cur.assign(val.K, 0), from.assign(val.K, 0), -- from[t], ncnt = 1;

@@ -86,7 +86,7 @@ struct sorted_range_sum_tracker{
 };
 
 template<class T, class F = plus<>, class I = negate<>, class Compare = less<>>
-auto make_sorted_range_sum_tracker(int B = 2, F TT = plus<>(), T T_id = 0, I Tinv = negate<>(), Compare cmp = less<>()){
+auto make_sorted_range_sum_tracker(int B = 2, F TT = plus{}, T T_id = 0, I Tinv = negate{}, Compare cmp = less<>()){
 	return sorted_range_sum_tracker<T, F, I, Compare>(B, TT, T_id, Tinv, cmp);
 }
 ]]></content>
