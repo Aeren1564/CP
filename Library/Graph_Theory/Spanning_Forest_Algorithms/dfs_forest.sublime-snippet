@@ -27,7 +27,7 @@ struct dfs_forest{
 	// extra_edge[u]: adjacent edges of u which is not part of the spanning forest found during the last dfs-like run.
 	vector<vector<int>> extra_edge;
 	vector<int> was;
-	void init(int n){
+	void _init(int n){
 		this->n = n;
 		pv.resize(n, -1);
 		pe.resize(n, -1);
@@ -112,7 +112,7 @@ struct dfs_forest{
 	// O(# of nodes reachable from src)
 	template<class U, class F = plus<>>
 	void build(const graph<U> &g, const vector<int> &src, F UT = plus{}, T base_dist = T{}){
-		init(g.n);
+		_init(g.n);
 		++ attempt;
 		for(auto u: src){
 			ASSERT(0 <= u && u < n);
@@ -122,7 +122,7 @@ struct dfs_forest{
 	// O(n + m)
 	template<class U, class F = plus<>>
 	void build_all(const graph<U> &g, F UT = plus{}, T base_dist = T{}){
-		init(g.n);
+		_init(g.n);
 		++ attempt;
 		for(auto u = 0; u < n; ++ u) if(was[u] != attempt) _build(g, u, UT, base_dist);
 	}
@@ -135,6 +135,11 @@ struct dfs_forest{
 	bool ancestor_of(int u, int v) const{
 		ASSERT(visited(u) && visited(v));
 		return pos[u] <= pos[v] && end[v] <= end[u];
+	}
+	// Returns all vertices in the subtree of u in dfs order
+	auto subtr(int u){
+		ASSERT(visited(u));
+		return order | views::take(end[u]) | views::drop(pos[u]);
 	}
 	vector<int> get_vertex_path(int u, int v) const{
 		ASSERT(visited(u) && visited(v));
