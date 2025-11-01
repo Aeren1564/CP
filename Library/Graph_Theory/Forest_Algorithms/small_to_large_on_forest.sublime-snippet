@@ -2,30 +2,52 @@
 	<content><![CDATA[
 // Requires graph
 struct small_to_large_on_forest{
+#ifdef LOCAL
+	#define ASSERT(x) assert(x)
+#else
+	#define ASSERT(x) 42
+#endif
 	int n;
 	vector<vector<int>> adj;
 	vector<int> size, pv, pe, order, pos, end, root;
-	small_to_large_on_forest(int n): n(n), adj(n), size(n), pv(n), pe(n), pos(n), end(n), root(n), was(n){ }
-	int iter = 0;
+	small_to_large_on_forest(){ }
+	template<class T>
+	small_to_large_on_forest(const graph<T> &g){ build_all(g); }
+	template<class T>
+	small_to_large_on_forest(const graph<T> &g, const vector<int> &roots){ build(g, roots); }
+	void _init(int n){
+		this->n = n;
+		adj.resize(n);
+		size.resize(n);
+		pv.resize(n);
+		pe.resize(n);
+		order.clear();
+		pos.resize(n);
+		end.resize(n);
+		root.resize(n);
+		was.resize(n, -2);
+	}
+	int attempt = -1;
 	vector<int> was;
-	void init(const graph<auto> &g){
+	template<class T>
+	void build_all(const graph<T> &g){
 		vector<int> roots(g.n);
 		iota(roots.begin(), roots.end(), 0);
-		init(g, roots);
+		build(g, roots);
 	}
-	void init(const graph<auto> &g, const vector<int> &roots){
-		assert(n == g.n);
-		order.clear();
-		++ iter;
+	template<class T>
+	void build(const graph<T> &g, const vector<int> &roots){
+		_init(g.n);
+		++ attempt;
 		auto dfs_size = [&](auto self, int u)->void{
-			was[u] = iter;
+			was[u] = attempt;
 			adj[u].clear();
 			size[u] = 1;
 			for(auto id: g.adj[u]){
 				if(g.ignore && g.ignore(id)) continue;
 				auto &e = g.edge[id];
 				int v = u ^ e.from ^ e.to;
-				if(was[v] == iter) continue;
+				if(was[v] == attempt) continue;
 				pv[v] = u;
 				pe[v] = id;
 				root[v] = root[u];
@@ -41,12 +63,22 @@ struct small_to_large_on_forest{
 			for(auto v: adj[u]) self(self, v);
 			end[u] = (int)order.size();
 		};
-		for(auto u: roots) if(was[u] != iter){
+		for(auto u: roots) if(was[u] != attempt){
 			root[u] = u;
 			pv[u] = pe[u] = -1;
 			dfs_size(dfs_size, u);
 			dfs(dfs, u);
 		}
+	}
+	// Check if u is visited during the last build-like call.
+	bool visited(int u) const{
+		ASSERT(0 <= u && u < n);
+		return was[u] == attempt;
+	}
+	// Returns all vertices in the subtree of u in dfs order
+	auto subtr(int u){
+		ASSERT(visited(u));
+		return order | views::take(end[u]) | views::drop(pos[u]);
 	}
 	// insert_subtr(u): insert all vertices in the subtree of u into the state.
 	// insert_root(u): insert vertex u into the state.
@@ -63,6 +95,7 @@ struct small_to_large_on_forest{
 			if(!~pv[u] || adj[pv[u]][0] != u) clear_subtr(u);
 		}
 	}
+#undef ASSERT
 };
 ]]></content>
 	<!-- Optional: Set a tabTrigger to define how to trigger the snippet -->
