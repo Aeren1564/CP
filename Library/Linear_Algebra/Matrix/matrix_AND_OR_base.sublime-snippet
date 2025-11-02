@@ -138,7 +138,7 @@ bitset<SZ> operator*(const vector<int> &v, const matrix_AND_OR_base<SZ> &a){
 using matrix_AND_OR = matrix_AND_OR_base<1000>;
 ]]></content>
 	<!-- Optional: Set a tabTrigger to define how to trigger the snippet -->
-	<tabTrigger>matrix_AND_OR_base</tabTrigger> -->
+	<tabTrigger>matrix_AND_OR</tabTrigger> -->
 	<!-- Optional: Set a scope to limit where the snippet will trigger -->
 	<scope>source.c++</scope> -->
 </snippet>
