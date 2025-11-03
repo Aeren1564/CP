@@ -76,7 +76,7 @@ struct small_to_large_on_forest{
 		return was[u] == attempt;
 	}
 	// Returns all vertices in the subtree of u in dfs order
-	auto subtr(int u){
+	auto subtree(int u){
 		ASSERT(visited(u));
 		return order | views::take(end[u]) | views::drop(pos[u]);
 	}
