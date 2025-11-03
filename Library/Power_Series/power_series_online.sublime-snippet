@@ -7,7 +7,7 @@ struct power_series_online_wrapper_base{
 #else
 	#define ASSERT(x) 42
 #endif
-	static constexpr int inf = numeric_limits<int>::max();
+	static constexpr int inf = numeric_limits<int>::max() / 2;
 	enum type_t{
 		DEAD,              // Deleted series
 		LEAF,              // Series whose coefficients will be appended one by one
@@ -86,13 +86,21 @@ struct power_series_online_wrapper_base{
 		data[u].clear();
 		return u;
 	}
-	int make_const_series(const vector<T> &p, int u = -1){
+	int make_const_series(const vector<T> &p, int u = -1, int v = -1){
 		ASSERT(-1 <= u && u < (int)type.size());
-		u = _new_series(u);
-		type[u] = type_t::LEAF_CONST;
-		n[u] = inf;
-		threshold[u] = (int)p.size();
-		data[u] = p;
+		if(p.empty() || p[0] != T{0}){
+			u = _new_series(u);
+			type[u] = type_t::LEAF_CONST;
+			n[u] = inf;
+			threshold[u] = (int)p.size();
+			data[u] = p;
+		}
+		else{
+			int zero_pref = 0;
+			while(zero_pref < (int)p.size() && p[zero_pref] == T{0}) ++ zero_pref;
+			u = make_const_series(vector<T>(p.begin() + zero_pref, p.end()), u);
+			u = shift(u, zero_pref, v);
+		}
 		return u;
 	}
 	int make_circular_series(const vector<T> &p, int u = -1){
@@ -162,12 +170,16 @@ struct power_series_online_wrapper_base{
 		static_assert(ENABLE_FFT);
 		ASSERT(-1 <= u && u < (int)type.size());
 		ASSERT(0 <= min(v, w) && max(v, w) < (int)type.size() && type[v] != type_t::DEAD && type[w] != type_t::DEAD);
-		u = _new_series(u);
-		type[u] = type_t::PRODUCT;
-		arg0[u] = v;
-		arg1[u] = w;
-		variate_flag[u] = variate_flag[v] | variate_flag[w];
-		threshold[u] = threshold[v] == inf || threshold[w] == inf ? inf : threshold[v] + threshold[w] - (threshold[v] && threshold[w]);
+		if(type[v] == type_t::SHIFT) return shift(multiply(arg0[v], w), arg1[v], u);
+		else if(type[w] == type_t::SHIFT) return shift(multiply(v, arg0[w]), arg1[w], u);
+		else{
+			u = _new_series(u);
+			type[u] = type_t::PRODUCT;
+			arg0[u] = v;
+			arg1[u] = w;
+			variate_flag[u] = variate_flag[v] | variate_flag[w];
+			threshold[u] = threshold[v] == inf || threshold[w] == inf ? inf : threshold[v] + threshold[w] - (threshold[v] && threshold[w]);
+		}
 		return u;
 	}
 	int transform_subset(int v, bool invert, int u = -1){
