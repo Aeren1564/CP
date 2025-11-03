@@ -44,7 +44,7 @@ struct combinatorics{
 	// O(1)
 	T H(int n, int k){
 		ASSERT(0 <= min(n, k));
-		if(n == 0) return T{0};
+		if(n == 0) return k ? T{0} : T{1};
 		return C(n + k - 1, k);
 	}
 	// Multinomial Coefficient
