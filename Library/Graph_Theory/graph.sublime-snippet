@@ -58,21 +58,25 @@ struct graph{
 		return u ^ edge[id].from ^ edge[id].to;
 	}
 	int link(int u, int v, T w = {}){ // insert an undirected edge
+		ASSERT(0 <= min(u, v) && max(u, v) < n);
 		int id = (int)edge.size();
 		adj[u].push_back(id), adj[v].push_back(id), edge.push_back({u, v, w});
 		return id;
 	}
 	int orient(int u, int v, T w = {}){ // insert a directed edge
+		ASSERT(0 <= min(u, v) && max(u, v) < n);
 		int id = (int)edge.size();
 		adj[u].push_back(id), edge.push_back({u, v, w});
 		return id;
 	}
 	auto neighbor(int u, int exclude = -1) const{
+		ASSERT(0 <= u && u < n);
 		return adj[u]
 			| views::filter([this, u, exclude](int id){ return id != exclude && !(ignore && ignore(id)); })
 			| views::transform([this, u](int id){ return (*this)(u, id); });
 	}
 	auto weighted_neighbor(int u, int exclude = -1) const{
+		ASSERT(0 <= u && u < n);
 		return adj[u]
 			| views::filter([this, u, exclude](int id){ return id != exclude && !(ignore && ignore(id)); })
 			| views::transform([this, u](int id){ return pair{(*this)(u, id), edge[id].cost}; });
