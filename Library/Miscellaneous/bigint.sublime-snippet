@@ -115,64 +115,6 @@ struct bigint{
 		}
 		*this = sign ? -x : x;
 	}
-	// MSB at s.front()
-	static bigint read(unsigned int base = 10){
-		ASSERT(base >= 2);
-		string s;
-		cin >> s;
-		bigint res;
-		int pos = 0;
-		while(pos < (int)s.size() && (s[pos] == '-' || s[pos] == '+')){
-			if(s[pos] == '-') res.sign = !res.sign;
-			++ pos;
-		}
-		ASSERT(pos < (int)s.size());
-		if(base == 2){
-			for(auto i = (int)s.size() - 1; i >= pos; i -= width){
-				T x = 0;
-				for(auto j = max(pos, i - width + 1); j <= i; ++ j){
-					ASSERT('0' <= s[j] && s[j] <= '1');
-					x = x << 1 | s[j] - '0';
-				}
-				res.data.push_back(x);
-			}
-			while(!res.data.empty() && !res.data.back()) res.data.pop_back();
-		}
-		else if(base == 4){
-			for(auto i = (int)s.size() - 1; i >= pos; i -= width / 2){
-				T x = 0;
-				for(auto j = max(pos, i - width + 1); j <= i; ++ j){
-					ASSERT('0' <= s[j] && s[j] <= '1');
-					x = x << 1 | s[j] - '0';
-				}
-				res.data.push_back(x);
-			}
-			while(!res.data.empty() && !res.data.back()) res.data.pop_back();
-		}
-		else if(base == 8){
-			for(auto i = (int)s.size() - 1; i >= pos; i -= width){
-				T x = 0;
-				for(auto j = max(pos, i - width + 1); j <= i; ++ j){
-					ASSERT('0' <= s[j] && s[j] <= '1');
-					x = x << 1 | s[j] - '0';
-				}
-				res.data.push_back(x);
-			}
-			while(!res.data.empty() && !res.data.back()) res.data.pop_back();
-		}
-		else if(base <= 10){
-			bigint x;
-			for(auto i = pos; i < (int)s.size(); ++ i){
-				ASSERT(isdigit(s[i]));
-				x = base * x + (s[i] - '0');
-			}
-			res = x;
-		}
-		else ASSERT(false);
-		res._trim();
-		ASSERT(res._is_valid());
-		return res;
-	}
 	bool has_single_bit() const{
 		ASSERT(sign == 0);
 		int cnt = 0;
@@ -282,6 +224,31 @@ struct bigint{
 		for(auto y = x; y; y /= base) v.push_back(y % base);
 		return {0, v};
 	}
+	// MSB at s.front()
+	static bigint from_string(const string &s, unsigned int base = 10){
+		ASSERT(2 <= base && base < 36 && !s.empty());
+		if(s == "0") return bigint{};
+		if(s.front() == '+') return from_string(s.substr(1));
+		if(s.front() == '-') return -from_string(s.substr(1));
+		T chunk = 1;
+		int width = 0;
+		while(!__builtin_mul_overflow_p(chunk, base, T{0})){
+			chunk *= base;
+			++ width;
+		}
+		bigint res;
+		for(auto r = (int)s.size() % width; r <= (int)s.size(); r += width){
+			int l = max(0, r - width);
+			res = chunk * res + stoull(s.substr(max(0, r - width), r - l), nullptr, base);
+		}
+		return res;
+	}
+	friend istream &operator>>(istream &in, bigint &x){
+		string s;
+		in >> s;
+		x = from_string(s);
+		return in;
+	}
 	// MSB at front()
 	friend string to_string(const bigint &x, unsigned int base = 10){
 		ASSERT(base >= 2);
@@ -295,20 +262,10 @@ struct bigint{
 			++ width;
 		}
 		for(auto y = x; y; ){
-			auto [q, _r] = bigint_div(y, chunk);
-			T r = _r;
-			string delta;
-			if(base == 2) delta = q ? format("{:0{}b}", r, width) : format("{:b}", r);
-			else if(base == 8) delta = q ? format("{:0{}o}", r, width) : format("{:o}", r);
-			else if(base == 10) delta = q ? format("{:0{}}", r, width) : format("{}", r);
-			else if(base == 16) delta = q ? format("{:0{}X}", r, width) : format("{:X}", r);
-			else{
-				for(auto _ = 0; _ < width && (q || r); ++ _){
-					delta.push_back('0' + r % base);
-					r /= base;
-				}
-				reverse(delta.begin(), delta.end());
-			}
+			auto [q, r] = bigint_div(y, chunk);
+			string delta(width, '?');
+			delta.resize(to_chars(delta.data(), delta.data() + delta.size(), T{r}).ptr - delta.data());
+			if((int)delta.size() < width && q) delta = string(width - (int)delta.size(), '0') + delta;
 			reverse(delta.begin(), delta.end());
 			s += delta;
 			y = q;
