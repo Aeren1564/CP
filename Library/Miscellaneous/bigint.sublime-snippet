@@ -4,6 +4,11 @@
 // Negative numbers are assumed to have infinite leading ones, represented in two's complement.
 // No leading ~0 allowed for negative numbers, and no leading 0 allowed for non-negative numbers. This ensures that each integer has a unique representation.
 struct bigint{
+#ifdef LOCAL
+	#define ASSERT(x) assert(x)
+#else
+	#define ASSERT(x) 42
+#endif
 	using T = unsigned long long;
 	using T_large = __uint128_t;
 	static constexpr signed int width = 8 * sizeof(T);
@@ -105,56 +110,71 @@ struct bigint{
 	bigint(bool sign, const vector<U> &a, U base){
 		bigint x{};
 		for(auto d: a){
-			assert(0 <= d && d < base);
+			ASSERT(0 <= d && d < base);
 			x = base * x + d;
 		}
 		*this = sign ? -x : x;
 	}
 	// MSB at s.front()
-	bigint(const string &s, unsigned int base){
-		assert(base >= 2);
+	static bigint read(unsigned int base = 10){
+		ASSERT(base >= 2);
+		string s;
+		cin >> s;
+		bigint res;
 		int pos = 0;
 		while(pos < (int)s.size() && (s[pos] == '-' || s[pos] == '+')){
-			if(s[pos] == '-') sign = !sign;
+			if(s[pos] == '-') res.sign = !res.sign;
 			++ pos;
 		}
-		assert(pos < (int)s.size());
+		ASSERT(pos < (int)s.size());
 		if(base == 2){
 			for(auto i = (int)s.size() - 1; i >= pos; i -= width){
 				T x = 0;
 				for(auto j = max(pos, i - width + 1); j <= i; ++ j){
-					assert('0' <= s[j] && s[j] <= '1');
+					ASSERT('0' <= s[j] && s[j] <= '1');
 					x = x << 1 | s[j] - '0';
 				}
-				data.push_back(x);
+				res.data.push_back(x);
 			}
-			while(!data.empty() && !data.back()) data.pop_back();
+			while(!res.data.empty() && !res.data.back()) res.data.pop_back();
+		}
+		else if(base == 4){
+			for(auto i = (int)s.size() - 1; i >= pos; i -= width / 2){
+				T x = 0;
+				for(auto j = max(pos, i - width + 1); j <= i; ++ j){
+					ASSERT('0' <= s[j] && s[j] <= '1');
+					x = x << 1 | s[j] - '0';
+				}
+				res.data.push_back(x);
+			}
+			while(!res.data.empty() && !res.data.back()) res.data.pop_back();
+		}
+		else if(base == 8){
+			for(auto i = (int)s.size() - 1; i >= pos; i -= width){
+				T x = 0;
+				for(auto j = max(pos, i - width + 1); j <= i; ++ j){
+					ASSERT('0' <= s[j] && s[j] <= '1');
+					x = x << 1 | s[j] - '0';
+				}
+				res.data.push_back(x);
+			}
+			while(!res.data.empty() && !res.data.back()) res.data.pop_back();
 		}
 		else if(base <= 10){
-			bigint x{};
+			bigint x;
 			for(auto i = pos; i < (int)s.size(); ++ i){
-				assert(isdigit(s[i]));
+				ASSERT(isdigit(s[i]));
 				x = base * x + (s[i] - '0');
 			}
-			if(sign) x = -x;
-			*this = x;
+			res = x;
 		}
-		else if(base == 16){
-			// 0, ..., 9, A, B, C, D, E, F
-			bigint x{};
-			for(auto i = pos; i < (int)s.size(); ++ i){
-				assert(isdigit(s[i]) || isupper(s[i]) && s[i] <= 'F');
-				x = base * x + (isdigit(s[i]) ? s[i] - '0' : s[i] - 'A' + 10);
-			}
-			if(sign) x = -x;
-			*this = x;
-		}
-		else assert(false);
-		_trim();
-		assert(_is_valid());
+		else ASSERT(false);
+		res._trim();
+		ASSERT(res._is_valid());
+		return res;
 	}
 	bool has_single_bit() const{
-		assert(sign == 0);
+		ASSERT(sign == 0);
 		int cnt = 0;
 		for(auto x: data){
 			cnt += __builtin_popcountll(x);
@@ -163,7 +183,7 @@ struct bigint{
 		return cnt == 1;
 	}
 	int bit_width() const{
-		assert(sign == 0);
+		ASSERT(sign == 0);
 		if(data.empty()) return 0;
 		return __lg(data.back()) + 64 * ((int)data.size() - 1) + 1;
 	}
@@ -176,13 +196,13 @@ struct bigint{
 		return bigint{1} << this->bit_width() - 1;
 	}
 	int popcount() const{
-		assert(sign == 0);
+		ASSERT(sign == 0);
 		int cnt = 0;
 		for(auto x: data) cnt += __builtin_popcountll(x);
 		return cnt;
 	}
 	int countr_zero() const{
-		assert(sign == 0);
+		ASSERT(sign == 0);
 		int res = 0;
 		for(auto i = 0; i < (int)data.size(); ++ i){
 			if(data[i]){
@@ -194,7 +214,7 @@ struct bigint{
 		return res;
 	}
 	int countr_one() const{
-		assert(sign == 0);
+		ASSERT(sign == 0);
 		int res = 0;
 		for(auto i = 0; i < (int)data.size(); ++ i){
 			if(data[i] != ~T{0}){
@@ -206,15 +226,15 @@ struct bigint{
 		return res;
 	}
 	int find_first() const{
-		assert(sign == 0);
+		ASSERT(sign == 0);
 		if(!*this) return numeric_limits<int>::max();
 		int i = 0;
 		while(!data[i]) ++ i;
 		return 64 * i + __builtin_ctzll(data[i]);
 	}
 	int find_next(int pos) const{
-		assert(sign == 0);
-		assert(0 <= pos);
+		ASSERT(sign == 0);
+		ASSERT(0 <= pos);
 		int b = (pos + 1) / 64;
 		if(b >= (int)data.size()) return numeric_limits<int>::max();
 		if(data[b] >> (pos + 1) % 64) return __builtin_ctzll(data[b] >> (pos + 1) % 64) + pos + 1;
@@ -223,13 +243,13 @@ struct bigint{
 		return 64 * b + __builtin_ctzll(data[b]);
 	}
 	int find_last() const{
-		assert(sign == 0);
+		ASSERT(sign == 0);
 		if(!*this) return -1;
 		return 64 * ((int)data.size() - 1) + __builtin_ctzll(data.back());
 	}
 	int find_prev(int pos) const{
-		assert(sign == 0);
-		assert(0 <= pos);
+		ASSERT(sign == 0);
+		ASSERT(0 <= pos);
 		if(!*this) return -1;
 		int b = pos / 64;
 		if(b >= (int)data.size()) return 64 * ((int)data.size() - 1) + __builtin_ctzll(data.back());
@@ -239,14 +259,14 @@ struct bigint{
 		return b >= 0 ? __builtin_ctzll(data[b]) : -1;
 	}
 	bool operator[](int pos) const{
-		assert(sign == 0);
-		assert(0 <= pos);
+		ASSERT(sign == 0);
+		ASSERT(0 <= pos);
 		if(pos / 64 < (int)data.size()) return data[pos / 64] >> pos % 64 & 1;
 		return false;
 	}
 	void set(int pos, bool x){
-		assert(sign == 0);
-		assert(0 <= pos);
+		ASSERT(sign == 0);
+		ASSERT(0 <= pos);
 		if(pos / 64 < (int)data.size()) if((data[pos / 64] >> pos % 64 & 1) != x) data[pos / 64] ^= T{1} << pos % 64;
 		else if(x){
 			data.resize(pos / 64 + 1, pad[sign]);
@@ -256,44 +276,48 @@ struct bigint{
 	// MSB at back()
 	template<class U, typename enable_if<is_integral_v<U>>::type* = nullptr>
 	friend pair<bool, vector<U>> to_vector(const bigint &x, U base){
-		assert(base >= 2);
+		ASSERT(base >= 2);
 		if(x < 0) return {1, to_vector(-x, base).second};
 		vector<U> v;
 		for(auto y = x; y; y /= base) v.push_back(y % base);
 		return {0, v};
 	}
-	// TODO: Implement Schoenhage
 	// MSB at front()
-	friend string to_string(const bigint &x, unsigned int base){
-		assert(base >= 2);
+	friend string to_string(const bigint &x, unsigned int base = 10){
+		ASSERT(base >= 2);
 		if(!x) return "0";
 		if(x < 0) return '-' + to_string(-x, base);
-		if(base == 2){
-			string s;
-			for(int i = __lg(x.data.back()); i >= 0; -- i) s.push_back('0' + (x.data.back() >> i & 1));
-			for(auto i = (int)x.data.size() - 2; i >= 0; -- i) s += bitset<width>(x.data[i]).to_string();
-			return s;
+		string s;
+		T chunk = 1;
+		int width = 0;
+		while(!__builtin_mul_overflow_p(chunk, base, T{0})){
+			chunk *= base;
+			++ width;
 		}
-		else if(base <= 10){
-			string s;
-			for(auto y = x; y; y /= base) s.push_back('0' + int(y % base));
-			reverse(s.begin(), s.end());
-			return s;
-		}
-		else if(base == 16){
-			// 0, ..., 9, A, B, C, D, E, F
-			string s;
-			for(auto y = x; y; y /= base){
-				int rem = y % base;
-				s.push_back(rem < 10 ? '0' + rem : rem - 10 + 'A');
+		for(auto y = x; y; ){
+			auto [q, _r] = bigint_div(y, chunk);
+			T r = _r;
+			string delta;
+			if(base == 2) delta = q ? format("{:0{}b}", r, width) : format("{:b}", r);
+			else if(base == 8) delta = q ? format("{:0{}o}", r, width) : format("{:o}", r);
+			else if(base == 10) delta = q ? format("{:0{}}", r, width) : format("{}", r);
+			else if(base == 16) delta = q ? format("{:0{}X}", r, width) : format("{:X}", r);
+			else{
+				for(auto _ = 0; _ < width && (q || r); ++ _){
+					delta.push_back('0' + r % base);
+					r /= base;
+				}
+				reverse(delta.begin(), delta.end());
 			}
-			reverse(s.begin(), s.end());
-			return s;
+			reverse(delta.begin(), delta.end());
+			s += delta;
+			y = q;
 		}
-		else assert(false);
+		reverse(s.begin(), s.end());
+		return s;
 	}
 	friend ostream &operator<<(ostream &out, const bigint &x){
-		return out << to_string(x, 10);
+		return out << to_string(x);
 	}
 	operator bool() const{
 		return sign || !data.empty();
@@ -337,7 +361,7 @@ friend bool operator OP(U x, const bigint &y){\
 COMPARE_OP(==) COMPARE_OP(!=) COMPARE_OP(<) COMPARE_OP(<=) COMPARE_OP(>=) COMPARE_OP(>)
 #undef COMPARE_OP
 	bigint &operator>>=(const bigint &_x){
-		assert(0 <= _x && _x <= numeric_limits<int>::max());
+		ASSERT(0 <= _x && _x <= numeric_limits<int>::max());
 		int x = int(_x);
 		if(x == 0) return *this;
 		if((int)data.size() <= x / 64){
@@ -355,7 +379,7 @@ COMPARE_OP(==) COMPARE_OP(!=) COMPARE_OP(<) COMPARE_OP(<=) COMPARE_OP(>=) COMPAR
 		return bigint(*this) >>= x;
 	}
 	bigint &operator<<=(const bigint &_x){
-		assert(0 <= _x && _x <= numeric_limits<int>::max());
+		ASSERT(0 <= _x && _x <= numeric_limits<int>::max());
 		int x = int(_x);
 		if(x == 0) return *this;
 		data.insert(data.begin(), x / 64, T{0});
@@ -479,7 +503,7 @@ COMPARE_OP(==) COMPARE_OP(!=) COMPARE_OP(<) COMPARE_OP(<=) COMPARE_OP(>=) COMPAR
 	}
 	template<class U, typename enable_if<is_integral_v<U>>::type* = nullptr>
 	bigint &inplace_power(U e){
-		assert(e >= 0);
+		ASSERT(e >= 0);
 		bigint res(1);
 		for(; e; e >>= 1, *this *= *this) if(e & 1) res *= *this;
 		return *this = res;
@@ -489,7 +513,7 @@ COMPARE_OP(==) COMPARE_OP(!=) COMPARE_OP(<) COMPARE_OP(<=) COMPARE_OP(>=) COMPAR
 		return bigint(*this).inplace_power(e);
 	}
 	static pair<vector<T>, T> small_div(const vector<T> &x, T y){
-		assert(y);
+		ASSERT(y);
 		T_large rem = 0;
 		vector<T> q((int)x.size());
 		for(auto i = (int)x.size() - 1; i >= 0; -- i){
@@ -503,7 +527,7 @@ COMPARE_OP(==) COMPARE_OP(!=) COMPARE_OP(<) COMPARE_OP(<=) COMPARE_OP(>=) COMPAR
 	// Assumes x is non-negative and y is positive
 	// Returns {quotient, remainder} pair
 	static pair<vector<T>, vector<T>> large_div(const vector<T> &x, const vector<T> &y){
-		assert(!y.empty());
+		ASSERT(!y.empty());
 		int m = (int)x.size(), n = (int)y.size();
 		if(m < n) return {{}, x};
 		if(n == 1){
@@ -557,7 +581,7 @@ COMPARE_OP(==) COMPARE_OP(!=) COMPARE_OP(<) COMPARE_OP(<=) COMPARE_OP(>=) COMPAR
 		return {q, r};
 	}
 	friend pair<bigint, bigint> bigint_div(const bigint &x, const bigint &y){
-		assert(y);
+		ASSERT(y);
 		bigint q, r;
 		tie(q.data, r.data) = large_div(abs(x).data, abs(y).data);
 		q.sign = x.sign ^ y.sign;
@@ -639,7 +663,6 @@ BINARY_OP(>>=, >>) BINARY_OP(<<=, <<) BINARY_OP(&=, &) BINARY_OP(|=, |) BINARY_O
 		}
 		return res;
 	}
-#if __cplusplus > 201703L
 	template<ranges::random_access_range R>
 	static bigint sum(R &&r){
 		return sum(r.begin(), r.end());
@@ -648,8 +671,28 @@ BINARY_OP(>>=, >>) BINARY_OP(<<=, <<) BINARY_OP(&=, &) BINARY_OP(|=, |) BINARY_O
 	static bigint product(R &&r){
 		return product(r.begin(), r.end());
 	}
-#endif
+#undef ASSERT
 };
+
+constexpr bigint operator""_big(const char *x){
+	bigint res = 0;
+	long long buffer = 0;
+	long long buffer_width = 1;
+	constexpr long long buffer_th = 1'000'000'000'000'000'000LL;
+	while(*x){
+		#ifdef LOCAL
+		assert(isdigit(*x));
+		#endif
+		buffer = buffer * 10 + (*(x ++) - '0');
+		if((buffer_width *= 10) == buffer_th){
+			res = buffer_width * res + buffer;
+			buffer = 0;
+			buffer_width = 1;
+		}
+	}
+	res = buffer_width * res + buffer;
+	return res;
+}
 ]]></content>
 	<!-- Optional: Set a tabTrigger to define how to trigger the snippet -->
 	<tabTrigger>bigint</tabTrigger> -->
