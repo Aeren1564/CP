@@ -7,7 +7,14 @@ private:
 	vector<int> val, comp, z;
 public:
 	vector<int> value;
-	two_sat_solver(int n = 0): n(n), adj(n << 1){ }
+	int comp_cnt;
+	two_sat_solver(){ }
+	two_sat_solver(int n){ build(n); }
+	void build(int n){
+		assert(n >= 0);
+		this->n = n;
+		adj.assign(n << 1, {});
+	}
 	int add_variable(){
 		adj.emplace_back();
 		adj.emplace_back();
@@ -28,7 +35,7 @@ public:
 	void differs(int u, int v){
 		either(u, v), either(~u, ~v);
 	}
-	void set_value(int u, bool x = true){
+	void set_value(int u, bool x){
 		x ? either(u, u) : either(~u, ~u);
 	}
 	void at_most_one(const vector<int> &arr){
@@ -41,30 +48,29 @@ public:
 		}
 		either(cur, ~arr[1]);
 	}
-	int time, comp_cnt;
-	int dfs(int u){
-		int low = val[u] = ++ time, v;
-		z.push_back(u);
-		for(auto v: adj[u]) if(!~comp[v]) low = min(low, val[v] ?: dfs(v));
-		++ time;
-		if(low == val[u]){
-			do{
-				v = z.back();
-				z.pop_back();
-				comp[v] = comp_cnt;
-				if(value[v >> 1] == -1) value[v >> 1] = v & 1;
-			}while(v != u);
-			comp_cnt ++;
-		}
-		return val[u] = low;
-	}
 	// O(n)
 	bool solve(){
 		value.assign(n, -1);
 		val.assign(2 * n, 0);
 		comp.assign(2 * n, -1);
-		time = comp_cnt = 0;
-		for(auto u = 0; u < n << 1; ++ u) if(!~comp[u]) dfs(u);
+		int time = comp_cnt = 0;
+		auto dfs = [&](auto self, int u)->int{
+			int low = val[u] = ++ time, v;
+			z.push_back(u);
+			for(auto v: adj[u]) if(!~comp[v]) low = min(low, val[v] ?: self(self, v));
+			++ time;
+			if(low == val[u]){
+				do{
+					v = z.back();
+					z.pop_back();
+					comp[v] = comp_cnt;
+					if(value[v >> 1] == -1) value[v >> 1] = v & 1;
+				}while(v != u);
+				comp_cnt ++;
+			}
+			return val[u] = low;
+		};
+		for(auto u = 0; u < n << 1; ++ u) if(!~comp[u]) dfs(dfs, u);
 		for(auto u = 0; u < n; ++ u) if(comp[u << 1] == comp[u << 1 ^ 1]) return false;
 		return true;
 	}
