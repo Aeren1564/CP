@@ -3,6 +3,7 @@
 // Internally, the numbers are stored in binary in little endian order.
 // Negative numbers are assumed to have infinite leading ones, represented in two's complement.
 // No leading ~0 allowed for negative numbers, and no leading 0 allowed for non-negative numbers. This ensures that each integer has a unique representation.
+#include <x86intrin.h>
 struct bigint{
 #ifdef LOCAL
 	#define ASSERT(x) assert(x)
@@ -66,7 +67,7 @@ struct bigint{
 		}
 		return z;
 	}
-	template<int karatsuba_threshold = 90>
+	template<int karatsuba_threshold = 40>
 	static vector<T> _karatsuba_multiplication(const vector<T> &x, const vector<T> &y){
 		int n = (int)x.size(), m = (int)y.size();
 		if(min(n, m) <= karatsuba_threshold) return _naive_multiplication(x, y);
@@ -224,24 +225,33 @@ struct bigint{
 		for(auto y = x; y; y /= base) v.push_back(y % base);
 		return {0, v};
 	}
+	static vector<T> _chunk;
+	static vector<int> _width;
+	static vector<vector<bigint>> _power;
 	// MSB at s.front()
 	static bigint from_string(const string &s, unsigned int base = 10){
-		ASSERT(2 <= base && base < 36 && !s.empty());
+		ASSERT(2 <= base && base <= 36 && !s.empty());
 		if(s == "0") return bigint{};
 		if(s.front() == '+') return from_string(s.substr(1));
 		if(s.front() == '-') return -from_string(s.substr(1));
-		T chunk = 1;
-		int width = 0;
-		while(!__builtin_mul_overflow_p(chunk, base, T{0})){
-			chunk *= base;
-			++ width;
+		while(!__builtin_mul_overflow_p(_chunk[base], base, T{0})){
+			_chunk[base] *= base;
+			++ _width[base];
 		}
-		bigint res;
-		for(auto r = (int)s.size() % width; r <= (int)s.size(); r += width){
-			int l = max(0, r - width);
-			res = chunk * res + stoull(s.substr(max(0, r - width), r - l), nullptr, base);
+		vector<T> a;
+		for(auto r = (int)s.size() % _width[base]; r <= (int)s.size(); r += _width[base]){
+			int l = max(0, r - _width[base]);
+			a.push_back(stoull(s.substr(max(0, r - _width[base]), r - l), nullptr, base));
 		}
-		return res;
+		ASSERT(!a.empty());
+		auto convert = [&](auto self, int l, int r)->bigint{
+			if(r - l == 1) return a[l];
+			int lg = __lg(r - l - 1);
+			if(_power[base].empty()) _power[base] = {bigint{_chunk[base]}};
+			while((int)_power[base].size() <= lg) _power[base].push_back(_power[base].back() * _power[base].back());
+			return self(self, l, r - (1 << lg)) * _power[base][lg] + self(self, r - (1 << lg), r);
+		};
+		return convert(convert, 0, (int)a.size());
 	}
 	friend istream &operator>>(istream &in, bigint &x){
 		string s;
@@ -251,21 +261,19 @@ struct bigint{
 	}
 	// MSB at front()
 	friend string to_string(const bigint &x, unsigned int base = 10){
-		ASSERT(base >= 2);
+		ASSERT(2 <= base && base <= 36);
 		if(!x) return "0";
 		if(x < 0) return '-' + to_string(-x, base);
-		string s;
-		T chunk = 1;
-		int width = 0;
-		while(!__builtin_mul_overflow_p(chunk, base, T{0})){
-			chunk *= base;
-			++ width;
+		while(!__builtin_mul_overflow_p(_chunk[base], base, T{0})){
+			_chunk[base] *= base;
+			++ _width[base];
 		}
+		string s;
 		for(auto y = x; y; ){
-			auto [q, r] = bigint_div(y, chunk);
-			string delta(width, '?');
+			auto [q, r] = bigint_div(y, _chunk[base]);
+			string delta(_width[base], '?');
 			delta.resize(to_chars(delta.data(), delta.data() + delta.size(), T{r}).ptr - delta.data());
-			if((int)delta.size() < width && q) delta = string(width - (int)delta.size(), '0') + delta;
+			if((int)delta.size() < _width[base] && q) delta = string(_width[base] - (int)delta.size(), '0') + delta;
 			reverse(delta.begin(), delta.end());
 			s += delta;
 			y = q;
@@ -504,11 +512,11 @@ COMPARE_OP(==) COMPARE_OP(!=) COMPARE_OP(<) COMPARE_OP(<=) COMPARE_OP(>=) COMPAR
 		for(auto j = m - n; j >= 0; -- j){
 			qhat = (xn[j + n] * base + xn[j + n - 1]) / yn[n - 1];
 			rhat = (xn[j + n] * base + xn[j + n - 1]) % yn[n - 1];
-			FLAG:
+			_BIGINT_LARGE_DIV_FLAG:
 			if(qhat >= base || (T)qhat * (T_large)yn[n - 2] > base * rhat + xn[j + n - 2]){
 				-- qhat;
 				rhat += yn[n - 1];
-				if(rhat < base) goto FLAG;
+				if(rhat < base) goto _BIGINT_LARGE_DIV_FLAG;
 			}
 			k = 0;
 			for(auto i = 0; i < n; ++ i){
@@ -630,6 +638,9 @@ BINARY_OP(>>=, >>) BINARY_OP(<<=, <<) BINARY_OP(&=, &) BINARY_OP(|=, |) BINARY_O
 	}
 #undef ASSERT
 };
+vector<unsigned long long> bigint::_chunk = vector(37, 1ULL);
+vector<int> bigint::_width = vector(37, 0);
+vector<vector<bigint>> bigint::_power = vector<vector<bigint>>(37);
 
 constexpr bigint operator""_big(const char *x){
 	bigint res = 0;
