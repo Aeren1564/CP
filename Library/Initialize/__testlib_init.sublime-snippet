@@ -3,7 +3,6 @@
 // #pragma GCC target("avx2,bmi2,popcnt,lzcnt")
 // #pragma GCC optimize("O3,unroll-loops")
 #include <bits/stdc++.h>
-// #include <x86intrin.h>
 #include "testlib.h"
 using namespace std;
 using namespace numbers;
