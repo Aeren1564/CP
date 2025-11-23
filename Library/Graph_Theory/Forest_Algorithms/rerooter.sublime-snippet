@@ -3,7 +3,7 @@
 // Requires graph
 template<class T, class F, class FV, class FE>
 struct rerooter_base{
-	int n, attempt;
+	int n;
 	// Given a tree T rooted at r, let f(T) be the value at dp[r] after the following process
 	// For each vertex u in reversed dfs order, set dp[u] = T_init
 	// For each child v of u with edge id, set dp[u] = rake(dp[u], apply_edge(id, f[v]))
@@ -28,25 +28,25 @@ struct rerooter_base{
 	FV apply_vertex; // point cluster -> path cluster
 	FE apply_edge; // path cluster -> point cluster
 	rerooter_base(T T_init, F rake, FV apply_vertex, FE apply_edge): T_init(T_init), rake(rake), apply_vertex(apply_vertex), apply_edge(apply_edge){ }
-	void init(int n){
+	void _init(int n){
 		this->n = n;
-		dp_subtr_no_root.assign(n, T_init);
-		dp_subtr.assign(n, T_init);
-		dp_compl_no_root.assign(n, T_init);
-		dp_compl.assign(n, T_init);
-		dp.assign(n, T_init);
-		pv.assign(n, -1);
-		pe.assign(n, -1);
+		dp_subtr_no_root.resize(n, T_init);
+		dp_subtr.resize(n, T_init);
+		dp_compl_no_root.resize(n, T_init);
+		dp_compl.resize(n, T_init);
+		dp.resize(n, T_init);
+		pv.resize(n, -1);
+		pe.resize(n, -1);
 		order.clear();
-		size.assign(n, 0);
-		root_of.assign(n, -1);
+		size.resize(n, 0);
+		root_of.resize(n, -1);
 		root.clear();
-		was.assign(n, -2);
-		attempt = -1;
+		was.resize(n, -2);
 	}
+	int attempt = -1;
 	// O(n) apply_vertex() and apply_edge() calls where n is the number of nodes in the component of u
 	template<class U>
-	void _dfs(const graph<U> &g, int u){
+	void _build(const graph<U> &g, int u){
 		int init_size = (int)order.size();
 		pv[u] = pe[u] = -1;
 		root_of[u] = u;
@@ -94,24 +94,23 @@ struct rerooter_base{
 		}
 	}
 	template<class U>
-	void dfs(const graph<U> &g, const vector<int> &src){
-		assert(g.n <= n);
+	void build(const graph<U> &g, const vector<int> &src){
+		_init(g.n);
 		++ attempt;
-		root.clear(), order.clear();
 		for(auto u: src){
 			assert(0 <= u && u < g.n);
-			if(was[u] != attempt) _dfs(g, u);
+			if(was[u] != attempt) _build(g, u);
 		}
 	}
 	// O(n + m)
 	template<class U>
-	void dfs_all(const graph<U> &g){
+	void build_all(const graph<U> &g){
+		_init(g.n);
 		assert(g.n <= n);
 		++ attempt;
-		root.clear(), order.clear();
-		for(auto u = 0; u < g.n; ++ u) if(was[u] != attempt) _dfs(g, u);
+		for(auto u = 0; u < g.n; ++ u) if(was[u] != attempt) _build(g, u);
 	}
-	// Check if u is visited during the last dfs-like call.
+	// Check if u is visited during the last build-like call.
 	bool visited(int u) const{
 		assert(0 <= u && u < n);
 		return was[u] == attempt;
