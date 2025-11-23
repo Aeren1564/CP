@@ -1,0 +1,54 @@
+<snippet>
+	<content><![CDATA[
+struct grid_traverser_base{
+#ifdef LOCAL
+	#define ASSERT(x) assert(x)
+#else
+	#define ASSERT(X) 42
+#endif
+	vector<pair<int, int>> dr;
+	grid_traverser_base(int low, int high){
+		ASSERT(0 <= low && low <= high);
+		int th = 1;
+		while((th + 1) * (th + 1) <= high) ++ th;
+		for(auto x = -th; x <= th; ++ x) for(auto y = -th; y <= th; ++ y) if(auto d = x * x + y * y; low <= d && d <= high) dr.push_back({x, y});
+	}
+	grid_traverser_base(const vector<pair<int, int>> &dr): dr(dr){ }
+	pair<int, int> next(int x, int y, int di) const{
+		ASSERT(0 <= di && di < (int)dr.size());
+		return pair{x + dr[di].first, y + dr[di].second};
+	}
+	auto neighbor(int x, int y) const{
+		return dr | views::transform([=](auto d){ return pair{x + d.first, y + d.second}; });
+	}
+#undef ASSERT
+};
+// sqrt(low) <= dist <= sqrt(high)
+auto make_grid_traverser(int low, int high){
+	return grid_traverser_base(low, high);
+}
+auto make_grid_traverser_DR(){
+	return grid_traverser_base({{1, 0}, {0, 1}});
+}
+// dist = 1
+auto make_grid_traverser_DRUL(){
+	return grid_traverser_base({{1, 0}, {0, 1}, {-1, 0}, {0, -1}});
+}
+// dist = sqrt2
+auto make_grid_traverser_diag(){
+	return grid_traverser_base({{1, 1}, {-1, 1}, {-1, -1}, {1, -1}});
+}
+// 1 <= dist <= sqrt2
+auto make_grid_traverser_king(){
+	return grid_traverser_base({{1, 0}, {1, 1}, {0, 1}, {-1, 1}, {-1, 0}, {-1, -1}, {0, -1}, {1, -1}});
+}
+// dist sqrt5
+auto make_grid_traverser_knight(){
+	return grid_traverser_base({{2, 1}, {1, 2}, {-1, 2}, {-2, 1}, {-2, -1}, {-1, -2}, {1, -2}, {2, -1}});
+}
+]]></content>
+	<!-- Optional: Set a tabTrigger to define how to trigger the snippet -->
+	<tabTrigger>grid_traverser</tabTrigger> -->
+	<!-- Optional: Set a scope to limit where the snippet will trigger -->
+	<scope>source.c++</scope> -->
+</snippet>
